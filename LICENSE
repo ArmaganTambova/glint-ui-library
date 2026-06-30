@@ -1,0 +1,60 @@
+Glint UI Library — Strict Proprietary License
+Copyright (c) 2026 Armağan Tambova. All Rights Reserved.
+
+This software, including but not limited to its source code, compiled code,
+minified bundles, documentation, guides, design assets, stylesheets, markup,
+configuration, build tooling, and all related materials (collectively, the
+"Software"), is the exclusive property of Armağan Tambova (the "Author") and
+is protected by copyright and other intellectual property laws and treaties.
+
+1. ALL RIGHTS RESERVED.
+   No part of the Software may be used, copied, reproduced, installed, run,
+   executed, modified, adapted, translated, merged, incorporated, published,
+   distributed, sublicensed, sold, rented, leased, lent, publicly displayed,
+   publicly performed, communicated, or transmitted in any form or by any
+   means, in whole or in part, without the PRIOR EXPRESS WRITTEN PERMISSION of
+   the Author obtained in advance for each specific use.
+
+2. NO USE OF ANY KIND WITHOUT PERMISSION.
+   Without limiting Section 1, NO use of the Software for ANY purpose whatsoever
+   is permitted without the prior written permission of the Author. This
+   prohibition expressly includes, but is not limited to:
+     (a) commercial use of any kind;
+     (b) non-commercial, personal, private, or hobby use;
+     (c) educational, academic, instructional, classroom, course, thesis,
+         tutorial, or learning use;
+     (d) training, fine-tuning, evaluating, benchmarking, or developing any
+         artificial intelligence, machine-learning, or similar model, dataset,
+         or system using the Software or any part or derivative thereof;
+     (e) research, evaluation, testing, demonstration, or proof-of-concept use;
+     (f) internal use within any company, organization, institution, or team;
+     (g) use in any open-source or closed-source project; and
+     (h) use in any other field, domain, or context.
+   This applies whether or not any fee is charged and whether the use is public
+   or private.
+
+3. NO IMPLIED RIGHTS.
+   Making this repository publicly visible, or otherwise providing access to the
+   Software, does NOT grant any license, right, or permission. No rights are
+   granted by implication, estoppel, acquiescence, course of conduct, or
+   otherwise. Viewing the Software for the sole purpose of evaluating whether to
+   request a license does not grant any right to use it. Any use not expressly
+   permitted in a signed writing by the Author is strictly prohibited and may
+   violate applicable copyright and other laws.
+
+4. PERMISSION.
+   Any grant of permission, if given at all, is at the Author's sole and
+   absolute discretion, must be in writing, may be limited or revoked at any
+   time, and applies only to the specific person, purpose, scope, and period
+   stated in that writing. Silence or non-response is NOT permission.
+
+5. NO WARRANTY.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION
+   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For licensing inquiries (the only way to obtain any permission), contact:
+    Armağan Tambova — armagantambova@gmail.com

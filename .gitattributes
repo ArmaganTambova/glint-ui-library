@@ -1,0 +1,26 @@
+# Satır sonlarını normalize et: repo içinde LF, checkout'ta platform-native.
+# Bu, GitHub'da satır-sonu kaynaklı sahte diff/"tüm dosya değişti" gürültüsünü önler.
+* text=auto
+
+# Metin kaynakları (repo'da LF)
+*.js    text eol=lf
+*.mjs   text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.txt   text eol=lf
+
+# Windows batch script CRLF kalmalı (cmd.exe LF ile sorun çıkarabilir)
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+
+# İkili varlıklar (varsa) — dönüştürme yapma
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary

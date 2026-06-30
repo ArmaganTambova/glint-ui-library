@@ -1,0 +1,67 @@
+# OS / system files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.claude
+ehthumbs.db
+Thumbs.db
+Thumbs.db:encryptable
+desktop.ini
+$RECYCLE.BIN/
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+*.swp
+*.swo
+*~
+.history/
+
+# Node / package managers (ileride araç/derleme eklenirse)
+node_modules/
+jspm_packages/
+.npm/
+.pnpm-store/
+.yarn/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Derlenen artefaktlar (build ARAÇLARI repo'da kalır; yalnız çıktılar hariç).
+# `dist/` deseni build/dist/ klasörünü de kapsar → minify çıktıları izlenmez.
+dist/
+out/
+*.min.js
+*.min.css
+*.min.js.map
+*.min.css.map
+
+# Ortam değişkenleri / gizli bilgiler
+.env
+.env.*
+!.env.example
+*.local
+
+# Loglar & geçici dosyalar
+logs/
+*.log
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+tmp/
+
+# Test / coverage çıktıları
+coverage/
+.nyc_output/
+
+# Yapay zekâ asistanı / yerel araç artıkları (repo dışı tutulur)
+.claude/
+scratchpad/
+src-backup/

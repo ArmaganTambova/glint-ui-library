@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Glint · Mobil Önizleme</title>
+
+<!-- Glint kütüphaneleri (sıfır bağımlılık) -->
+<link rel="stylesheet" href="glint-input.css">
+<!-- Köprü/toast demosu (opsiyonel ikinci paket) -->
+<link rel="stylesheet" href="../glint-toast-library/glint-toast.css">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ── Mobil demo kabuğu (hem iframe içinde hem gerçek telefonda) ── */
+:root {
+    --accent: #10b981;
+    --bg: #080b0f;
+    --bg-2: #0c1015;
+    --panel: #11161c;
+    --ink: #e9eef3;
+    --ink-2: #9aa6b2;
+    --ink-3: #616d7a;
+    --line: #1f262e;
+    --bs-primary: #059669;
+    --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+    --font-body: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+    background:
+        radial-gradient(120% 80% at 50% -10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+        var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) 0 calc(28px + env(safe-area-inset-bottom));
+}
+
+/* App-bar (sticky) */
+.appbar {
+    position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: center; gap: 11px;
+    padding: 14px 18px;
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    backdrop-filter: blur(14px) saturate(160%);
+    border-bottom: 1px solid var(--line);
+}
+.appbar__mark {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: radial-gradient(120% 120% at 25% 15%, #5eead4, var(--bs-primary));
+    box-shadow: 0 0 0 1px rgba(16,185,129,.3), 0 6px 16px -6px var(--accent);
+}
+.appbar__name { font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; letter-spacing: -0.02em; }
+.appbar__tag { margin-left: auto; font-size: .62rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ink-3); border: 1px solid var(--line); border-radius: 99px; padding: 4px 9px; }
+
+.scroll { padding: 18px 16px 0; max-width: 460px; margin: 0 auto; }
+
+.lead { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; letter-spacing: -0.025em; margin: 6px 0 2px; line-height: 1.12; }
+.lead .g { color: var(--accent); }
+.sub { color: var(--ink-2); font-size: .92rem; margin: 0 0 20px; }
+
+.card {
+    --glint-label-bg: var(--panel);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px 16px;
+    margin-bottom: 16px;
+}
+.card > h2 {
+    font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-3); margin: 0 0 16px;
+    display: flex; align-items: center; gap: 8px;
+}
+.card > h2::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+.stack { display: flex; flex-direction: column; gap: 20px; }
+.stack--tight { gap: 13px; }
+.rowwrap { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.mbtn {
+    font: inherit; font-weight: 600; font-size: .9rem;
+    width: 100%; padding: 13px 18px; border-radius: 11px; cursor: pointer;
+    border: 1px solid transparent; background: var(--bs-primary); color: #fff;
+    transition: transform .14s cubic-bezier(.22,1,.36,1), filter .18s;
+}
+.mbtn:active { transform: scale(.98); }
+.mbtn--ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.hint { color: var(--ink-3); font-size: .8rem; margin: 14px 4px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<header class="appbar">
+    <span class="appbar__mark"></span>
+    <span class="appbar__name">Glint</span>
+    <span class="appbar__tag">Mobil</span>
+</header>
+
+<main class="scroll">
+    <h1 class="lead">Mobilde de <span class="g">canlı</span>.</h1>
+    <p class="sub">Gerçek bir telefonda dene: alanlara dokun, tarih seçiciyi aç (alttan bottom-sheet gelir), kaydır, yaz.</p>
+
+    <!-- Form alanları -->
+    <section class="card">
+        <h2>Form alanları</h2>
+        <div class="stack">
+            <div class="glint-input-group">
+                <input class="glint-input" id="m-email" type="email" value="ada@glint.dev">
+                <label class="glint-label" for="m-email">E-posta</label>
+            </div>
+            <div class="glint-input-group" data-glint-strength>
+                <input class="glint-input" id="m-pw" type="password" value="Gl1nt!2026">
+                <label class="glint-label" for="m-pw">Şifre · güç + göster/gizle</label>
+            </div>
+            <div class="glint-input-group" data-glint-group-thousands>
+                <input class="glint-input" id="m-amount" inputmode="numeric" value="1250000">
+                <label class="glint-label" for="m-amount">Tutar · binlik ayraç</label>
+            </div>
+            <div class="glint-input-group">
+                <textarea class="glint-input" id="m-note">Auto-grow textarea.</textarea>
+                <label class="glint-label" for="m-note">Not</label>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tarih & saat (mobilde bottom-sheet) -->
+    <section class="card">
+        <h2>Tarih & saat — bottom-sheet</h2>
+        <div class="stack">
+            <div class="glint-input-group">
+                <input type="date" class="glint-input" id="m-date">
+                <label class="glint-label" for="m-date">Tarih</label>
+            </div>
+            <div class="glint-input-group">
+                <input type="date" class="glint-input" id="m-range" data-range data-presets="today,last7,last30">
+                <label class="glint-label" for="m-range">Aralık + hazır seçenekler</label>
+            </div>
+            <div class="glint-input-group">
+                <input type="time" class="glint-input" id="m-time" data-hour-cycle="12">
+                <label class="glint-label" for="m-time">Saat · 12h</label>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seçim -->
+    <section class="card">
+        <h2>Seçim</h2>
+        <div class="stack">
+            <div class="glint-select-group">
+                <select class="glint-select" id="m-city">
+                    <option value="">Seçiniz</option>
+                    <option value="34">İstanbul</option>
+                    <option value="06">Ankara</option>
+                    <option value="35">İzmir</option>
+                    <option value="16">Bursa</option>
+                    <option value="07">Antalya</option>
+                </select>
+                <label class="glint-label" for="m-city">Şehir · aranabilir</label>
+            </div>
+            <div class="glint-tags" data-name="m-tags" data-max="6"
+                 data-suggest="JavaScript,TypeScript,Python,Razor,C#,SQL,Go"
+                 data-value="vanilla,glint" data-placeholder="Etiket ekle..."></div>
+            <div class="glint-otp" data-length="6" data-type="number" data-name="m-otp" data-group="3" aria-label="Doğrulama kodu"></div>
+        </div>
+    </section>
+
+    <!-- Kontroller -->
+    <section class="card">
+        <h2>Kontroller</h2>
+        <div class="stack stack--tight">
+            <div class="glint-segmented" role="radiogroup" aria-label="Görünüm" style="width:100%">
+                <label class="glint-seg-option"><input type="radio" class="glint-seg-input" name="m-view" value="l" checked><span class="glint-seg-label">Liste</span></label>
+                <label class="glint-seg-option"><input type="radio" class="glint-seg-input" name="m-view" value="g"><span class="glint-seg-label">Izgara</span></label>
+                <label class="glint-seg-option"><input type="radio" class="glint-seg-input" name="m-view" value="k"><span class="glint-seg-label">Kart</span></label>
+            </div>
+            <label class="glint-switch" data-icons>
+                <input type="checkbox" class="glint-switch-input" checked>
+                <span class="glint-switch-track"><span class="glint-switch-thumb"></span></span>
+                <span class="glint-switch-text">Bildirimler</span>
+            </label>
+            <label class="glint-checkbox-label glint-checkbox-label--card">
+                <input type="checkbox" class="glint-checkbox" checked>
+                <span><b>Şartları kabul ediyorum</b><br><small style="color:var(--ink-3)">Sözleşme ve gizlilik</small></span>
+            </label>
+            <div class="glint-rating" data-value="3.5" data-max="5" data-allow-half="true" data-name="m-rating" aria-label="Puan"></div>
+            <div style="padding-top:8px"><input type="range" class="glint-slider" min="0" max="100" value="60" aria-label="Ses"></div>
+        </div>
+    </section>
+
+    <!-- Dosya & toast -->
+    <section class="card">
+        <h2>Dosya & bildirim</h2>
+        <div class="stack">
+            <input type="file" class="glint-upload" accept="image/*" data-max-files="3">
+            <button class="mbtn" id="m-toast" type="button">Toast bildirimi göster</button>
+            <button class="mbtn mbtn--ghost" id="m-err" type="button">Alan hatası (köprü)</button>
+        </div>
+    </section>
+
+    <p class="hint">Glint UI Kit <span class="glint-ver">v1.5.0</span> · sıfır bağımlılık · MVC uyumlu</p>
+</main>
+
+<script src="glint-input.js"></script>
+<script src="../glint-toast-library/glint-toast.js"></script>
+<script>
+(function () {
+    var _gv = (window.Glint && window.Glint.version) ? "v" + window.Glint.version : "";
+    if (_gv) document.querySelectorAll(".glint-ver").forEach(function (e) { e.textContent = _gv; });
+    var t = document.getElementById('m-toast');
+    if (t) t.addEventListener('click', function () {
+        if (window.Glint && Glint.Toast) Glint.Toast.success('Kaydedildi! Mobilde de pürüzsüz.');
+    });
+    var e = document.getElementById('m-err');
+    if (e) e.addEventListener('click', function () {
+        if (window.Glint && Glint.Toast) {
+            Glint.configure({ fieldErrors: 'smart' });
+            Glint.Toast.error('Geçerli bir e-posta girin.', 'm-email');
+            Glint.Toast.error('Bağlantı hatası — tekrar dene.');
+        }
+    });
+})();
+</script>
+</body>
+</html>
