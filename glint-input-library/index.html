@@ -10,15 +10,12 @@
 <!-- Köprü demosu için (opsiyonel ikinci paket) -->
 <link rel="stylesheet" href="../glint-toast-library/glint-toast.css">
 
-<!-- Ayırt edici tipografi -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-
 <style>
 /* ════════════════════════════════════════════════════════════════
-   GLINT REHBER · sayfa kabuğu (yalnızca bu doküman)
-   Aesthetic: rafine dark-tech / precision-instrument
+   GLINT REHBER · ORTAK sayfa kabuğu (v1.6)
+   glint-input ve glint-toast index'lerinde BİREBİR AYNI <style>.
+   Aesthetic: rafine dark-tech / precision-instrument.
+   Sıfır bağımlılık: CDN yok, web fontu yok — sistem font yığını.
    Aksan --accent hem sayfaya hem kütüphaneye (--bs-primary) gider.
    ════════════════════════════════════════════════════════════════ */
 
@@ -49,9 +46,12 @@
     --maxw: 880px;
     --nav-h: 64px;
 
-    --font-display: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
-    --font-body: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+    /* Sistem font yığını — web fontu / CDN bilinçli olarak YOK */
+    --font-display: system-ui, -apple-system, "Segoe UI Variable Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-body: system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", "Cascadia Mono", "SF Mono", Consolas, Menlo, monospace;
+
+    color-scheme: light;
 
     /* Kütüphaneye aksanı aktar */
     --bs-primary: #059669;
@@ -71,6 +71,7 @@
     --code-ink: #d7e0ea;
     --code-faint: #5d6b7c;
     --accent-soft: rgba(16, 185, 129, 0.14);
+    color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -320,7 +321,15 @@ main { flex: 1; min-width: 0; padding: 0 30px; position: relative; z-index: 2; }
 /* ─── Bölümler ─────────────────────────────────────────────── */
 section.sec { padding-top: 72px; scroll-margin-top: calc(var(--nav-h) + 16px); }
 .sec-head { margin-bottom: 26px; }
-.sec-kicker { font-family: var(--font-mono); font-size: 0.76rem; color: var(--accent); letter-spacing: 0.06em; }
+.sec-kicker {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600;
+    color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase;
+}
+.sec-kicker::before {
+    content: ""; width: 26px; height: 1px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+}
 .sec-head h2 {
     font-family: var(--font-display); font-weight: 700;
     font-size: clamp(1.7rem, 3.2vw, 2.2rem); letter-spacing: -0.025em;
@@ -338,9 +347,10 @@ h3.h3 { font-family: var(--font-display); font-size: 1.22rem; font-weight: 700; 
 h4.h4 { font-size: 0.95rem; font-weight: 700; margin: 26px 0 8px; color: var(--ink); }
 .sec p { color: var(--ink); }
 .muted { color: var(--ink-2); }
-.sec ul { color: var(--ink); padding-left: 20px; }
-.sec ul li { margin: 5px 0; }
-.sec ul li::marker { color: var(--accent); }
+/* Yalnız düz doküman listeleri — bileşenlerin sınıflı UL'lerine sızmaz */
+.sec ul:not([class]) { color: var(--ink); padding-left: 20px; }
+.sec ul:not([class]) li { margin: 5px 0; }
+.sec ul:not([class]) li::marker { color: var(--accent); }
 
 /* ─── Not kutuları ─────────────────────────────────────────── */
 .note {
@@ -349,6 +359,8 @@ h4.h4 { font-size: 0.95rem; font-weight: 700; margin: 26px 0 8px; color: var(--i
     background: var(--panel-2);
 }
 .note svg { width: 19px; height: 19px; flex-shrink: 0; margin-top: 2px; color: var(--accent); }
+/* İkonsuz (yalın metin) notlar: flex, satır içi parçaları tek sıraya dizer → blok akışına dön */
+.note:not(:has(> svg)) { display: block; }
 .note--warn { border-color: color-mix(in srgb, #f59e0b 40%, transparent); background: color-mix(in srgb, #f59e0b 9%, var(--panel-2)); }
 .note--warn svg { color: #f59e0b; }
 .note code { font-family: var(--font-mono); font-size: 0.84em; background: color-mix(in srgb, var(--ink) 9%, transparent); padding: 1px 6px; border-radius: 5px; }
@@ -412,7 +424,11 @@ h4.h4 { font-size: 0.95rem; font-weight: 700; margin: 26px 0 8px; color: var(--i
     display: block; padding: 17px 19px; overflow-x: auto;
     font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.62;
     color: var(--code-ink); white-space: pre; tab-size: 2;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent;
 }
+.pane code::-webkit-scrollbar { height: 8px; }
+.pane code::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 99px; }
+.pane code::-webkit-scrollbar-track { background: transparent; }
 
 /* ─── Demo butonları ───────────────────────────────────────── */
 .dbtn {
@@ -424,6 +440,27 @@ h4.h4 { font-size: 0.95rem; font-weight: 700; margin: 26px 0 8px; color: var(--i
 .dbtn:hover { filter: brightness(1.08); }
 .dbtn:active { transform: scale(0.96); }
 .dbtn--ghost { background: transparent; color: var(--accent); }
+
+/* Kabuk kontrollerinde görünür klavye odağı (bileşen içleri kendi halkasını taşır) */
+.iconbtn:focus-visible, .swatch:focus-visible, .tab:focus-visible, .copy:focus-visible,
+.dbtn:focus-visible, .btn:focus-visible, .nav-group a:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+/* ─── Renk örneği rozetleri (özelleştirme bölümleri) ───────── */
+.t-swatch-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.t-swatch {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-2);
+    border: 1px solid var(--line); border-radius: 99px; padding: 5px 12px;
+    background: var(--panel);
+}
+.t-swatch i {
+    width: 10px; height: 10px; border-radius: 3px;
+    background: var(--_toast-accent, var(--accent));
+    box-shadow: 0 0 8px rgba(var(--_glow-rgb, 16, 185, 129), 0.55);
+}
+.t-btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 12px; }
 
 /* ─── Özellik bento ────────────────────────────────────────── */
 .bento { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 26px; }
@@ -446,6 +483,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 .tbl td code, .sec p code, .sec li code { font-family: var(--font-mono); font-size: 0.82em; }
 .tbl td code { background: var(--accent-soft); color: var(--accent); padding: 2px 6px; border-radius: 5px; white-space: nowrap; }
 .sec p code, .sec li code, h4.h4 code { background: color-mix(in srgb, var(--ink) 8%, transparent); padding: 1px 6px; border-radius: 5px; color: var(--ink); }
+/* Uzun tek-parça kod token'ları (data-presets="..." gibi) dar ekranda taşmasın */
+.sec p code, .sec li code, .note code, .sec h3 code { overflow-wrap: anywhere; }
 
 /* ─── Footer ───────────────────────────────────────────────── */
 .foot { margin-top: 90px; padding: 30px 0 120px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 0.88rem; }
@@ -477,6 +516,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
     .hero-stats { gap: 22px; }
     .bento { grid-template-columns: 1fr; }
     .bento .cell.wide { grid-column: span 1; }
+    /* Dar ekranda 6 hücreli OTP demoları taşmasın */
+    .preview .glint-otp { --glint-otp-size: 40px; --glint-otp-gap: 6px; --glint-otp-font-size: 18px; }
 }
 
 /* ─── Mobil önizleme (telefon çerçevesi) ───────────────────── */
@@ -559,11 +600,16 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
             <div class="nav-group">
                 <span>Bileşenler</span>
                 <a href="#input">Glint Input</a>
+                <a href="#phone">Telefon</a>
+                <a href="#email">E-posta yardımcıları</a>
                 <a href="#checkbox">Glint Checkbox</a>
                 <a href="#picker">Glint Picker</a>
                 <a href="#controls">Kontroller</a>
                 <a href="#select">Select &amp; Etiketler</a>
                 <a href="#fields">Gelişmiş Alanlar</a>
+                <a href="#combobox">Combobox</a>
+                <a href="#card">Kredi Kartı</a>
+                <a href="#form">Form orkestratörü</a>
                 <a href="#slider">Slider</a>
                 <a href="#upload">Dosya Yükleme</a>
                 <a href="#color">Color Picker</a>
@@ -601,7 +647,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
                         <a href="#input" class="btn btn--ghost">Bileşenleri gör</a>
                     </div>
                     <div class="hero-stats">
-                        <div><b>16+</b><span>bileşen</span></div>
+                        <div><b>20+</b><span>bileşen</span></div>
                         <div><b>0</b><span>bağımlılık</span></div>
                         <div><b>MVC</b><span>asp-for uyumlu</span></div>
                     </div>
@@ -680,7 +726,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
             <!-- ══════════════ KURULUM ══════════════ -->
             <section class="sec reveal" id="kurulum">
                 <div class="sec-head"><span class="sec-kicker">01</span><h2>Kurulum</h2></div>
-                <p class="intro">Sadece <b>iki dosya</b>: <code>glint-input.css</code> ve <code>glint-input.js</code>. CSS'i <code>&lt;head&gt;</code>'e, JS'i sayfa sonuna ya da <code>&lt;head&gt;</code>'e koy. Harici bağımlılık yoktur. Tüm bileşenler (input, checkbox, kontroller, select, alanlar, slider, upload, color, picker) tek pakettedir.</p>
+                <p class="intro">Sadece <b>iki dosya</b>: <code>glint-input.css</code> ve <code>glint-input.js</code>. CSS'i <code>&lt;head&gt;</code>'e, JS'i sayfa sonuna ya da <code>&lt;head&gt;</code>'e koy. Harici bağımlılık yoktur. Tüm bileşenler (input, telefon, e-posta yardımcıları, checkbox, kontroller, select, alanlar, combobox, kart, form, slider, upload, color, picker) tek pakettedir.</p>
 
                 <div class="note">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7v8l10-12h-7z"/></svg>
@@ -815,38 +861,28 @@ document.getElementById('pwTg').addEventListener('click', () =&gt; {
 
                 <!-- Temizle -->
                 <h3 class="h3">Temizle butonu (değer varken görünür)</h3>
-                <p class="muted">Butona <code>.glint-field__action--clear</code> eklersen alan boşken gizlenir, değer girilince yumuşakça belirir. Değeri animasyonlu silmek için önce <code>beforeinput</code>, sonra <code>input</code> olayını tetikle.</p>
+                <p class="muted">Gruba <code>data-glint-clearable</code> eklemen yeterli: Glint sağa bir temizle (×) butonu enjekte eder. Buton alan boşken gizlenir, değer girilince yumuşakça belirir; tıklanınca değeri animasyonlu siler, odağı alanda tutar ve <code>input</code> olayını tetikler. Elle buton yazmak ya da JS bağlamak gerekmez.</p>
                 <div class="example">
                     <div class="preview">
                         <div class="preview__tag"><b></b> Canlı önizleme · yaz ve sil</div>
                         <div class="preview-form">
-                            <div class="glint-input-group">
+                            <div class="glint-input-group" data-glint-clearable>
                                 <input class="glint-input" id="in-clear" value="Bunu temizle">
                                 <label class="glint-label" for="in-clear">Arama</label>
-                                <button type="button" class="glint-field__action glint-field__action--clear" id="clrBtn" aria-label="Temizle">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                                </button>
                             </div>
                         </div>
                     </div>
                     <div class="code">
-                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
-                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-input-group"&gt;
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;!-- Tek attribute; × butonu otomatik enjekte edilir --&gt;
+&lt;div class="glint-input-group" data-glint-clearable&gt;
   &lt;input class="glint-input" id="search"&gt;
   &lt;label class="glint-label" for="search"&gt;Arama&lt;/label&gt;
-  &lt;button type="button"
-          class="glint-field__action glint-field__action--clear"
-          id="clrBtn" aria-label="Temizle"&gt;
-    &lt;svg&gt;...çarpı ikonu...&lt;/svg&gt;
-  &lt;/button&gt;
 &lt;/div&gt;</code></pre>
-                        <pre class="pane" data-l="js"><code>const search = document.getElementById('search');
-document.getElementById('clrBtn').addEventListener('click', () =&gt; {
-  search.dispatchEvent(new Event('beforeinput', { bubbles: true, cancelable: true }));
-  search.value = '';
-  search.dispatchEvent(new Event('input', { bubbles: true })); // overlay'i günceller
-  search.focus();
-});</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group" data-glint-clearable&gt;
+  &lt;input asp-for="Query" class="glint-input" /&gt;
+  &lt;label asp-for="Query" class="glint-label"&gt;&lt;/label&gt;
+&lt;/div&gt;</code></pre>
                     </div>
                 </div>
 
@@ -1080,19 +1116,21 @@ Glint.Input.clearError(el);</code></pre>
     <div class="preview__tag"><b></b> Canlı önizleme</div>
     <div class="preview-form">
       <div class="glint-input-group" data-glint-clearable>
-        <input class="glint-input" id="ix-clr" type="search" value="aranacak metin">
+        <input class="glint-input" id="ix-clr" type="text" value="aranacak metin">
         <label class="glint-label" for="ix-clr">Ara</label>
       </div>
     </div>
   </div>
   <div class="code">
     <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
-    <pre class="pane active" data-l="html"><code>&lt;div class="glint-input-group" data-glint-clearable&gt;
-  &lt;input class="glint-input" id="q" type="search"&gt;
+    <pre class="pane active" data-l="html"><code>&lt;!-- İpucu: type="text" kullanın — type="search"ta WebKit'in native × butonu
+     Glint'in temizle butonuyla çakışabilir --&gt;
+&lt;div class="glint-input-group" data-glint-clearable&gt;
+  &lt;input class="glint-input" id="q" type="text"&gt;
   &lt;label class="glint-label" for="q"&gt;Ara&lt;/label&gt;
 &lt;/div&gt;</code></pre>
     <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group" data-glint-clearable&gt;
-  &lt;input asp-for="Query" type="search" class="glint-input" /&gt;
+  &lt;input asp-for="Query" type="text" class="glint-input" /&gt;
   &lt;label asp-for="Query" class="glint-label"&gt;&lt;/label&gt;
 &lt;/div&gt;</code></pre>
   </div>
@@ -1143,9 +1181,9 @@ fld.addEventListener('input', sync); sync();</code></pre>
 </div>
 
 
-<!-- ══════════════ 6) Otomatik inputmode / enterkeyhint ══════════════ -->
-<h3 class="h3" id="ix-inputmode">Otomatik inputmode &amp; enterkeyhint</h3>
-<p class="muted">Glint, input'un <code>type</code> değerine bakıp mobil klavye için doğru <code>inputmode</code>'u <strong>kendiliğinden</strong> ekler — varsa mevcut değer ezilmez. <code>email→email</code>, <code>tel→tel</code>, <code>number→numeric</code>, <code>url→url</code>. Ayrıca gruba <code>data-glint-search</code> verirsen Enter tuşu ipucu <code>enterkeyhint="search"</code> olur.</p>
+<!-- ══════════════ 6) Otomatik inputmode ══════════════ -->
+<h3 class="h3" id="ix-inputmode">Otomatik inputmode</h3>
+<p class="muted">Glint, input'un <code>type</code> değerine bakıp mobil klavye için doğru <code>inputmode</code>'u <strong>kendiliğinden</strong> ekler — varsa mevcut değer ezilmez. <code>email→email</code>, <code>tel→tel</code>, <code>url→url</code>.</p>
 <div class="example">
   <div class="preview">
     <div class="preview__tag"><b></b> Canlı önizleme</div>
@@ -1158,10 +1196,6 @@ fld.addEventListener('input', sync); sync();</code></pre>
         <input class="glint-input" id="ix-im-tel" type="tel" value="0555 000 00 00">
         <label class="glint-label" for="ix-im-tel">Telefon · inputmode=tel</label>
       </div>
-      <div class="glint-input-group" data-glint-search>
-        <input class="glint-input" id="ix-im-search" type="search" value="enter = ara">
-        <label class="glint-label" for="ix-im-search">Ara · enterkeyhint=search</label>
-      </div>
     </div>
   </div>
   <div class="code">
@@ -1172,10 +1206,9 @@ fld.addEventListener('input', sync); sync();</code></pre>
   &lt;label class="glint-label" for="mail"&gt;E-posta&lt;/label&gt;
 &lt;/div&gt;
 
-&lt;!-- Enter tuşu "Ara" ipucu için --&gt;
-&lt;div class="glint-input-group" data-glint-search&gt;
-  &lt;input class="glint-input" id="q" type="search"&gt;
-  &lt;label class="glint-label" for="q"&gt;Ara&lt;/label&gt;
+&lt;div class="glint-input-group"&gt;
+  &lt;input class="glint-input" id="phone" type="tel"&gt;
+  &lt;label class="glint-label" for="phone"&gt;Telefon&lt;/label&gt;
 &lt;/div&gt;</code></pre>
     <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group"&gt;
   &lt;input asp-for="Email" type="email" class="glint-input" /&gt;
@@ -1185,7 +1218,7 @@ fld.addEventListener('input', sync); sync();</code></pre>
 </div>
 <div class="note">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-  <div>Glint var olan <code>inputmode</code> / <code>enterkeyhint</code> değerlerine dokunmaz — yalnız eksikse ekler. İstediğin bir değeri elle yazarak her zaman üzerine yazabilirsin.</div>
+  <div>Glint var olan <code>inputmode</code> değerine dokunmaz — yalnız eksikse ekler. İstediğin bir değeri elle yazarak her zaman üzerine yazabilirsin.</div>
 </div>
             
 <h3 class="h3" id="ixv-strength-scores">Güç göstergesi · tüm skor seviyeleri</h3>
@@ -1292,17 +1325,13 @@ fld.addEventListener('input', sync); sync();</code></pre>
 </div>
 
 
-<!-- ══════════════ V4) Otomatik inputmode · number ve url varyantları ══════════════ -->
-<h3 class="h3" id="ixv-inputmode-more">Otomatik inputmode · <code>number</code> ve <code>url</code></h3>
-<p class="muted">E-posta ve telefonun yanında Glint, kalan iki <code>type</code> için de mobil klavyeyi doğru moda alır: <code>type="number" &rarr; inputmode="numeric"</code> ve <code>type="url" &rarr; inputmode="url"</code>. Var olan bir <code>inputmode</code> değerine asla dokunulmaz — yalnızca eksikse eklenir.</p>
+<!-- ══════════════ V4) Otomatik inputmode · url varyantı ══════════════ -->
+<h3 class="h3" id="ixv-inputmode-more">Otomatik inputmode · <code>url</code></h3>
+<p class="muted">E-posta ve telefonun yanında Glint, <code>type="url"</code> için de mobil klavyeyi doğru moda alır: <code>type="url" &rarr; inputmode="url"</code>. Var olan bir <code>inputmode</code> değerine asla dokunulmaz — yalnızca eksikse eklenir.</p>
 <div class="example">
   <div class="preview">
     <div class="preview__tag"><b></b> Canlı önizleme</div>
     <div class="preview-form">
-      <div class="glint-input-group">
-        <input class="glint-input" id="ixv-im-number" type="number" value="42">
-        <label class="glint-label" for="ixv-im-number">Adet · inputmode=numeric</label>
-      </div>
       <div class="glint-input-group">
         <input class="glint-input" id="ixv-im-url" type="url" value="https://glint.dev">
         <label class="glint-label" for="ixv-im-url">Web sitesi · inputmode=url</label>
@@ -1311,19 +1340,14 @@ fld.addEventListener('input', sync); sync();</code></pre>
   </div>
   <div class="code">
     <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
-    <pre class="pane active" data-l="html"><code>&lt;!-- type'a göre inputmode otomatik: number→numeric, url→url --&gt;
-&lt;div class="glint-input-group"&gt;
-  &lt;input class="glint-input" id="qty" type="number"&gt;
-  &lt;label class="glint-label" for="qty"&gt;Adet&lt;/label&gt;
-&lt;/div&gt;
-
+    <pre class="pane active" data-l="html"><code>&lt;!-- type'a göre inputmode otomatik: url→url --&gt;
 &lt;div class="glint-input-group"&gt;
   &lt;input class="glint-input" id="site" type="url"&gt;
   &lt;label class="glint-label" for="site"&gt;Web sitesi&lt;/label&gt;
 &lt;/div&gt;</code></pre>
     <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group"&gt;
-  &lt;input asp-for="Quantity" type="number" class="glint-input" /&gt;
-  &lt;label asp-for="Quantity" class="glint-label"&gt;&lt;/label&gt;
+  &lt;input asp-for="Website" type="url" class="glint-input" /&gt;
+  &lt;label asp-for="Website" class="glint-label"&gt;&lt;/label&gt;
 &lt;/div&gt;</code></pre>
   </div>
 </div>
@@ -1361,9 +1385,186 @@ fld.addEventListener('input', sync); sync();</code></pre>
 </div>
             </section>
 
+            <!-- ══════════════ GLINT PHONE (v1.6) ══════════════ -->
+            <section class="sec reveal" id="phone">
+                <div class="sec-head"><span class="sec-kicker">04 · Bileşen</span><h2>Telefon (GlintPhone)</h2></div>
+                <p class="intro">Uluslararası telefon girişi — <b>242 ülke gömülü</b>, tamamen çevrimdışı. Ülke seçici (TR/EN ad + ISO2 + alan koduyla arama), ülkeye göre canlı maske (TR: <code>536 401 08 26</code>), trunk-0 ayıklama (05xx), <code>+90</code> / <code>0090</code> / E.164 yapıştırınca ülkeyi otomatik algılama ve opt-in gizli E.164 çıktısı. Bayrak: destekleyen platformda emoji, Windows'ta şık ISO-2 rozeti.</p>
+
+                <h3 class="h3" id="phone-auto">Otomatik ülke (tarayıcı dilinden)</h3>
+                <p class="muted"><code>data-country="auto"</code> ülkeyi tarayıcı dilinden çıkarır (<code>tr-TR → TR</code>). <code>data-priority-countries</code> listedeki ülkeleri en üste sabitler. Deneyin: alana <code>+49 151 2345678</code> yapıştırın — ülke kendiliğinden Almanya'ya döner.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · +90 / +49 yapıştırmayı dene</div>
+                        <div class="preview-form">
+                            <div class="glint-phone-group glint-input-group" data-country="auto" data-flags="auto" data-priority-countries="TR,DE,NL" data-lang="tr">
+                                <input class="glint-input" type="tel" name="phDemoAuto" id="ph-auto">
+                                <label class="glint-label" for="ph-auto">Telefon</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;!-- auto: tarayıcı dilinden ülke (tr-TR → TR); öncelikli ülkeler en üstte --&gt;
+&lt;div class="glint-phone-group glint-input-group"
+     data-country="auto"
+     data-flags="auto"
+     data-priority-countries="TR,DE,NL"
+     data-lang="tr"&gt;
+  &lt;input class="glint-input" type="tel" name="Phone" id="phone"&gt;
+  &lt;label class="glint-label" for="phone"&gt;Telefon&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-phone-group glint-input-group"
+     data-country="auto" data-flags="auto"
+     data-priority-countries="TR,DE,NL" data-lang="tr"&gt;
+  &lt;input asp-for="Phone" type="tel" class="glint-input" /&gt;
+  &lt;label asp-for="Phone" class="glint-label"&gt;&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="phone-fixed">Sabit ülke + E.164 çıktısı + katı doğrulama</h3>
+                <p class="muted"><code>data-country="TR"</code> ülkeyi sabitler. <code>data-raw-name="PhoneE164"</code> <b>opt-in</b> gizli bir input üretir ve forma normalize E.164 değeri (<code>+905364010826</code>) gönderir. <code>data-strict="true"</code> ülke desenini uygular (örn. TR mobil <code>5</code> ile başlar), <code>data-auto-error="true"</code> blur'da eksik/geçersiz numarayı alan hatasına çevirir.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme</div>
+                        <div class="preview-form">
+                            <div class="glint-phone-group glint-input-group" data-country="TR" data-lang="tr" data-raw-name="phDemoE164" data-strict="true" data-auto-error="true">
+                                <input class="glint-input" type="tel" name="phDemoFixed" id="ph-fixed">
+                                <label class="glint-label" for="ph-fixed">Cep telefonu</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-phone-group glint-input-group"
+     data-country="TR"
+     data-raw-name="PhoneE164"
+     data-strict="true"
+     data-auto-error="true"&gt;
+  &lt;input class="glint-input" type="tel" name="Phone" id="phone"&gt;
+  &lt;label class="glint-label" for="phone"&gt;Cep telefonu&lt;/label&gt;
+&lt;/div&gt;
+&lt;!-- Form POST'unda: Phone = "536 401 08 26" (görünen)
+                     PhoneE164 = "+905364010826" (gizli, normalize) --&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>@* PhoneE164 gizli input'u kütüphane üretir → model binding doğrudan çalışır *@
+&lt;div class="glint-phone-group glint-input-group"
+     data-country="TR" data-raw-name="PhoneE164"
+     data-strict="true" data-auto-error="true"&gt;
+  &lt;input asp-for="Phone" type="tel" class="glint-input" /&gt;
+  &lt;label asp-for="Phone" class="glint-label"&gt;&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="js"><code>const p = Glint.Phone.get(document.getElementById('phone'));
+p.country;            // { iso2: "TR", dialCode: "90", ... }
+p.setCountry('DE');   // programatik ülke değişimi
+p.digits;             // "5364010826" (yalın rakamlar)
+p.e164;               // "+905364010826"
+p.isComplete;         // ülke uzunluğuna göre tamamlanma
+
+// Olaylar (grup üzerinde, bubbles):
+grp.addEventListener('glint:phone-countrychange', e =&gt; e.detail); // {iso2, dialCode, reason}
+grp.addEventListener('glint:phone-input',    e =&gt; e.detail); // {digits, e164, complete}
+grp.addEventListener('glint:phone-validity', e =&gt; e.detail); // {complete, tooShort, tooLong, e164}</code></pre>
+                    </div>
+                </div>
+
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    <div><b>Bayrak modları.</b> <code>data-flags="auto"</code> platform emoji destekliyorsa emoji bayrak, Windows'ta ISO-2 rozeti gösterir; <code>"badge"</code> her yerde rozet, <code>"none"</code> bayraksız. <code>url:https://flagcdn.com/24x18/{iso2}.png</code> şablonu <b>salt opt-in</b>'dir — internetten bayrak görseli isteyenler için; varsayılan davranış <b>tamamen çevrimdışıdır</b>, hiçbir ağ isteği yapılmaz.</div>
+                </div>
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7v8l10-12h-7z"/></svg>
+                    <div><b>Yapıştırma zekâsı.</b> <code>+90 536 401 08 26</code>, <code>0090...</code> ya da E.164 yapıştırıldığında ülke otomatik algılanır ve seçici güncellenir; ulusal biçimdeki baştaki <b>trunk-0</b> (05xx) atılır. Maske ülkeye göre anında yeniden uygulanır.</div>
+                </div>
+            </section>
+
+            <!-- ══════════════ E-POSTA YARDIMCILARI (v1.6) ══════════════ -->
+            <section class="sec reveal" id="email">
+                <div class="sec-head"><span class="sec-kicker">05 · Bileşen</span><h2>E-posta yardımcıları</h2></div>
+                <p class="intro">İki opt-in yardımcı, <code>type="email"</code> alanlarını hızlandırır: <b>assist</b> (soluk ghost <code>@</code> + alan adı tamamlama) ve <b>memory</b> (başarılı submit'te hatırlanan e-postalar). İkisi de tamamen istemci tarafındadır — hiçbir veri sunucuya gitmez.</p>
+
+                <h3 class="h3" id="email-assist">Assist — ghost @ ve alan adı tamamlama</h3>
+                <p class="muted">Gruba <code>data-glint-email-assist</code> ekle: alanda hiç <code>@</code> yokken soluk bir <b>ghost @</b> ipucu görünür; <code>@</code> yazıldıktan sonra alan adı (gmail.com, outlook.com...) soluk tamamlama olarak önerilir. <kbd>Tab</kbd> ya da <kbd>→</kbd> öneriyi kabul eder — kabul anı "mürekkep katılaşması" animasyonuyla değere yazılır. <b>Form, ghost'u asla görmez</b>: öneri kabul edilmeden input değerine yazılmaz. Kendi alan listen için <code>data-glint-email-domains</code>.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · "ali" yaz, sonra @g yaz ve Tab'a bas</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group" data-glint-email-assist>
+                                <input class="glint-input" type="email" id="em-assist" name="emDemoAssist" autocomplete="off">
+                                <label class="glint-label" for="em-assist">E-posta</label>
+                            </div>
+                            <div class="glint-input-group" data-glint-email-assist data-glint-email-domains="glint.dev,firma.com.tr,gmail.com">
+                                <input class="glint-input" type="email" id="em-domains" name="emDemoDomains" autocomplete="off">
+                                <label class="glint-label" for="em-domains">Kurumsal e-posta · özel liste</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;!-- Varsayılan popüler alan listesi --&gt;
+&lt;div class="glint-input-group" data-glint-email-assist&gt;
+  &lt;input class="glint-input" type="email" id="em1" name="Email"&gt;
+  &lt;label class="glint-label" for="em1"&gt;E-posta&lt;/label&gt;
+&lt;/div&gt;
+
+&lt;!-- Kendi alan adı listen (öncelik sırası korunur) --&gt;
+&lt;div class="glint-input-group" data-glint-email-assist
+     data-glint-email-domains="glint.dev,firma.com.tr,gmail.com"&gt;
+  &lt;input class="glint-input" type="email" id="em2" name="WorkEmail"&gt;
+  &lt;label class="glint-label" for="em2"&gt;Kurumsal e-posta&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group" data-glint-email-assist&gt;
+  &lt;input asp-for="Email" type="email" class="glint-input" /&gt;
+  &lt;label asp-for="Email" class="glint-label"&gt;&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="email-memory">Memory — hatırlanan e-postalar</h3>
+                <p class="muted"><code>data-glint-email-memory</code> ile e-posta, <b>yalnızca başarılı form submit'inde</b> <code>localStorage</code>'a yazılır (en çok 5 kayıt). Sayfaya dönüşte alanın sol altından bir <b>chip süzülür</b>; tıklayınca glifler alana uçar (FLIP). <kbd>↓</kbd> chip'e odaklanır, <kbd>↓↓</kbd> diğer kayıtları gezer, <kbd>Esc</kbd> oturum boyunca kapatır. Yazdığın metin bir kayıtla eşleşiyorsa inline ghost tamamlama da devreye girer. <code>data-glint-memory-key</code> ile form başına ayrı geçmiş tutulur.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · gönder, sayfayı yenile, chip'i gör</div>
+                        <form id="em-mem-form" class="preview-form">
+                            <div class="glint-input-group" data-glint-email-assist data-glint-email-memory data-glint-memory-key="demo">
+                                <input class="glint-input" type="email" id="em-memory" name="emDemoMemory" required autocomplete="off">
+                                <label class="glint-label" for="em-memory">E-posta · hatırlanır</label>
+                            </div>
+                            <div class="row" style="margin-top:24px">
+                                <button class="dbtn" type="submit">Kaydet (submit)</button>
+                                <button class="dbtn dbtn--ghost" id="em-mem-clear" type="button">Geçmişi temizle</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="js">JS</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;!-- assist + memory birlikte; "login" anahtarıyla ayrı geçmiş --&gt;
+&lt;div class="glint-input-group"
+     data-glint-email-assist
+     data-glint-email-memory
+     data-glint-memory-key="login"&gt;
+  &lt;input class="glint-input" type="email" id="em1" name="Email"&gt;
+  &lt;label class="glint-label" for="em1"&gt;E-posta&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="js"><code>// Geçmişi programatik temizleme (KVKK "verimi sil" düğmesi için)
+Glint.email.clearMemory();          // varsayılan geçmiş
+Glint.email.clearMemory('login');   // data-glint-memory-key="login" geçmişi</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group"
+     data-glint-email-assist data-glint-email-memory
+     data-glint-memory-key="login"&gt;
+  &lt;input asp-for="Email" type="email" class="glint-input" /&gt;
+  &lt;label asp-for="Email" class="glint-label"&gt;&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                    </div>
+                </div>
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <div><b>KVKK / gizlilik.</b> Hatırlanan e-postalar <b>yalnızca kullanıcının kendi tarayıcısında</b> (<code>localStorage</code>) durur; hiçbir zaman ağa gönderilmez, üçüncü tarafla paylaşılmaz. Kayıt yalnız <b>başarılı</b> submit'te yapılır (yarım girişler saklanmaz) ve <code>Glint.email.clearMemory()</code> ile tek satırda silinir.</div>
+                </div>
+            </section>
+
             <!-- ══════════════ GLINT CHECKBOX ══════════════ -->
             <section class="sec reveal" id="checkbox">
-                <div class="sec-head"><span class="sec-kicker">04 · Bileşen</span><h2>Glint Checkbox</h2></div>
+                <div class="sec-head"><span class="sec-kicker">06 · Bileşen</span><h2>Glint Checkbox</h2></div>
                 <p class="intro">Native checkbox üzerine SVG ile çizilen onay işareti animasyonu. Belirsiz (indeterminate) durum, klavye odağı, hover ve koyu mod desteklenir. Native input DOM'da kalır (erişilebilirlik ve form gönderimi korunur).</p>
 
                 <h3 class="h3">Temel kullanım</h3>
@@ -1434,11 +1635,15 @@ kids.forEach(k =&gt; k.addEventListener('change', () =&gt; {
 
             <!-- ══════════════ GLINT PICKER ══════════════ -->
             <section class="sec reveal" id="picker">
-                <div class="sec-head"><span class="sec-kicker">05 · Bileşen</span><h2>Glint Picker</h2></div>
+                <div class="sec-head"><span class="sec-kicker">07 · Bileşen</span><h2>Glint Picker</h2></div>
                 <p class="intro">Glint Input'un bir uzantısı. Native HTML5 <code>date</code> / <code>time</code> / <code>datetime-local</code> input'larını sarmalar: native input'u gizler (form değeri ve model binding korunur), yerine Glint stiliyle bir görüntü alanı ve tıklayınca açılan bir popover (takvim ve saat seçici) sunar. Masaüstünde konumlanır, mobilde alttan çıkan bottom-sheet'e dönüşür.</p>
                 <div class="note">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                     <div>Kullanım normal bir Glint alanıyla <b>aynıdır</b>; tek fark <code>type</code> değeridir. Picker tipi otomatik algılar, ekstra JS gerekmez.</div>
+                </div>
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7v8l10-12h-7z"/></svg>
+                    <div><b>v1.6 — Çapraz açılış.</b> Picker alanlarında imza kenarlık artık <b>sol üstten sağ alta çapraz</b> çizilir; panel input'un hemen altında (4px) açılır, <b>sol köşeleri input ile hizalı</b> ve <b>genişliği input ile aynıdır</b> (yalnız çoklu-ay ≥520px, preset'li ≥420px tabanını korur). Panel çapraz bir perdeyle (clip-path) belirir ve kenarında aynı köşeden akan aksan çizgisi bir kez parlar. Çapraz çizimi picker olmayan herhangi bir alana da verebilirsin: gruba <code>data-glint-diagonal</code> ekle.</div>
                 </div>
 
                 <h3 class="h3">Tarih, saat ve tarih + saat</h3>
@@ -1689,6 +1894,34 @@ kids.forEach(k =&gt; k.addEventListener('change', () =&gt; {
     </div>
 </div>
 
+<h3 class="h3" id="pkx-month">Glint Picker — Ay Modu (type=month) <span class="muted" style="font-size:.7em">v1.6</span></h3>
+<p class="muted"><code>&lt;input type="month"&gt;</code> verildiğinde panel gün takvimi yerine doğrudan <b>ay ızgarasıyla</b> açılır: bir aya tıklamak seçimi commit eder ve paneli kapatır. Native form değeri <code>YYYY-MM</code> biçiminde kalır (model binding bozulmaz); görüntü alanı <b>"Temmuz 2026"</b> gibi okunur. Başlığa tıklayınca yıl ızgarasına geçilir — uzak yıllara tek tıkla atlanır.</p>
+<div class="example">
+    <div class="preview">
+        <div class="preview__tag"><b></b> Canlı önizleme</div>
+<div class="glint-input-group" style="max-width:320px">
+  <input type="month" id="pkx-month-d" class="glint-input" placeholder=" " value="2026-07">
+  <label for="pkx-month-d" class="glint-label">Fatura Dönemi</label>
+</div>
+    </div>
+    <div class="code">
+        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+        <pre class="pane active" data-l="html"><code>&lt;!-- Panel doğrudan ay ızgarasıyla açılır; ay seçimi commit eder + kapanır --&gt;
+&lt;div class="glint-input-group"&gt;
+  &lt;input type="month" id="BillingPeriod" class="glint-input" placeholder=" "&gt;
+  &lt;label for="BillingPeriod" class="glint-label"&gt;Fatura Dönemi&lt;/label&gt;
+&lt;/div&gt;
+&lt;!-- Native value: "2026-07" | Görünen: "Temmuz 2026" --&gt;</code></pre>
+        <pre class="pane" data-l="razor"><code>@* Model: string BillingPeriod ("YYYY-MM") ya da DateTime +
+   [DisplayFormat(ApplyFormatInEditMode=true, DataFormatString="{0:yyyy-MM}")] *@
+&lt;div class="glint-input-group"&gt;
+    &lt;input type="month" asp-for="BillingPeriod" class="glint-input" placeholder=" " /&gt;
+    &lt;label asp-for="BillingPeriod" class="glint-label"&gt;Fatura Dönemi&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+</div>
+<div class="note">Ay modunda min/max (<code>data-min="2026-01"</code> gibi) ay hassasiyetinde uygulanır; gün takvimi hiç gösterilmez. Panel, çapraz açılış ve input-genişliği hizasını diğer picker alanlarıyla paylaşır.</div>
+
 <h3 class="h3" id="pkx-minute-step">Glint Picker — Dakika Adımı</h3>
 <p class="muted"><code>data-minute-step</code> ile saat alanının dakika artışını belirleyin (örn. 15 → :00, :15, :30, :45). Yukarı/aşağı oklar bu adıma göre ilerler; mevcut değer en yakın adıma hizalanır. Bu öznitelik <b>gruba</b> (<code>.glint-input-group</code>) yazılır.</p>
 <div class="example">
@@ -1713,6 +1946,10 @@ kids.forEach(k =&gt; k.addEventListener('change', () =&gt; {
     </div>
 </div>
 <div class="note">İpucu: Geçerli aralık 1–59'dur. 0, boş veya 60+ değerler yok sayılır ve adım 1 dakikaya döner. Adım yalnız <code>time</code> ve <code>datetime-local</code> alanlarındaki saat bölümünü etkiler; ISO çıktısı bozulmaz.</div>
+<div class="note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7v8l10-12h-7z"/></svg>
+    <div><b>v1.6 — Saat snap'i.</b> Klavyeyle serbestçe yazılan saat, commit anında (blur / Enter / onay ✓) <code>data-minute-step</code>'e yuvarlanır: step=5 iken <code>13:33 ⇒ 13:35</code>, step=30 iken <code>13:48 ⇒ 14:00</code>. Spinner'da dakika taşması saate taşınır: <code>13:55</code>'te +15 ⇒ <code>14:10</code>. Yukarıdaki alanda deneyebilirsin.</div>
+</div>
 
 <h3 class="h3" id="pkx-presets">Glint Picker — Hazır Aralıklar (Presets)</h3>
 <p class="muted">Yalnız <code>data-range</code> ile birlikte: <code>data-presets="today,last7,last30,thisMonth,lastMonth"</code> popover kenarına tek tıkla aralık dolduran hızlı düğmeler ekler. Liste alt küme ve sıra belirler; boş bırakırsanız hepsi gelir.</p>
@@ -1871,7 +2108,7 @@ kids.forEach(k =&gt; k.addEventListener('change', () =&gt; {
 <div class="note">İki kullanım vardır: (1) <b>Harici input</b> — seçici (<code>#id</code>) gerçek bir native input'a uyarsa bitiş oraya yazılır. (2) <b>Hidden mirror</b> — değer bir seçiciyle eşleşmiyorsa (örn. düz <code>data-range-end="EndDate"</code>) picker o ad ile gizli bir <code>&lt;input type="hidden"&gt;</code> üretir ve <code>asp-for</code> bağlanır. Üstteki demo birinci yolu canlı gösterir.</div>
 
 <h3 class="h3" id="pkxv-minute-step-variants">Glint Picker — Dakika Adımı (5 / 30)</h3>
-<p class="muted"><code>data-minute-step</code> yalnız 15 değil; iş akışına göre farklı adımlar kullanın. <b>5</b> hassas planlama (çağrı merkezi), <b>30</b> yarım saatlik slotlar (toplantı odası) için tipiktir. Öznitelik her zaman <b>gruba</b> yazılır; mevcut değer en yakın adıma hizalanır, oklar bu adımla ilerler.</p>
+<p class="muted"><code>data-minute-step</code> yalnız 15 değil; iş akışına göre farklı adımlar kullanın. <b>5</b> hassas planlama (çağrı merkezi), <b>30</b> yarım saatlik slotlar (toplantı odası) için tipiktir. Öznitelik her zaman <b>gruba</b> yazılır; mevcut değer en yakın adıma hizalanır, oklar bu adımla ilerler. Elle yazılan saat de commit'te adıma yuvarlanır (v1.6 snap): step=30'da <code>13:48 ⇒ 14:00</code>.</p>
 <div class="example">
     <div class="preview">
         <div class="preview__tag"><b></b> Canlı önizleme</div>
@@ -2075,7 +2312,7 @@ kids.forEach(k =&gt; k.addEventListener('change', () =&gt; {
 
             <!-- ══════════════ KONTROLLER ══════════════ -->
             <section class="sec reveal" id="controls">
-                <div class="sec-head"><span class="sec-kicker">06 · Bileşen</span><h2>Kontroller</h2></div>
+                <div class="sec-head"><span class="sec-kicker">08 · Bileşen</span><h2>Kontroller</h2></div>
                 <p class="intro">Tekli seçim ve aç/kapa kontrolleri: animasyonlu <b>radio</b>, iOS tarzı <b>switch</b>, kayan highlight'lı <b>segmented</b> ve yıldız <b>rating</b>. Checkbox ile aynı görsel dil; tam klavye, koyu mod, erişilebilirlik.</p>
 
                 <h3 class="h3" id="radio">Glint Radio</h3>
@@ -2679,7 +2916,7 @@ console.log(r.getValue());   // 10</code></pre>
 
             <!-- ══════════════ SELECT ══════════════ -->
             <section class="sec reveal" id="select">
-                <div class="sec-head"><span class="sec-kicker">07 · Bileşen</span><h2>Glint Select &amp; Etiketler</h2></div>
+                <div class="sec-head"><span class="sec-kicker">09 · Bileşen</span><h2>Glint Select &amp; Etiketler</h2></div>
                 <p class="intro">Aranabilir açılır liste (tekli ve çoklu) ve etiket/chip girişi. Native <code>&lt;select&gt;</code> sarmalanır, form binding ve <code>asp-for</code> korunur; popover trigger'dan açılır.</p>
 
                 <h3 class="h3" id="select-single">Glint Select (Tekli, Aranabilir)</h3>
@@ -3556,7 +3793,7 @@ console.log(t.getValues()); // ["alfa","beta","gama"]</code></pre>
 
             <!-- ══════════════ GELİŞMİŞ ALANLAR ══════════════ -->
             <section class="sec reveal" id="fields">
-                <div class="sec-head"><span class="sec-kicker">08 · Bileşen</span><h2>Gelişmiş Alanlar</h2></div>
+                <div class="sec-head"><span class="sec-kicker">10 · Bileşen</span><h2>Gelişmiş Alanlar</h2></div>
                 <p class="intro">Özel giriş alanları: segmentli <b>OTP/PIN</b>, artır-azalt'lı <b>sayı alanı</b> ve canlı biçimlendiren <b>maskeli alan</b> (telefon, IBAN, kart, para). Maskeli alan ve stepper, Glint Input katmanıyla birlikte çalışır.</p>
 
                 <h3 class="h3" id="otp">Glint OTP / PIN</h3>
@@ -3592,9 +3829,10 @@ document.querySelector('.glint-otp')
 
 // Programatik:
 const otp = Glint.Otp._instance(document.querySelector('.glint-otp'));
-otp.value = '123456';   // doldur
-otp.clear();            // temizle
-otp.setError();         // shake + kırmızı kenar</code></pre>
+otp.value = '123456';           // doldur
+otp.clear();                    // temizle
+otp.setError('Kod hatalı');     // shake + kırmızı kenar + ekran okuyucu duyurusu
+otp.setSuccess();               // hücre hücre yeşil başarı dalgası (v1.6)</code></pre>
                     </div>
                 </div>
 
@@ -3879,8 +4117,65 @@ document.querySelector('.glint-otp')
     </div>
 </div>
 
+<h3 class="h3" id="ox-v16">OTP — v1.6: Tekrar gönder · Otomatik submit · Başarı dalgası</h3>
+<p class="muted">Üç yenilik tek demoda: <code>data-resend="N"</code> kutuların altına <b>"Tekrar gönder (N s)"</b> sayacı ekler — süre dolunca buton aktifleşir, tıklamada <code>glint:otp-resend</code> yayılır (SMS'i göndermek uygulamanın işidir) ve sayaç yeniden başlar. <code>data-autosubmit</code> kod tamamlanınca formu <code>requestSubmit()</code> ile gönderir (dedup'lu: aynı kod yalnız bir kez). <code>setSuccess()</code> ise shake'in mutlu simetriği: hücre hücre yeşil <b>başarı dalgası</b>.</p>
+<div class="example">
+  <div class="preview">
+    <div class="preview__tag"><b></b> Canlı önizleme · doldur ya da butonları dene</div>
+    <form id="ox16-form">
+      <div class="glint-otp" id="ox16-otp" data-length="6" data-type="number" data-group="3" data-resend="15" data-autosubmit data-name="ox16Code" aria-label="Doğrulama kodu"></div>
+    </form>
+    <div class="row" style="margin-top:22px">
+      <button class="dbtn" id="ox16-success" type="button">setSuccess()</button>
+      <button class="dbtn dbtn--ghost" id="ox16-error" type="button">setError("Kod hatalı")</button>
+      <button class="dbtn dbtn--ghost" id="ox16-clear" type="button">clear()</button>
+    </div>
+  </div>
+  <div class="code">
+    <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="js">JS</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+    <pre class="pane active" data-l="html"><code>&lt;!-- 60 sn'lik tekrar-gönder sayacı + kod tamamlanınca otomatik submit --&gt;
+&lt;form method="post"&gt;
+  &lt;div class="glint-otp"
+       data-length="6" data-type="number" data-group="3"
+       data-resend="60"
+       data-autosubmit
+       data-name="Code"
+       aria-label="Doğrulama kodu"&gt;&lt;/div&gt;
+&lt;/form&gt;</code></pre>
+    <pre class="pane" data-l="js"><code>const el  = document.querySelector('.glint-otp');
+const otp = Glint.Otp._instance(el);
+
+// Tekrar gönder: SMS'i SEN gönderirsin; sayaç kendini yeniden kurar
+el.addEventListener('glint:otp-resend', () =&gt; {
+  fetch('/api/send-otp', { method: 'POST' });   // uygulamanın işi
+});
+
+// Sunucu doğrulaması sonrası:
+otp.setSuccess();               // hücre hücre yeşil dalga
+otp.clearSuccess();             // dalgayı geri al
+otp.setError('Kod hatalı');     // shake + aria-live duyurusu
+
+// i18n / ekstra: hücre etiketi şablonu ve boşluk kabulü (text tipi)
+// &lt;div class="glint-otp" data-label-cell="Digit {n}/{len}" data-allow-space ...&gt;</code></pre>
+    <pre class="pane" data-l="razor"><code>@* autosubmit form'u native akışla POST eder; hidden input data-name'den üretilir *@
+&lt;form asp-action="Verify" method="post"&gt;
+  &lt;div class="glint-otp"
+       data-length="6" data-type="number" data-group="3"
+       data-resend="60" data-autosubmit
+       data-name="@Html.NameFor(m =&gt; m.Code)"
+       aria-label="Doğrulama kodu"&gt;
+      &lt;input type="hidden" asp-for="Code" /&gt;
+  &lt;/div&gt;
+&lt;/form&gt;</code></pre>
+  </div>
+</div>
+<div class="note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+    <div>Bu demoda sayaç 15 saniyedir ve form gönderimi sayfada yakalanıp bildirime çevrilir. <code>glint:otp-resend</code> yalnızca <b>haber verir</b> — kütüphane ağ isteği yapmaz. <code>setError(msg)</code> v1.6'da mesajı <code>aria-live</code> ile ekran okuyucuya da okur.</div>
+</div>
+
                 <h3 class="h3" id="stepper">Glint Number Stepper</h3>
-                <p class="muted">−/+ butonlu sayı girişi. min/max/step, basılı tutunca hızlanan tekrar, değer değişiminde translateY bump, butonlarda :active scale. Native ok tuşları çalışır. GlintInput ile birlikte (grup claim edilmez).</p>
+                <p class="muted">−/+ butonlu sayı girişi, v1.6'da yeniden tasarlandı: kapsül ve statik odak halkası gitti — stepper da diğer alanlar gibi <b>imza çizilen kenarlığı</b> kullanır (çizim tüm grubu sarar). −/+ butonları <b>ghost</b>'tur: hover'da aksan tonuyla dolar, basışta hafifçe küçülür. Rakam değişimi <b>odometer</b> animasyonuyla akar: artışta eski rakam yukarı süzülür, yenisi alttan gelir; azalışta yön tersine döner. min/max/step, basılı tutunca hızlanan tekrar ve native ok tuşları aynen çalışır; sayı her zaman tam ortada, etiket hep yukarıda kalır. Elle yazılan değer commit'te min/max'a kelepçelenir, <code>disabled</code> durumu butonlarla senkrondur. GlintInput ile birlikte (grup claim edilmez).</p>
                 <div class="example">
                     <div class="preview">
                         <div class="preview__tag"><b></b> Canlı önizleme</div>
@@ -3911,56 +4206,290 @@ s.value = 5;</code></pre>
                 </div>
 
                 <h3 class="h3" id="numara-bicim">Sayı biçimleme (Glint.format)</h3>
-                <p class="muted">Eski <code>data-glint-mask</code> (telefon/IBAN/kart) yaklaşımı <b>kaldırıldı</b>: biçimleme mantığı sade bir yardımcıya, <code>Glint.format</code>’a damıtıldı ve <b>binlik ayraç</b> olarak <a href="#ix-thousands"><code>data-glint-group-thousands</code></a> ile sunuluyor (bkz. Glint Input ekstralar). Telefon girişi, ülke-kodu/maske seçenekleriyle <b>ayrı bir paket</b> olarak gelecektir.</p>
+                <p class="muted">Eski <code>data-glint-mask</code> (telefon/IBAN/kart) yaklaşımı <b>kaldırıldı</b>: biçimleme mantığı sade bir yardımcıya, <code>Glint.format</code>’a damıtıldı ve <b>binlik ayraç</b> olarak <a href="#ix-thousands"><code>data-glint-group-thousands</code></a> ile sunuluyor (bkz. Glint Input ekstralar). Telefon için v1.6 ile gelen tam donanımlı <a href="#phone">GlintPhone</a>, kart için <a href="#card">GlintCard</a> bileşenini kullan — ikisi de aynı pakette.</p>
                 <div class="note">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                     <div>Programatik biçimleme için: <code>Glint.format.thousands(1234567)</code> → <code>"1.234.567"</code>. Bileşensiz, saf yardımcı fonksiyon.</div>
                 </div>
             
-<h3 class="h3" id="slxv-range-combo">Kombinasyon · Fiyat aralığı (min mesafe + ₺ + binlik)</h3>
-<p class="muted">Gerçek dünya senaryosu: çift uçlu Range'de <code>data-min-distance</code>, <code>data-prefix</code> ve <code>data-format="thousands"</code> aynı element üzerinde birlikte. Alt ve üst bütçe çakışamaz (en az <code>5.000</code> birim aralık korunur), her iki balon da binlik ayraçlı ve <code>₺</code> ön ekli görünür; gönderilen ham değer (form binding) etkilenmez. Bütçe/fiyat filtreleri için tipik düzen.</p>
-<div class="example">
-  <div class="preview">
-    <div class="preview__tag"><b></b> Canlı önizleme</div>
-<div style="max-width:360px;padding-top:18px"><div class="glint-slider glint-slider--range" data-min="0" data-max="250000" data-from="40000" data-to="160000" data-step="5000" data-min-distance="5000" data-prefix="₺" data-format="thousands" data-name-from="slxvBudgetMin" data-name-to="slxvBudgetMax"></div></div>
-  </div>
-  <div class="code">
-    <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
-    <pre class="pane active" data-l="html"><code>&lt;!-- min-distance + prefix + thousands birlikte (tek element) --&gt;
-&lt;div class="glint-slider glint-slider--range"
-     data-min="0" data-max="250000"
-     data-from="40000" data-to="160000"
-     data-step="5000"
-     data-min-distance="5000"
-     data-prefix="&#8378;"
-     data-format="thousands"
-     data-name-from="BudgetMin"
-     data-name-to="BudgetMax"&gt;
+
+            </section>
+
+            <!-- ══════════════ COMBOBOX (v1.6) ══════════════ -->
+            <section class="sec reveal" id="combobox">
+                <div class="sec-head"><span class="sec-kicker">11 · Bileşen</span><h2>Combobox</h2></div>
+                <p class="intro">Serbest metinli autocomplete: kullanıcı <b>listeden seçebilir ya da kendi metnini bırakabilir</b> (select değildir). TR-duyarlı filtre + <code>&lt;mark&gt;</code> vurgusu, <kbd>↓</kbd><kbd>↑</kbd>/<kbd>Enter</kbd>/<kbd>Esc</kbd> klavye akışı, debounce ve async adaptör. <b>Kütüphane asla fetch yapmaz</b> — Ajax zorunlu değildir, async yalnız senin verdiğin fonksiyonla olur.</p>
+
+                <h3 class="h3" id="cb-static">Statik seçenekler (JSON)</h3>
+                <p class="muted">En kısa yol: seçenekleri <code>data-options</code> içine JSON dizisi olarak yaz. <code>data-min-chars</code>, <code>data-debounce</code>, <code>data-max-items</code> ve <code>data-empty-text</code> ile davranışı ayarla.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · "an" yaz</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group" data-glint-combobox data-options='["Adana","Ankara","Antalya","Bursa","Eskişehir","Gaziantep","İstanbul","İzmir","Konya","Trabzon"]' data-min-chars="1" data-debounce="150" data-max-items="8" data-empty-text="Sonuç yok">
+                                <input class="glint-input" type="text" id="cb-city" name="cbDemoCity" autocomplete="off">
+                                <label class="glint-label" for="cb-city">Şehir</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-input-group" data-glint-combobox
+     data-options='["Adana","Ankara","İstanbul","İzmir"]'
+     data-min-chars="1" data-debounce="150" data-max-items="8"
+     data-empty-text="Sonuç yok"&gt;
+  &lt;input class="glint-input" type="text" id="cb1" name="City" autocomplete="off"&gt;
+  &lt;label class="glint-label" for="cb1"&gt;Şehir&lt;/label&gt;
 &lt;/div&gt;</code></pre>
-    <pre class="pane" data-l="razor"><code>&lt;div class="glint-slider glint-slider--range"
-     data-min="0" data-max="250000"
-     data-from="@Model.BudgetMin" data-to="@Model.BudgetMax"
-     data-step="5000"
-     data-min-distance="5000"
-     data-prefix="&#8378;"
-     data-format="thousands"
-     data-name-from="@Html.NameFor(m =&gt; m.BudgetMin)"
-     data-name-to="@Html.NameFor(m =&gt; m.BudgetMax)"&gt;
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group" data-glint-combobox
+     data-options='@Html.Raw(Json.Serialize(Model.Cities))'&gt;
+  &lt;input asp-for="City" type="text" class="glint-input" autocomplete="off" /&gt;
+  &lt;label asp-for="City" class="glint-label"&gt;&lt;/label&gt;
 &lt;/div&gt;</code></pre>
-    <pre class="pane" data-l="js"><code>// Aralığı dinle — balon biçimi yalnız görseldir, ham değer gelir
-const el = document.querySelector('.glint-slider--range');
-el.addEventListener('glint:rangechange', e =&gt; {
-  // e.detail = { from: 40000, to: 160000 } — biçimsiz ham sayı
-  console.info(e.detail.from, e.detail.to);
-});</code></pre>
-  </div>
-</div>
-<div class="note">Üç data-* özniteliği bağımsızdır ve istediğiniz gibi birleşir: <code>data-min-distance</code> thumb'ların çakışmasını engeller, <code>data-prefix</code>/<code>data-format</code> yalnızca balon metnini biçimler. Thumb'ları üst üste getirmeyi deneyin — aralarında her zaman <code>₺5.000</code> kalır.</div>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="cb-from">Mevcut kaynaktan (<code>data-options-from</code>)</h3>
+                <p class="muted">Seçenekleri sayfadaki bir <code>&lt;datalist&gt;</code>/<code>&lt;select&gt;</code>'ten (<code>"#id"</code>) ya da global bir diziden (<code>"window.app.cities"</code>) al. Kaynak önceliği: <code>data-source-fn</code> → <code>data-options</code> → <code>data-options-from</code>.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · datalist'ten beslenir</div>
+                        <div class="preview-form">
+                            <datalist id="cb-langs">
+                                <option value="C#"></option>
+                                <option value="JavaScript"></option>
+                                <option value="TypeScript"></option>
+                                <option value="Python"></option>
+                                <option value="Go"></option>
+                                <option value="Rust"></option>
+                                <option value="Kotlin"></option>
+                            </datalist>
+                            <div class="glint-input-group" data-glint-combobox data-options-from="#cb-langs">
+                                <input class="glint-input" type="text" id="cb-lang" name="cbDemoLang" autocomplete="off">
+                                <label class="glint-label" for="cb-lang">Programlama dili</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;datalist id="diller"&gt;
+  &lt;option value="C#"&gt;&lt;/option&gt;
+  &lt;option value="JavaScript"&gt;&lt;/option&gt;
+&lt;/datalist&gt;
+
+&lt;div class="glint-input-group" data-glint-combobox
+     data-options-from="#diller"&gt;
+  &lt;input class="glint-input" type="text" id="lang" name="Language" autocomplete="off"&gt;
+  &lt;label class="glint-label" for="lang"&gt;Programlama dili&lt;/label&gt;
+&lt;/div&gt;
+
+&lt;!-- Alternatif: global diziden --&gt;
+&lt;div class="glint-input-group" data-glint-combobox
+     data-options-from="window.app.cities"&gt; ... &lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;datalist id="diller"&gt;
+  @foreach (var d in Model.Languages)
+  { &lt;option value="@d"&gt;&lt;/option&gt; }
+&lt;/datalist&gt;
+
+&lt;div class="glint-input-group" data-glint-combobox data-options-from="#diller"&gt;
+  &lt;input asp-for="Language" type="text" class="glint-input" autocomplete="off" /&gt;
+  &lt;label asp-for="Language" class="glint-label"&gt;&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="cb-async">Async adaptör (<code>data-source-fn</code>) — Ajax zorunlu değil</h3>
+                <p class="muted"><code>data-source-fn="window.app.searchCities"</code> <b>senin fonksiyonunu</b> gösterir: <code>fn(query) → Promise&lt;Array&lt;string | {value,label}&gt;&gt;</code>. İçinde ister <code>fetch</code> kullan, ister bellekten filtrele — kütüphane hiçbir ağ isteği yapmaz. Async beklenirken alan <b>loading</b> durumuna geçer; yalnız son isteğin sonucu işlenir (yarış guard'ı).</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · 300 ms gecikmeli sahte kaynak</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group" data-glint-combobox data-source-fn="window.demoApp.searchCountries" data-min-chars="1" data-empty-text="Ülke bulunamadı">
+                                <input class="glint-input" type="text" id="cb-async" name="cbDemoAsync" autocomplete="off">
+                                <label class="glint-label" for="cb-async">Ülke ara (async)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-input-group" data-glint-combobox
+     data-source-fn="window.app.searchCities"&gt;
+  &lt;input class="glint-input" type="text" id="city" name="City" autocomplete="off"&gt;
+  &lt;label class="glint-label" for="city"&gt;Şehir ara&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="js"><code>// SENİN fonksiyonun — kütüphane ASLA kendi fetch'ini yapmaz.
+// İster ağdan, ister bellekten dön; string ya da {value,label} dizisi yeterli.
+window.app = {
+  async searchCities(q) {
+    const r = await fetch('/api/cities?q=' + encodeURIComponent(q));
+    return await r.json();     // ["Ankara", ...] veya [{value,label}, ...]
+  }
+};
+
+// Seçimi dinle
+document.querySelector('[data-glint-combobox]')
+  .addEventListener('glint:combobox-select', e =&gt; {
+    console.log(e.detail);     // { value, label }
+  });
+
+// Programatik: Glint.Combobox.get(el) → open() / close() / setOptions([...]) / destroy()</code></pre>
+                    </div>
+                </div>
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    <div>Filtre <b>TR-duyarlıdır</b> (İ/ı doğru katlanır) ve eşleşen bölüm <code>&lt;mark&gt;</code> ile vurgulanır. Serbest metin her zaman geçerlidir: kullanıcı listeden seçmek zorunda değildir, yazdığı değer forma aynen gider. Events: <code>glint:combobox-open</code> · <code>glint:combobox-close</code> · <code>glint:combobox-select</code>.</div>
+                </div>
+            </section>
+
+            <!-- ══════════════ KREDİ KARTI (v1.6) ══════════════ -->
+            <section class="sec reveal" id="card">
+                <div class="sec-head"><span class="sec-kicker">12 · Bileşen</span><h2>Kredi Kartı (GlintCard)</h2></div>
+                <p class="intro">Kart numarası girişi: marka algılama (visa · mastercard · amex · troy · discover · diners · jcb) ile sağda <b>monokrom ikon fade-swap</b>, markaya göre gruplama (4-4-4-4; Amex 4-6-5, Diners 4-6-4), <b>Luhn</b> doğrulaması, SKT (MM/YY, geçmiş tarih reddi) ve CVC (markaya göre 3/4 hane) arasında otomatik odak akışı. Ham rakamlar <code>data-glint-raw</code>'da; opsiyonel gizli input ile forma da gider.</p>
+
+                <h3 class="h3" id="card-full">Tam set — numara + SKT + CVC</h3>
+                <p class="muted">SKT ve CVC alanlarını <code>data-glint-card-expiry</code> / <code>data-glint-card-cvc</code> seçicileriyle bağla: numara tamamlanınca odak SKT'ye, SKT dolunca CVC'ye akar. Test için <code>4242 4242 4242 4242</code> yazabilirsin (Luhn-geçerli Visa test numarası) — geçerli numarada kenarlık yeşile döner.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · 4242 4242 4242 4242 dene</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group" data-glint-card data-glint-card-expiry="#cc-exp" data-glint-card-cvc="#cc-cvc">
+                                <input class="glint-input" type="text" id="cc-num" name="ccDemoNumber" autocomplete="cc-number" inputmode="numeric">
+                                <label class="glint-label" for="cc-num">Kart numarası</label>
+                            </div>
+                            <div class="row" style="gap:14px">
+                                <div class="glint-input-group" style="flex:1;min-width:130px">
+                                    <input class="glint-input" type="text" id="cc-exp" name="ccDemoExpiry" autocomplete="cc-exp" inputmode="numeric">
+                                    <label class="glint-label" for="cc-exp">SKT (AA/YY)</label>
+                                </div>
+                                <div class="glint-input-group" style="flex:1;min-width:110px">
+                                    <input class="glint-input" type="text" id="cc-cvc" name="ccDemoCvc" autocomplete="cc-csc" inputmode="numeric">
+                                    <label class="glint-label" for="cc-cvc">CVC</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;!-- Numara: marka ikonu + Luhn + gruplama. raw değer için data-raw-name --&gt;
+&lt;div class="glint-input-group" data-glint-card
+     data-raw-name="CardNumberRaw"
+     data-glint-card-expiry="#cc-exp"
+     data-glint-card-cvc="#cc-cvc"&gt;
+  &lt;input class="glint-input" type="text" id="cc-num" name="CardNumber"
+         autocomplete="cc-number"&gt;
+  &lt;label class="glint-label" for="cc-num"&gt;Kart numarası&lt;/label&gt;
+&lt;/div&gt;
+
+&lt;div class="glint-input-group"&gt;
+  &lt;input class="glint-input" type="text" id="cc-exp" autocomplete="cc-exp"&gt;
+  &lt;label class="glint-label" for="cc-exp"&gt;SKT (AA/YY)&lt;/label&gt;
+&lt;/div&gt;
+&lt;div class="glint-input-group"&gt;
+  &lt;input class="glint-input" type="text" id="cc-cvc" autocomplete="cc-csc"&gt;
+  &lt;label class="glint-label" for="cc-cvc"&gt;CVC&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group" data-glint-card
+     data-raw-name="CardNumberRaw"
+     data-glint-card-expiry="#CardExpiry"
+     data-glint-card-cvc="#CardCvc"&gt;
+  &lt;input asp-for="CardNumber" type="text" class="glint-input"
+         autocomplete="cc-number" /&gt;
+  &lt;label asp-for="CardNumber" class="glint-label"&gt;&lt;/label&gt;
+&lt;/div&gt;
+@* CardNumberRaw gizli input'u kütüphane üretir (yalın 16 hane) *@</code></pre>
+                        <pre class="pane" data-l="js"><code>const card = Glint.Card.get(document.getElementById('cc-num'));
+card.brand;     // "visa" | "mastercard" | "amex" | "troy" | ...
+card.digits;    // "4242424242424242" (yalın)
+card.isValid;   // Luhn + uzunluk
+
+// Olaylar (grup üzerinde, bubbles)
+grp.addEventListener('glint:card-brand',    e =&gt; e.detail); // { brand }
+grp.addEventListener('glint:card-complete', e =&gt; e.detail); // { valid, brand }</code></pre>
+                    </div>
+                </div>
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                    <div><b>Davranış özeti.</b> Marka değişince sağdaki ikon yumuşak fade-swap ile döner ve CVC beklenen uzunluğu (Amex 4, diğerleri 3) güncellenir. Numara tamamlanıp Luhn <b>geçerliyse</b> yeşil kenar + <code>glint:card-complete {valid:true}</code>; geçersizse alan hatası gösterilir. SKT geçmiş tarihi reddeder. Kart verisi hiçbir yere gönderilmez — bileşen salt istemci tarafı biçimleme/doğrulamadır.</div>
+                </div>
+            </section>
+
+            <!-- ══════════════ FORM ORKESTRATÖRÜ (v1.6) ══════════════ -->
+            <section class="sec reveal" id="form">
+                <div class="sec-head"><span class="sec-kicker">13 · Form</span><h2>Form orkestratörü</h2></div>
+                <p class="intro">Tek attribute: <code>&lt;form data-glint-form&gt;</code>. Submit'te <b>istemci tarafı toplu doğrulama</b> yapılır: native validity (email biçimi, required, min/max, pattern…) + native'in doğrulamadığı <b>gizli zorunlular</b> (picker'ın native input'u, OTP'nin hidden'ı). Geçersizse submit engellenir, hatalar toast köprüsü yüklüyse <b>oradan</b> akar (fieldErrors politikası: smart/inline/toast), yoksa inline basılır; ilk hatalı alana kaydırılıp odaklanılır. <b>Ağ isteği yoktur</b> — geçerli form native akışla gönderilir.</p>
+
+                <h3 class="h3" id="form-demo">Mini kayıt formu — picker + OTP + e-posta</h3>
+                <p class="muted">Alanları boş bırakıp <b>Gönder</b>'e bas: hatalar köprü politikasına göre gösterilir, sayfa ilk hatalı alana kayar. Gizli zorunluların mesajı <code>data-glint-required-msg</code> ile özelleştirilir.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · boş gönder ve izle</div>
+                        <form data-glint-form id="fx-form" class="preview-form">
+                            <div class="glint-input-group" data-glint-email-assist>
+                                <input class="glint-input" type="email" id="fx-email" name="fxEmail" required autocomplete="off">
+                                <label class="glint-label" for="fx-email">E-posta</label>
+                            </div>
+                            <div class="glint-input-group">
+                                <input type="date" class="glint-input" id="fx-date" name="fxDate" required data-glint-required-msg="Randevu tarihi seçin">
+                                <label class="glint-label" for="fx-date">Randevu tarihi</label>
+                            </div>
+                            <p class="muted" style="font-size:.85rem;margin:14px 0 8px">Doğrulama kodu</p>
+                            <div class="glint-otp" data-length="4" data-type="number" data-name="fxCode" aria-label="Doğrulama kodu">
+                                <input type="hidden" name="fxCode" required data-glint-required-msg="4 haneli doğrulama kodunu girin">
+                            </div>
+                            <div class="row" style="margin-top:24px">
+                                <button class="dbtn" type="submit">Gönder</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="js">JS</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;form data-glint-form method="post"&gt;
+  &lt;div class="glint-input-group"&gt;
+    &lt;input class="glint-input" type="email" id="Email" name="Email" required&gt;
+    &lt;label class="glint-label" for="Email"&gt;E-posta&lt;/label&gt;
+  &lt;/div&gt;
+
+  &lt;div class="glint-input-group"&gt;
+    &lt;input type="date" class="glint-input" id="Date" name="Date" required
+           data-glint-required-msg="Randevu tarihi seçin"&gt;
+    &lt;label class="glint-label" for="Date"&gt;Randevu tarihi&lt;/label&gt;
+  &lt;/div&gt;
+
+  &lt;!-- OTP hidden'ı gibi gizli zorunlular da doğrulanır --&gt;
+  &lt;div class="glint-otp" data-length="4" data-type="number" data-name="Code"&gt;
+    &lt;input type="hidden" name="Code" required
+           data-glint-required-msg="Doğrulama kodunu girin"&gt;
+  &lt;/div&gt;
+
+  &lt;button type="submit"&gt;Gönder&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+                        <pre class="pane" data-l="js"><code>// Geçersiz submit'i dinle (analitik, odak yönetimi vb.)
+document.querySelector('form[data-glint-form]')
+  .addEventListener('glint:form-invalid', e =&gt; {
+    console.log(e.detail.errors);   // [{ id, message }, ...]
+  });
+
+// Programatik doğrulama — hata BASMAZ, yalnız sonucu döndürür
+const ok = Glint.Form.get(form).validate();   // true | false</code></pre>
+                        <pre class="pane" data-l="razor"><code>@* Sunucu tarafı doğrulama yine sende: data-glint-form yalnız istemci katmanıdır *@
+&lt;form asp-action="Register" method="post" data-glint-form&gt;
+  &lt;div class="glint-input-group"&gt;
+    &lt;input asp-for="Email" type="email" class="glint-input" required /&gt;
+    &lt;label asp-for="Email" class="glint-label"&gt;&lt;/label&gt;
+  &lt;/div&gt;
+  &lt;button type="submit"&gt;Kaydol&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+                    </div>
+                </div>
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    <div><code>data-glint-form</code> forma <code>novalidate</code> ekler: tarayıcının kendi hata balonları yerine Glint'in görsel dili kullanılır. Toast köprüsü yüklüyse hatalar <a href="#bridge">fieldErrors politikasına</a> göre akar (görünür alan → inline, görünmeyen → özet toast + tıkla-kaydır). Bu demoda geçerli form, sayfada yakalanıp başarı bildirimine çevrilir.</div>
+                </div>
             </section>
 
             <!-- ══════════════ SLIDER ══════════════ -->
             <section class="sec reveal" id="slider">
-                <div class="sec-head"><span class="sec-kicker">09 · Bileşen</span><h2>Glint Slider</h2></div>
+                <div class="sec-head"><span class="sec-kicker">14 · Bileşen</span><h2>Glint Slider</h2></div>
                 <p class="intro">Tek uçlu ve çift uçlu (aralık) kaydırıcı; emerald dolgu, sürükle veya klavye ile değer, değer balonu ve dokunmatik destek.</p>
 
                 <h3 class="h3" id="slider-single">Glint Slider (Tekli)</h3>
@@ -4169,77 +4698,52 @@ el.addEventListener('glint:rangechange', e =&gt; {
 </div>
 <div class="note">Dikey yüksekliği değiştirmek için kapsayıcıda <code>style="--glint-slider-vert-h: 260px"</code> verin. Dikey mod, marks ve balon biçimiyle birlikte kullanılabilir.</div>
             
-<h3 class="h3" id="uxv-single">Tek dosya (multiple yok)</h3>
-<p class="muted"><code>multiple</code> attribute'unu <b>eklemezseniz</b> alan tek dosyalı olur: ipucu satırı <b>“Tek dosya seçin”</b>'e döner, liste her zaman tek satırdır ve <b>yeni bir seçim öncekini tamamen değiştirir</b> (eski dosya sessizce kaldırılır). Tek satır olduğundan sürükle-sırala tutamacı eklenmez ve <code>data-max-files</code> yok sayılır. Avatar, tek belge ya da profil görseli gibi alanlar için idealdir.</p>
-<div class="example">
-  <div class="preview">
-    <div class="preview__tag"><b></b> Canlı önizleme</div>
-<form>
-  <input type="file" class="glint-upload" id="uxv-up-single" accept="image/*">
-</form>
-  </div>
-  <div class="code">
-    <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
-    <pre class="pane active" data-l="html"><code>&lt;!-- multiple YOK → tek dosya. İpucu "Tek dosya seçin" olur;
-     yeni seçim öncekini değiştirir; reorder/max-files devre dışı. --&gt;
-&lt;input type="file" class="glint-upload" accept="image/*"&gt;</code></pre>
-    <pre class="pane" data-l="razor"><code>@* Tek dosyalı model alanı (örn. profil görseli) — multiple eklemeyin *@
-&lt;input type="file" asp-for="Avatar" class="glint-upload" accept="image/*" /&gt;
-&lt;span asp-validation-for="Avatar" class="text-danger"&gt;&lt;/span&gt;</code></pre>
-  </div>
-</div>
-<div class="note">Tek dosya modunda ikinci kez dosya seçtiğinizde liste yenilenir; ayrıca silmek için listedeki kaldır düğmesini kullanabilirsiniz. <code>multiple</code> eklendiğinde davranış “ekle + biriktir”e döner.</div>
 
-<h3 class="h3" id="uxv-accept">Tür filtresi (accept)</h3>
-<p class="muted"><code>accept</code> ile yalnızca belirli tür/uzantıların kabul edilmesini sağlayın. Değer hem <b>MIME grubu</b> (<code>image/*</code>, <code>application/pdf</code>) hem de <b>uzantı</b> (<code>.pdf</code>, <code>.docx</code>) kabul eder; virgülle çoğaltılır. Kabul edilen türler ipucu satırına okunur etikete dönüşerek özetlenir (örn. <code>PDF, DOCX</code>) ve filtreye <b>uymayan</b> dosyalar listede kırmızı <code>.glint-upload-item--invalid</code> ile işaretlenip “Tür desteklenmiyor” hatası gösterilir (sessizce gizlenmez, kullanıcı görür).</p>
-<div class="example">
-  <div class="preview">
-    <div class="preview__tag"><b></b> Canlı önizleme</div>
-<form>
-  <input type="file" class="glint-upload" id="uxv-up-accept" multiple accept=".pdf,.docx,application/pdf">
-</form>
-  </div>
-  <div class="code">
-    <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
-    <pre class="pane active" data-l="html"><code>&lt;!-- accept: MIME grubu (image/*) ve/veya uzantı (.pdf, .docx) — virgülle.
-     İpucuna "PDF, DOCX" yazılır; uymayan dosya listede işaretlenir. --&gt;
-&lt;input type="file" class="glint-upload" multiple
-       accept=".pdf,.docx,application/pdf"&gt;</code></pre>
-    <pre class="pane" data-l="razor"><code>@* Yalnız belge türleri kabul edilsin — accept istemci kolaylığıdır,
-   sunucuda da tür/uzantı doğrulamasını koruyun. *@
-&lt;input type="file" asp-for="Belgeler" class="glint-upload" multiple
-       accept=".pdf,.docx,application/pdf" /&gt;
-&lt;span asp-validation-for="Belgeler" class="text-danger"&gt;&lt;/span&gt;</code></pre>
-  </div>
-</div>
-<div class="note"><code>accept</code> eşleştirmesi tür/* grubunu ve dosya uzantısını kapsar; tam MIME (<code>application/pdf</code>) da yazılabilir. Tarayıcının dosya seçici penceresini de bu değere göre süzdüğünü unutmayın. Görsel filtreler için <code>image/*</code> tek başına çoğu durumu karşılar.</div>
 
-<h3 class="h3" id="uxv-maxsize">Boyut tavanı (data-max-size)</h3>
-<p class="muted"><code>data-max-size</code> ile dosya başına <b>bayt cinsinden</b> üst sınır koyun (1 MB = <code>1048576</code>, 2 MB = <code>2097152</code>). Sınır ipucu satırına <b>“max 1 MB”</b> olarak okunur biçimde yansır; tavanı aşan dosyalar listeye eklenir ama <code>.glint-upload-item--invalid</code> ile işaretlenir ve <b>“Dosya çok büyük”</b> hatası gösterilir, böylece kullanıcı neyin reddedildiğini görür. Bu attribute tek ve çoklu modda aynı çalışır.</p>
+<h3 class="h3" id="slxv-range-combo">Kombinasyon · Fiyat aralığı (min mesafe + ₺ + binlik)</h3>
+<p class="muted">Gerçek dünya senaryosu: çift uçlu Range'de <code>data-min-distance</code>, <code>data-prefix</code> ve <code>data-format="thousands"</code> aynı element üzerinde birlikte. Alt ve üst bütçe çakışamaz (en az <code>5.000</code> birim aralık korunur), her iki balon da binlik ayraçlı ve <code>₺</code> ön ekli görünür; gönderilen ham değer (form binding) etkilenmez. Bütçe/fiyat filtreleri için tipik düzen.</p>
 <div class="example">
   <div class="preview">
     <div class="preview__tag"><b></b> Canlı önizleme</div>
-<form>
-  <input type="file" class="glint-upload" id="uxv-up-maxsize" data-max-size="1048576">
-</form>
+<div style="max-width:360px;padding-top:18px"><div class="glint-slider glint-slider--range" data-min="0" data-max="250000" data-from="40000" data-to="160000" data-step="5000" data-min-distance="5000" data-prefix="₺" data-format="thousands" data-name-from="slxvBudgetMin" data-name-to="slxvBudgetMax"></div></div>
   </div>
   <div class="code">
-    <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
-    <pre class="pane active" data-l="html"><code>&lt;!-- data-max-size: bayt cinsinden dosya başına tavan (1 MB = 1048576).
-     İpucuna "max 1 MB" eklenir; aşan dosya "Dosya çok büyük" ile işaretlenir. --&gt;
-&lt;input type="file" class="glint-upload" data-max-size="1048576"&gt;</code></pre>
-    <pre class="pane" data-l="razor"><code>@* İstemci tarafı boyut tavanı; sunucuda da [MaxFileSize] / RequestSizeLimit
-   ile sınırı zorunlu kılın — istemci kontrolü atlatılabilir. *@
-&lt;input type="file" asp-for="Ek" class="glint-upload" data-max-size="1048576" /&gt;
-&lt;span asp-validation-for="Ek" class="text-danger"&gt;&lt;/span&gt;</code></pre>
+    <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+    <pre class="pane active" data-l="html"><code>&lt;!-- min-distance + prefix + thousands birlikte (tek element) --&gt;
+&lt;div class="glint-slider glint-slider--range"
+     data-min="0" data-max="250000"
+     data-from="40000" data-to="160000"
+     data-step="5000"
+     data-min-distance="5000"
+     data-prefix="&#8378;"
+     data-format="thousands"
+     data-name-from="BudgetMin"
+     data-name-to="BudgetMax"&gt;
+&lt;/div&gt;</code></pre>
+    <pre class="pane" data-l="razor"><code>&lt;div class="glint-slider glint-slider--range"
+     data-min="0" data-max="250000"
+     data-from="@Model.BudgetMin" data-to="@Model.BudgetMax"
+     data-step="5000"
+     data-min-distance="5000"
+     data-prefix="&#8378;"
+     data-format="thousands"
+     data-name-from="@Html.NameFor(m =&gt; m.BudgetMin)"
+     data-name-to="@Html.NameFor(m =&gt; m.BudgetMax)"&gt;
+&lt;/div&gt;</code></pre>
+    <pre class="pane" data-l="js"><code>// Aralığı dinle — balon biçimi yalnız görseldir, ham değer gelir
+const el = document.querySelector('.glint-slider--range');
+el.addEventListener('glint:rangechange', e =&gt; {
+  // e.detail = { from: 40000, to: 160000 } — biçimsiz ham sayı
+  console.info(e.detail.from, e.detail.to);
+});</code></pre>
   </div>
 </div>
-<div class="note">Boyut etiketi otomatik biçimlenir: <code>1048576</code> → <code>max 1 MB</code>, <code>524288</code> → <code>max 512 KB</code>. Diğer sınırlarla birleştiğinde ipucu tek satırda özetlenir (örn. <code>IMAGE · max 1 MB · en çok 3</code>). Sunucu tarafı doğrulama her zaman gereklidir.</div>
+<div class="note">Üç data-* özniteliği bağımsızdır ve istediğiniz gibi birleşir: <code>data-min-distance</code> thumb'ların çakışmasını engeller, <code>data-prefix</code>/<code>data-format</code> yalnızca balon metnini biçimler. Thumb'ları üst üste getirmeyi deneyin — aralarında her zaman <code>₺5.000</code> kalır.</div>
             </section>
 
             <!-- ══════════════ DOSYA YÜKLEME ══════════════ -->
             <section class="sec reveal" id="upload">
-                <div class="sec-head"><span class="sec-kicker">10 · Bileşen</span><h2>Dosya Yükleme</h2></div>
+                <div class="sec-head"><span class="sec-kicker">15 · Bileşen</span><h2>Dosya Yükleme</h2></div>
                 <p class="intro">Sürükle-bırak yükleme alanı: görsel önizleme, dosya listesi, ilerleme çubuğu. Native <code>file</code> input sarmalanır, form ile gönderilir.</p>
 
                 <h3 class="h3" id="upload-zone">Glint Upload / Dropzone</h3>
@@ -4369,11 +4873,78 @@ up.reorder(2, 0);   // 3. dosyayı en başa taşı</code></pre>
   </div>
 </div>
 <div class="note">Erişilebilirlik: tutamaç bir gerçek <code>&lt;button&gt;</code>’tur; <kbd>Tab</kbd> ile odaklanır, ok tuşlarıyla satırı taşır ve odak taşımadan sonra korunur. Sürükle-sırala yalnız <code>multiple</code> modda etkindir; tek dosyalı yüklemede liste zaten tek satır olduğundan tutamaç eklenmez.</div>
+
+<h3 class="h3" id="uxv-single">Tek dosya (multiple yok)</h3>
+<p class="muted"><code>multiple</code> attribute'unu <b>eklemezseniz</b> alan tek dosyalı olur: ipucu satırı <b>“Tek dosya seçin”</b>'e döner, liste her zaman tek satırdır ve <b>yeni bir seçim öncekini tamamen değiştirir</b> (eski dosya sessizce kaldırılır). Tek satır olduğundan sürükle-sırala tutamacı eklenmez ve <code>data-max-files</code> yok sayılır. Avatar, tek belge ya da profil görseli gibi alanlar için idealdir.</p>
+<div class="example">
+  <div class="preview">
+    <div class="preview__tag"><b></b> Canlı önizleme</div>
+<form>
+  <input type="file" class="glint-upload" id="uxv-up-single" accept="image/*">
+</form>
+  </div>
+  <div class="code">
+    <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+    <pre class="pane active" data-l="html"><code>&lt;!-- multiple YOK → tek dosya. İpucu "Tek dosya seçin" olur;
+     yeni seçim öncekini değiştirir; reorder/max-files devre dışı. --&gt;
+&lt;input type="file" class="glint-upload" accept="image/*"&gt;</code></pre>
+    <pre class="pane" data-l="razor"><code>@* Tek dosyalı model alanı (örn. profil görseli) — multiple eklemeyin *@
+&lt;input type="file" asp-for="Avatar" class="glint-upload" accept="image/*" /&gt;
+&lt;span asp-validation-for="Avatar" class="text-danger"&gt;&lt;/span&gt;</code></pre>
+  </div>
+</div>
+<div class="note">Tek dosya modunda ikinci kez dosya seçtiğinizde liste yenilenir; ayrıca silmek için listedeki kaldır düğmesini kullanabilirsiniz. <code>multiple</code> eklendiğinde davranış “ekle + biriktir”e döner.</div>
+
+<h3 class="h3" id="uxv-accept">Tür filtresi (accept)</h3>
+<p class="muted"><code>accept</code> ile yalnızca belirli tür/uzantıların kabul edilmesini sağlayın. Değer hem <b>MIME grubu</b> (<code>image/*</code>, <code>application/pdf</code>) hem de <b>uzantı</b> (<code>.pdf</code>, <code>.docx</code>) kabul eder; virgülle çoğaltılır. Kabul edilen türler ipucu satırına okunur etikete dönüşerek özetlenir (örn. <code>PDF, DOCX</code>) ve filtreye <b>uymayan</b> dosyalar listede kırmızı <code>.glint-upload-item--invalid</code> ile işaretlenip “Tür desteklenmiyor” hatası gösterilir (sessizce gizlenmez, kullanıcı görür).</p>
+<div class="example">
+  <div class="preview">
+    <div class="preview__tag"><b></b> Canlı önizleme</div>
+<form>
+  <input type="file" class="glint-upload" id="uxv-up-accept" multiple accept=".pdf,.docx,application/pdf">
+</form>
+  </div>
+  <div class="code">
+    <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+    <pre class="pane active" data-l="html"><code>&lt;!-- accept: MIME grubu (image/*) ve/veya uzantı (.pdf, .docx) — virgülle.
+     İpucuna "PDF, DOCX" yazılır; uymayan dosya listede işaretlenir. --&gt;
+&lt;input type="file" class="glint-upload" multiple
+       accept=".pdf,.docx,application/pdf"&gt;</code></pre>
+    <pre class="pane" data-l="razor"><code>@* Yalnız belge türleri kabul edilsin — accept istemci kolaylığıdır,
+   sunucuda da tür/uzantı doğrulamasını koruyun. *@
+&lt;input type="file" asp-for="Belgeler" class="glint-upload" multiple
+       accept=".pdf,.docx,application/pdf" /&gt;
+&lt;span asp-validation-for="Belgeler" class="text-danger"&gt;&lt;/span&gt;</code></pre>
+  </div>
+</div>
+<div class="note"><code>accept</code> eşleştirmesi tür/* grubunu ve dosya uzantısını kapsar; tam MIME (<code>application/pdf</code>) da yazılabilir. Tarayıcının dosya seçici penceresini de bu değere göre süzdüğünü unutmayın. Görsel filtreler için <code>image/*</code> tek başına çoğu durumu karşılar.</div>
+
+<h3 class="h3" id="uxv-maxsize">Boyut tavanı (data-max-size)</h3>
+<p class="muted"><code>data-max-size</code> ile dosya başına <b>bayt cinsinden</b> üst sınır koyun (1 MB = <code>1048576</code>, 2 MB = <code>2097152</code>). Sınır ipucu satırına <b>“max 1 MB”</b> olarak okunur biçimde yansır; tavanı aşan dosyalar listeye eklenir ama <code>.glint-upload-item--invalid</code> ile işaretlenir ve <b>“Dosya çok büyük”</b> hatası gösterilir, böylece kullanıcı neyin reddedildiğini görür. Bu attribute tek ve çoklu modda aynı çalışır.</p>
+<div class="example">
+  <div class="preview">
+    <div class="preview__tag"><b></b> Canlı önizleme</div>
+<form>
+  <input type="file" class="glint-upload" id="uxv-up-maxsize" data-max-size="1048576">
+</form>
+  </div>
+  <div class="code">
+    <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+    <pre class="pane active" data-l="html"><code>&lt;!-- data-max-size: bayt cinsinden dosya başına tavan (1 MB = 1048576).
+     İpucuna "max 1 MB" eklenir; aşan dosya "Dosya çok büyük" ile işaretlenir. --&gt;
+&lt;input type="file" class="glint-upload" data-max-size="1048576"&gt;</code></pre>
+    <pre class="pane" data-l="razor"><code>@* İstemci tarafı boyut tavanı; sunucuda da [MaxFileSize] / RequestSizeLimit
+   ile sınırı zorunlu kılın — istemci kontrolü atlatılabilir. *@
+&lt;input type="file" asp-for="Ek" class="glint-upload" data-max-size="1048576" /&gt;
+&lt;span asp-validation-for="Ek" class="text-danger"&gt;&lt;/span&gt;</code></pre>
+  </div>
+</div>
+<div class="note">Boyut etiketi otomatik biçimlenir: <code>1048576</code> → <code>max 1 MB</code>, <code>524288</code> → <code>max 512 KB</code>. Diğer sınırlarla birleştiğinde ipucu tek satırda özetlenir (örn. <code>IMAGE · max 1 MB · en çok 3</code>). Sunucu tarafı doğrulama her zaman gereklidir.</div>
             </section>
 
             <!-- ══════════════ COLOR PICKER ══════════════ -->
             <section class="sec reveal" id="color">
-                <div class="sec-head"><span class="sec-kicker">11 · Bileşen</span><h2>Color Picker</h2></div>
+                <div class="sec-head"><span class="sec-kicker">16 · Bileşen</span><h2>Color Picker</h2></div>
                 <p class="intro">Animasyonlu renk seçici: doygunluk/parlaklık alanı, hue slider, HEX girişi ve hazır palet. Native <code>color</code> input ile senkron.</p>
 
                 <h3 class="h3" id="color-picker">Glint Color Picker</h3>
@@ -4582,7 +5153,7 @@ Glint.Color.setValue(el, '#10b981'); // değeri programatik ata (input/change ya
 
             <!-- ══════════════ KÖPRÜ ══════════════ -->
             <section class="sec reveal" id="bridge">
-    <div class="sec-head"><span class="sec-kicker">12 · Köprü</span><h2>Input ↔ Toast Akıllı Hata Gösterimi</h2></div>
+    <div class="sec-head"><span class="sec-kicker">17 · Köprü</span><h2>Input ↔ Toast Akıllı Hata Gösterimi</h2></div>
     <p class="intro">Glint Input ve <b>glint-toast</b> bağımsız iki pakettir (ikisi de sıfır bağımlılık). İkisi de yüklüyse <b>gevşek-bağlı</b> işbirliği yapar: sunucudan (FluentValidation) dönen alan hataları, alanın o an <b>görünür</b> olup olmadığına göre akıllıca yönlendirilir. Tek API: <code>Glint.Toast.error(mesaj, alanId)</code>.</p>
 
     <div class="tbl-wrap">
@@ -4659,7 +5230,7 @@ Glint.Toast.error('Kayıt başarısız. Lütfen tekrar deneyin.');</code></pre>
 
             <!-- ══════════════ MVC ══════════════ -->
             <section class="sec reveal" id="mvc">
-                <div class="sec-head"><span class="sec-kicker">12</span><h2>ASP.NET Core MVC entegrasyonu</h2></div>
+                <div class="sec-head"><span class="sec-kicker">18</span><h2>ASP.NET Core MVC entegrasyonu</h2></div>
                 <p class="intro">Glint, normal HTML üretildiği sürece çalışır; yani Razor tag helper'larıyla (<code>asp-for</code>) tam uyumludur. İki yaklaşım: <b>(1)</b> her alanın yanında satır içi <code>asp-for</code>, <b>(2)</b> tekrarı azaltan, projeye drop-in edilebilen yeniden kullanılabilir yapılar.</p>
 
                 <h3 class="h3">1. Doğrulama köprüsü (jQuery unobtrusive)</h3>
@@ -4788,7 +5359,7 @@ public class GlintInputTagHelper : TagHelper
 
             <!-- ══════════════ API ══════════════ -->
             <section class="sec reveal" id="api">
-                <div class="sec-head"><span class="sec-kicker">13</span><h2>API referansı</h2></div>
+                <div class="sec-head"><span class="sec-kicker">19</span><h2>API referansı</h2></div>
 
                 <h3 class="h3">JavaScript API</h3>
                 <div class="tbl-wrap">
@@ -4808,6 +5379,13 @@ public class GlintInputTagHelper : TagHelper
                             <tr><td><code>Glint.config.fieldErrors</code></td><td>Input↔Toast köprü politikası: <code>"smart"</code> (varsayılan) · <code>"inline"</code> · <code>"toast"</code>.</td></tr>
                             <tr><td><code>Glint.setState(el, state, msg?)</code></td><td>Jenerik durum: <code>error/success/warning/loading</code> (+ aria). <code>Glint.clearState(el)</code> temizler.</td></tr>
                             <tr><td><code>Glint.format.thousands(n)</code></td><td>Binlik ayraçlı biçimleme yardımcı (bileşensiz, saf fonksiyon).</td></tr>
+                            <tr><td><code>Glint.Phone.get(el)</code></td><td>v1.6 telefon örneği: <code>.country</code> · <code>.setCountry(iso2)</code> · <code>.digits</code> · <code>.e164</code> · <code>.isComplete</code>.</td></tr>
+                            <tr><td><code>Glint.Combobox.get(el)</code></td><td>v1.6 combobox örneği: <code>open()</code> · <code>close()</code> · <code>setOptions([...])</code> · <code>destroy()</code>.</td></tr>
+                            <tr><td><code>Glint.Card.get(el)</code></td><td>v1.6 kart örneği: <code>.brand</code> · <code>.digits</code> · <code>.isValid</code>.</td></tr>
+                            <tr><td><code>Glint.Form.get(el).validate()</code></td><td>v1.6 form orkestratörü: hata basmadan doğrular, <code>true/false</code> döndürür.</td></tr>
+                            <tr><td><code>Glint.Otp._instance(el)</code></td><td>OTP örneği: <code>setSuccess()</code> / <code>clearSuccess()</code> (v1.6 başarı dalgası), <code>setError(msg)</code>, <code>clear()</code>.</td></tr>
+                            <tr><td><code>Glint.email.clearMemory(key?)</code></td><td>v1.6 e-posta hafızasını siler (KVKK); <code>key</code> ile form-bazlı geçmiş.</td></tr>
+                            <tr><td><code>Glint.flip(container, mutateFn, opts?)</code></td><td>v1.6 genel FLIP yardımcısı: <code>{duration, easing, targets}</code> ile DOM değişimini akıcı taşır.</td></tr>
                             <tr><td><code>Glint.Toast.error(msg, fieldId)</code></td><td>glint-toast yüklüyse: özet toast + akıllı alan köprüsü (görünür→inline, değil→toast).</td></tr>
                             <tr><td><code>grup._glintPickerInstance.destroy()</code></td><td>Picker örneğini temizler: olay dinleyicileri ve popover / backdrop kaldırılır.</td></tr>
                         </tbody>
@@ -4843,7 +5421,7 @@ public class GlintInputTagHelper : TagHelper
 
             <!-- ══════════════ DEĞİŞKENLER ══════════════ -->
             <section class="sec reveal" id="degiskenler">
-                <div class="sec-head"><span class="sec-kicker">14</span><h2>CSS değişkenleri</h2></div>
+                <div class="sec-head"><span class="sec-kicker">20</span><h2>CSS değişkenleri</h2></div>
                 <p class="intro">Hepsini <code>:root</code>'ta global ya da tek bir <code>.glint-input-group</code>'ta alan bazında override edebilirsin.</p>
 
                 <h3 class="h3">Genel ve tema</h3>
@@ -4855,7 +5433,25 @@ public class GlintInputTagHelper : TagHelper
                     <tr><td><code>--glint-char-color</code></td><td>#111827</td><td>Metin (overlay) rengi.</td></tr>
                     <tr><td><code>--glint-state-error/-success/-warning/-info</code></td><td>—</td><td>Ortak durum makinesi + güç göstergesi/sayaç renkleri.</td></tr>
                     <tr><td><code>--glint-radius</code></td><td>12px</td><td>Anlamsal köşe yarıçapı ölçeği.</td></tr>
-                    <tr><td><code>--glint-motion</code></td><td>1</td><td>Hareket ölçeği (reduced-motion ile 0'a yaklaşır).</td></tr>
+                    <tr><td><code>--glint-motion</code></td><td>0.28s</td><td><b>Süre token'ıdır</b> (bazı eski geçişlerin taban süresi) — hareket ölçeği değildir; ölçek için <code>--glint-motion-scale</code>'e bak.</td></tr>
+                </tbody></table></div>
+
+                <h3 class="h3" id="motion-tokens">Hareket dili (v1.6)</h3>
+                <p class="muted">v1.6 tüm bileşenlerin animasyonlarını ortak bir imza setine bağlar: 6 easing + 6 süre basamağı. Toast'ın giriş yayı da <code>--glint-ease-pop</code> ile <b>ortaktır</b> — iki paket aynı dili konuşur.</p>
+                <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Değişken</th><th>Varsayılan</th><th>Açıklama</th></tr></thead><tbody>
+                    <tr><td><code>--glint-ease-out</code></td><td>cubic-bezier(0.22, 1, 0.36, 1)</td><td>Giriş / imza easing'i.</td></tr>
+                    <tr><td><code>--glint-ease-in</code></td><td>cubic-bezier(0.4, 0, 0.7, 0.2)</td><td>Çıkışlar.</td></tr>
+                    <tr><td><code>--glint-ease-move</code></td><td>cubic-bezier(0.77, 0, 0.175, 1)</td><td>Konum morph / FLIP.</td></tr>
+                    <tr><td><code>--glint-ease-pop</code></td><td>cubic-bezier(0.34, 1.56, 0.64, 1)</td><td>Yumuşak yay — toast girişiyle <b>ortak</b>.</td></tr>
+                    <tr><td><code>--glint-ease-snap</code></td><td>cubic-bezier(0.2, 1.8, 0.4, 1)</td><td>Sert mikro-yay: check, thumb.</td></tr>
+                    <tr><td><code>--glint-ease-shake</code></td><td>cubic-bezier(0.36, 0.07, 0.19, 0.97)</td><td>Ret / hata sallanması.</td></tr>
+                    <tr><td><code>--glint-dur-1</code> … <code>--glint-dur-6</code></td><td>90 · 140 · 180 · 240 · 320 · 480ms</td><td>Süre skalası: opacity-only → mikro transform → standart etkileşim → popover-in → FLIP → tören (border draw).</td></tr>
+                    <tr><td><code>--glint-motion-scale</code></td><td>1</td><td>Hareket ölçeği. <code>Glint.configure({reducedMotion:true})</code> çalışma zamanı kill switch'i <code>.glint-motion-off</code> ile 0'a indirir.</td></tr>
+                    <tr><td><code>--glint-z-panel</code> / <code>--glint-z-panel-backdrop</code></td><td>1060 / 1059</td><td>Panel katmanı (picker, combobox, phone, select popover'ları).</td></tr>
+                    <tr><td><code>--glint-accent-brighter</code></td><td>#6ee7b7</td><td>Koyu zeminde parlaklaştırılmış aksan tonu.</td></tr>
+                    <tr><td><code>--glint-error-text</code></td><td>#dc2626</td><td>Hata metni rengi (koyu temada #fca5a5).</td></tr>
+                    <tr><td><code>--glint-action-color</code></td><td>label rengi</td><td>Aksiyon ikonları (× / göz / −+) rengi.</td></tr>
+                    <tr><td><code>--glint-scrollbar-thumb</code> / <code>--glint-scrollbar-thumb-dark</code></td><td>#d1d5db / #4b5563</td><td>Panel listelerinin ince scrollbar rengi.</td></tr>
                 </tbody></table></div>
 
                 <h3 class="h3">Input boyutu</h3>
@@ -4886,8 +5482,8 @@ public class GlintInputTagHelper : TagHelper
                         <span class="brand__tag">UI Kit</span>
                     </div>
                     <div class="foot-meta">
-                        <span>Glint UI Kit <span class="glint-ver">v1.5.0</span></span>
-                        <span>16+ bileşen</span>
+                        <span>Glint UI Kit <span class="glint-ver"></span></span>
+                        <span>20+ bileşen</span>
                         <span>sıfır bağımlılık</span>
                     </div>
                 </div>
@@ -5009,15 +5605,6 @@ public class GlintInputTagHelper : TagHelper
     wirePw('in-pw', 'pwTg');
     wirePw('h-pw', 'h-pw-tg');
 
-    // ── Demo: temizle ──
-    var clr = document.getElementById('in-clear');
-    document.getElementById('clrBtn').addEventListener('click', function () {
-        clr.dispatchEvent(new Event('beforeinput', { bubbles: true, cancelable: true }));
-        clr.value = '';
-        clr.dispatchEvent(new Event('input', { bubbles: true }));
-        clr.focus();
-    });
-
     // ── Demo: hata ──
     var errEl = document.getElementById('in-err');
     document.getElementById('errShow').addEventListener('click', function () { Glint.Input.setError(errEl, 'Bu kullanıcı adı zaten alınmış.'); });
@@ -5034,6 +5621,82 @@ public class GlintInputTagHelper : TagHelper
     all.addEventListener('change', function () { kids.forEach(function (k) { k.checked = all.checked; }); });
     kids.forEach(function (k) { k.addEventListener('change', syncParent); });
     syncParent();
+
+    // ── Demo: Combobox async adaptörü (#combobox) ──
+    // Kütüphane fetch YAPMAZ; bu, sayfanın kendi (sahte-gecikmeli) kaynağıdır.
+    window.demoApp = {
+        _countries: ['Almanya', 'Arjantin', 'Avustralya', 'Azerbaycan', 'Belçika', 'Brezilya', 'Çekya', 'Danimarka', 'Fransa', 'Hollanda', 'İngiltere', 'İspanya', 'İsveç', 'İsviçre', 'İtalya', 'Japonya', 'Kanada', 'Norveç', 'Portekiz', 'Türkiye', 'Yunanistan'],
+        searchCountries: function (q) {
+            var list = window.demoApp._countries;
+            var needle = String(q || '').toLocaleLowerCase('tr');
+            return new Promise(function (resolve) {
+                setTimeout(function () {
+                    resolve(list.filter(function (c) { return c.toLocaleLowerCase('tr').indexOf(needle) !== -1; }));
+                }, 300);
+            });
+        }
+    };
+
+    // ── Demo: e-posta hafızası (#email) ──
+    (function () {
+        var f = document.getElementById('em-mem-form');
+        if (f) f.addEventListener('submit', function (e) {
+            e.preventDefault();
+            // Not: memory kaydı submit anında kütüphane tarafından yapılır;
+            // burada yalnız sayfanın yenilenmesini engelleyip bildiriyoruz.
+            if (window.Glint && Glint.Toast) Glint.Toast.success('Kaydedildi — sayfayı yenileyince chip süzülür.');
+        });
+        var c = document.getElementById('em-mem-clear');
+        if (c) c.addEventListener('click', function () {
+            if (window.Glint && Glint.email) Glint.email.clearMemory('demo');
+            if (window.Glint && Glint.Toast) Glint.Toast.info('E-posta geçmişi silindi (demo anahtarı).');
+        });
+    })();
+
+    // ── Demo: OTP v1.6 — resend / autosubmit / setSuccess (#fields) ──
+    (function () {
+        var root = document.getElementById('ox16-otp');
+        var form = document.getElementById('ox16-form');
+        if (!root) return;
+        function inst() { return window.Glint && Glint.Otp ? Glint.Otp._instance(root) : null; }
+        if (form) form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (window.Glint && Glint.Toast) Glint.Toast.success('Kod tamamlandı → form otomatik gönderildi (demo).');
+        });
+        root.addEventListener('glint:otp-resend', function () {
+            if (window.Glint && Glint.Toast) Glint.Toast.info('glint:otp-resend yakalandı — SMS\'i uygulaman gönderir.');
+        });
+        var wire = function (id, fn) { var b = document.getElementById(id); if (b) b.addEventListener('click', fn); };
+        wire('ox16-success', function () { var o = inst(); if (o) o.setSuccess(); });
+        wire('ox16-error', function () { var o = inst(); if (o) o.setError('Kod hatalı'); });
+        wire('ox16-clear', function () { var o = inst(); if (o) { o.clear(); o.clearSuccess(); } });
+    })();
+
+    // ── Demo: Form orkestratörü (#form) ──
+    (function () {
+        var f = document.getElementById('fx-form');
+        if (!f) return;
+        // GlintForm geçersiz submit'i zaten engeller; geçerli olanı demo'da yut.
+        f.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var inst = window.Glint && Glint.Form ? Glint.Form.get(f) : null;
+            if (inst && !inst.validate()) return; // geçersiz → hataları GlintForm basar
+            if (window.Glint && Glint.Toast) Glint.Toast.success('Form geçerli — native akışla gönderilirdi (demo).');
+        });
+        f.addEventListener('glint:form-invalid', function (e) {
+            console.info('glint:form-invalid', e.detail.errors);
+        });
+    })();
+
+    // ── Demo: Kart tamamlanınca bildirim (#card) ──
+    (function () {
+        var num = document.getElementById('cc-num');
+        var grp = num && num.closest('.glint-input-group');
+        if (grp) grp.addEventListener('glint:card-complete', function (e) {
+            if (e.detail && e.detail.valid && window.Glint && Glint.Toast)
+                Glint.Toast.success('Kart geçerli (Luhn) — marka: ' + e.detail.brand);
+        });
+    })();
 
     // ── Demo: Input ↔ Toast köprüsü (#bridge) ──
     (function () {

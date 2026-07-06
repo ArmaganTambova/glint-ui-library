@@ -6,7 +6,7 @@
  * ════════════════════════════════════════════════════════════════════════ */
 
 /* ============================================================
-   glint-toast Notification System v2.4
+   Glint Toast — Notification System (birleşik sürüm: Glint.version)
    ============================================================
    Reusable, framework-agnostic toast/notification UI kit.
    - CSS prefix:    glint-toast-*
@@ -16,7 +16,7 @@
    ============================================================ */
 
 /* ============================================================
-   glint-toast Notification System v2.4
+   Glint Toast — Notification System (birleşik sürüm: Glint.version)
    ============================================================
    
    v2.3 → v2.4:
@@ -94,7 +94,7 @@
     }
 
     .glint-toast.glint-toast-enter {
-        animation: glint-toast-in 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        animation: glint-toast-in 0.52s var(--glint-ease-pop, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
     }
 
     .glint-toast.glint-toast-exit {
@@ -193,7 +193,7 @@
     cursor: pointer;
     color: #9ca3af;
     padding: 0;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s var(--glint-ease-pop, cubic-bezier(0.34, 1.56, 0.64, 1));
     line-height: 1;
 }
 
@@ -472,7 +472,7 @@
 @keyframes glint-toast-in {
     0% {
         opacity: 0;
-        transform: translateY(-14px) scale(0.92);
+        transform: translateY(var(--_in-y, -14px)) scale(0.92);
         filter: blur(4px);
     }
 
@@ -501,7 +501,7 @@
 
     100% {
         opacity: 0;
-        transform: translateY(-18px) scale(0.88);
+        transform: translateY(var(--_out-y, -18px)) scale(0.88);
         filter: blur(3px);
     }
 }
@@ -780,4 +780,148 @@
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   v1.6 — YENİ ÖZELLİK KATMANI
+   (konumlar · promise/loading · aksiyon · ×N rozeti · swipe)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Konum sistemi (Glint.Toast.configure({position})) ──────────
+   Ofsetler token'laştı: farklı nav yükseklikleri için override edin. */
+:root {
+    --glint-toast-offset-top: 88px;
+    --glint-toast-offset-side: 20px;
+    --glint-toast-offset-bottom: 20px;
+}
+#glint-toast-container { top: var(--glint-toast-offset-top); right: var(--glint-toast-offset-side); }
+#glint-toast-container.glint-pos-top-left {
+    right: auto;
+    left: var(--glint-toast-offset-side);
+    align-items: flex-start;
+}
+#glint-toast-container.glint-pos-top-center {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
+}
+#glint-toast-container.glint-pos-bottom-right,
+#glint-toast-container.glint-pos-bottom-left {
+    top: auto;
+    bottom: var(--glint-toast-offset-bottom);
+    /* Yeni toast en altta biter (prepend + column-reverse) */
+    flex-direction: column-reverse;
+    /* Alttan girenler aşağıdan süzülür */
+    --_in-y: 14px;
+    --_out-y: 18px;
+}
+#glint-toast-container.glint-pos-bottom-left {
+    right: auto;
+    left: var(--glint-toast-offset-side);
+    align-items: flex-start;
+}
+
+/* ── Swipe-to-dismiss ───────────────────────────────────────────
+   Dikey sayfa kaydırması bozulmaz; yatay sürükleme toast'ındır. */
+.glint-toast {
+    touch-action: pan-y;
+}
+.glint-toast.glint-toast-swiping {
+    cursor: grabbing;
+    will-change: transform;
+    transition: none !important;
+}
+/* Enter animasyonu (fill:forwards) inline transform'u ezer — sürükleme
+   başlarken final durum bu sınıfla sabitlenir. */
+.glint-toast.glint-toast-settled {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    animation: none;
+}
+
+/* ── Yükleme (promise) spinner'ı ────────────────────────────────
+   SVG değil, border tabanlı halka — accent rengini türden alır. */
+.glint-toast--loading {
+    --_toast-accent: #6b7280;
+    --_glow-rgb: 107, 114, 128;
+}
+.glint-toast-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--_toast-accent) 25%, transparent);
+    border-top-color: var(--_toast-accent);
+    animation: glint-toast-spin 0.8s linear infinite;
+}
+@keyframes glint-toast-spin {
+    to { transform: rotate(360deg); }
+}
+/* Morf anında yeni ikon pop'u (loading → success/error geçişi) */
+.glint-toast-icon.glint-icon-morph svg {
+    animation: glint-icon-morph 0.32s var(--glint-ease-pop, cubic-bezier(0.34, 1.56, 0.64, 1)) backwards;
+}
+@keyframes glint-icon-morph {
+    0%   { transform: scale(0.4) rotate(-30deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* ── Aksiyon butonu ("Geri Al") ───────────────────────────────── */
+.glint-toast-action {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 5px 12px;
+    border: 1px solid color-mix(in srgb, var(--_toast-accent) 45%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--_toast-accent) 10%, transparent);
+    color: var(--_toast-accent);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 140ms ease, transform 130ms var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.glint-toast-action:hover {
+    background: color-mix(in srgb, var(--_toast-accent) 18%, transparent);
+}
+.glint-toast-action:active {
+    transform: scale(0.94);
+}
+.glint-toast-action:focus-visible {
+    outline: 2px solid var(--_toast-accent);
+    outline-offset: 2px;
+}
+
+/* ── ×N tekrar rozeti (dedupe) ──────────────────────────────────── */
+.glint-toast-count {
+    flex: 0 0 auto;
+    min-width: 22px;
+    padding: 1px 6px;
+    margin-left: auto;
+    margin-right: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--_toast-accent) 16%, transparent);
+    color: var(--_toast-accent);
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+.glint-toast-count.glint-count-pop {
+    animation: glint-count-pop 0.3s var(--glint-ease-pop, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+@keyframes glint-count-pop {
+    0%   { transform: scale(0.6); }
+    60%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .glint-toast-spinner { animation-duration: 1.6s; }  /* dönmeye devam (bilgi) ama sakin */
+    .glint-toast-icon.glint-icon-morph svg,
+    .glint-toast-count.glint-count-pop { animation: none !important; }
 }

@@ -123,8 +123,32 @@
     --glint-radius-lg: 14px;
     --glint-motion-fast: 0.18s;
     --glint-motion: 0.28s;
-    --glint-easing-signature: cubic-bezier(0.22, 1, 0.36, 1);
-    --glint-easing-motion: cubic-bezier(0.77, 0, 0.175, 1);
+
+    /* ═══ v1.6 HAREKET DİLİ — tek kaynak easing + süre skalası ═══
+       Motion Manifesto: Glint = parıltı, patlama değil. Çizim = oluş,
+       solma = gidiş, sarsıntı = ret. Giriş yavaşlayarak, çıkış
+       hızlanarak (bir kademe kısa). Etkileşim başına en fazla bir
+       overshoot. Yalnız transform + opacity; layout FLIP ile taşınır. */
+    --glint-ease-out:   cubic-bezier(0.22, 1, 0.36, 1);    /* giriş / imza */
+    --glint-ease-in:    cubic-bezier(0.4, 0, 0.7, 0.2);    /* çıkış */
+    --glint-ease-move:  cubic-bezier(0.77, 0, 0.175, 1);   /* konum morph / FLIP */
+    --glint-ease-pop:   cubic-bezier(0.34, 1.56, 0.64, 1); /* yumuşak yay (toast girişiyle ORTAK) */
+    --glint-ease-snap:  cubic-bezier(0.2, 1.8, 0.4, 1);    /* sert mikro-yay: check, thumb */
+    --glint-ease-shake: cubic-bezier(0.36, 0.07, 0.19, 0.97); /* ret / hata */
+    --glint-dur-1: 90ms;    /* opacity-only, hover tint */
+    --glint-dur-2: 140ms;   /* mikro transform: ikon takas, çıkışlar */
+    --glint-dur-3: 180ms;   /* standart etkileşim: switch, popover-out */
+    --glint-dur-4: 240ms;   /* popover-in, label float */
+    --glint-dur-5: 320ms;   /* FLIP / layout değişimi */
+    --glint-dur-6: 480ms;   /* tören: border draw, tamamlanma dalgası */
+    /* Hareket çarpanı — Glint.configure({reducedMotion:true}) runtime'da
+       .glint-motion-off sınıfını basar; bu değişken yeni kodda süreleri
+       calc() ile ölçeklemek için de kullanılabilir. */
+    --glint-motion-scale: 1;
+
+    /* Eski adlar → alias (geriye dönük uyumluluk) */
+    --glint-easing-signature: var(--glint-ease-out);
+    --glint-easing-motion: var(--glint-ease-move);
 
     /* ── v1.5.1 yeni token'lar ── */
     /* Koyu tema parlak aksanı (odaklı etiket vb.) — eskiden 5 ayrı
@@ -254,7 +278,8 @@
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
-    transition: stroke-dashoffset 0.55s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.25s ease;
+    /* v1.6 — marka çizimi imza easing'e göçtü (Material standardı kaçaktı) */
+    transition: stroke-dashoffset 0.55s var(--glint-ease-out), stroke 0.25s ease;
 }
 
 [data-bs-theme="dark"] .glint-border-path {
@@ -270,7 +295,8 @@
 }
 
 .glint-input-group:not(.glint-focused) .glint-border-path {
-    transition: stroke-dashoffset 0.45s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.25s ease;
+    /* çıkış girişten hızlı + hızlanan eğri (motion manifesto) */
+    transition: stroke-dashoffset 0.45s var(--glint-ease-in), stroke 0.25s ease;
 }
 
 
@@ -293,7 +319,7 @@
     font-weight: 500;
     line-height: 1;
     background: transparent;
-    transition: top 0.3s cubic-bezier(0.22, 1, 0.36, 1), transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), color 0.25s ease, background 0.25s ease, padding 0.25s ease;
+    transition: top 0.3s var(--glint-ease-out), transform 0.3s var(--glint-ease-out), color 0.25s ease, background 0.25s ease, padding 0.25s ease;
     white-space: nowrap;
     isolation: isolate;
 }
@@ -443,7 +469,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .glint-input-group.glint-error-shake {
-    animation: glint-shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    animation: glint-shake 0.42s var(--glint-ease-shake) both;
 }
 
 @keyframes glint-shake {
@@ -502,7 +528,7 @@
     pointer-events: none;
     opacity: 0;
     transform: translateY(-4px);
-    transition: opacity 0.22s ease-out, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: opacity 0.22s ease-out, transform 0.25s var(--glint-ease-out);
 }
 
 .glint-error-msg--visible {
@@ -569,7 +595,7 @@
     background: transparent;
     position: relative;
     pointer-events: none;
-    transition: border-color 0.2s ease, background 0.2s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.18s var(--glint-ease-out), box-shadow 0.2s ease;
 }
 
 [data-bs-theme="dark"] .glint-cb-box {
@@ -583,9 +609,17 @@
     border-color: var(--glint-cb-checked-bg);
 }
 
-/* Checked → hafif scale-down (pop hissi) */
-.glint-cb-box.is-checked {
-    transform: scale(0.91);
+/* v1.6 — kalıcı scale(0.91) yerine one-shot SNAP: kutu 0.9'dan dolup
+   1.04'e taşar ve 1'e oturur (sert mikro-yay); işaretli kutu artık tam
+   boyutta durur. Sınıfı JS yalnız etkileşimli işaretlemede basar
+   (sayfa yüklenişinde önceden işaretli kutular animasyon oynatmaz). */
+.glint-cb-box.glint-cb-snap {
+    animation: glint-cb-snap 0.2s var(--glint-ease-snap);
+}
+@keyframes glint-cb-snap {
+    0%   { transform: scale(0.9); }
+    60%  { transform: scale(1.04); }
+    100% { transform: scale(1); }
 }
 
 /* Geri gel */
@@ -682,10 +716,24 @@
     }
 
     .glint-input-group.glint-error-shake,
-    .glint-cb-box.is-checked {
+    .glint-cb-box.is-checked,
+    .glint-cb-box.glint-cb-snap {
         animation: none !important;
         transform: none !important;
     }
+}
+
+/* ── v1.6: RUNTIME hareket anahtarı ─────────────────────────────
+   Glint.configure({ reducedMotion: true }) köke bu sınıfı basar:
+   OS ayarından bağımsız olarak tüm glint bileşen hareketleri anlık
+   olur (bilgi kaybolmaz, koreografi kaybolur). */
+.glint-motion-off [class*="glint-"],
+.glint-motion-off [class*="glint-"]::before,
+.glint-motion-off [class*="glint-"]::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    animation-delay: 0s !important;
 }
 
 
@@ -905,7 +953,7 @@
     align-items: center;
     justify-content: center;
     padding: 0;
-    transition: color 150ms ease, background 150ms ease, transform 130ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: color 150ms ease, background 150ms ease, transform 130ms var(--glint-ease-out);
 }
 
 /* v1.5.1 — elle yazılmış aksiyon ikonları da enjekte edilenle aynı
@@ -1029,7 +1077,7 @@
     background: var(--glint-strength-color, var(--glint-state-error));
     transform: scaleX(0);
     transform-origin: left center;
-    transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    transition: transform 0.34s var(--glint-ease-out),
                 background 0.3s ease;
 }
 .glint-strength-bar[data-score="1"] { --glint-strength-color: var(--glint-state-error); }
@@ -1066,7 +1114,7 @@
     opacity: 0;
 }
 .glint-strength-bar i.glint-shine::after {
-    animation: glint-strength-shine 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+    animation: glint-strength-shine 0.55s var(--glint-ease-out) 0.18s both;
 }
 @keyframes glint-strength-shine {
     0% { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
@@ -1085,6 +1133,99 @@
     overflow: hidden;
     clip: rect(0 0 0 0);
     white-space: nowrap;
+}
+
+/* ═══ v1.6: E-POSTA YARDIMCILARI ═══════════════════════════════ */
+
+/* Ghost öneri — overlay'de, gerçek metnin devamında soluk durur.
+   Native input'un değerine GİRMEZ (form asla yanlış değer görmez);
+   Tab veya → kabul eder. */
+.glint-char-hint {
+    display: inline-block;
+    white-space: pre;
+    color: var(--glint-char-color);
+    opacity: 0.35;
+    pointer-events: none;
+}
+[data-bs-theme="dark"] .glint-char-hint {
+    color: var(--glint-char-dark);
+}
+
+/* Hafıza chip'i — alanın SOL ALTINDAN, alt çizginin altından süzülerek
+   çıkar (clip-path üstten perde + yukarı kayma), asla input kadar geniş
+   olmaz. Tıklamada glifler alana FLIP ile uçar (JS). */
+.glint-email-chip {
+    position: absolute;
+    top: 100%;
+    left: 12px;
+    margin-top: 7px;
+    max-width: 70%;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border: 1px solid var(--glint-border-default);
+    border-radius: 999px;
+    background: var(--glint-surface, #f9fafb);
+    color: var(--glint-char-color);
+    font-size: 12.5px;
+    line-height: 1.2;
+    cursor: pointer;
+    z-index: 7;
+    /* Kapalı: çizginin "altında" — üstten perdeli + hafif yukarıda dur */
+    opacity: 0;
+    transform: translateY(-7px);
+    clip-path: inset(0 0 100% 0 round 999px);
+    pointer-events: none;
+    transition: opacity 200ms var(--glint-ease-out),
+                transform 260ms var(--glint-ease-out),
+                clip-path 260ms var(--glint-ease-out),
+                border-color 150ms ease, background 150ms ease;
+}
+.glint-email-chip.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(-6px -6px -6px -6px round 999px);
+    pointer-events: auto;
+}
+.glint-email-chip:hover,
+.glint-email-chip:focus-visible {
+    border-color: var(--bs-primary, #059669);
+    background: color-mix(in srgb, var(--bs-primary, #059669) 7%, var(--glint-surface, #f9fafb));
+    outline: none;
+}
+.glint-email-chip svg {
+    flex: 0 0 auto;
+    opacity: 0.55;
+}
+.glint-email-chip__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.glint-email-chip__more {
+    flex: 0 0 auto;
+    font-size: 10.5px;
+    opacity: 0.5;
+    font-variant-numeric: tabular-nums;
+}
+[data-bs-theme="dark"] .glint-email-chip {
+    border-color: var(--glint-border-dark);
+    background: var(--glint-surface-dark, #1f2937);
+    color: var(--glint-char-dark);
+}
+[data-bs-theme="dark"] .glint-email-chip:hover,
+[data-bs-theme="dark"] .glint-email-chip:focus-visible {
+    border-color: var(--glint-caret-dark, #34d399);
+    background: color-mix(in srgb, var(--glint-caret-dark, #34d399) 10%, var(--glint-surface-dark, #1f2937));
+}
+/* Chip görünürken hata mesajı/sayaç ile çakışmasın diye küçük alan aç */
+@media (pointer: coarse) {
+    .glint-email-chip { padding: 9px 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .glint-email-chip { transition: opacity 0.01ms, transform 0.01ms, clip-path 0.01ms; }
 }
 
 /* v1.5.1 — genel ekran-okuyucu (görünmez) yardımcı sınıf: OTP hata
@@ -1144,7 +1285,7 @@
     border-radius: var(--glint-radius, 10px);
     cursor: pointer;
     transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease,
-                transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+                transform 0.14s var(--glint-ease-out);
 }
 .glint-checkbox-label--card:has(input:checked),
 .glint-radio-label--card:has(input:checked) {
@@ -1173,7 +1314,7 @@
     cursor: pointer;
     user-select: none;
     transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease,
-                transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+                transform 0.14s var(--glint-ease-out);
 }
 .glint-checkbox-label--button:has(input:checked),
 .glint-radio-label--button:has(input:checked) {
@@ -1203,8 +1344,8 @@
    .glint-field__action ile birlikte .glint-field__action--clear ekleyin.
    Alan boşken buton ölçeklenip kaybolur, değer girilince geri gelir. */
 .glint-input-group .glint-field__action--clear {
-    transition: opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1),
-                transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    transition: opacity 0.18s var(--glint-ease-out),
+                transform 0.18s var(--glint-ease-out),
                 color 150ms ease, background 150ms ease;
 }
 
@@ -1221,7 +1362,7 @@
    yumuşakça aşağı itiyoruz — mesaj bu açılan boşluğa oturur. */
 .glint-input-group {
     margin-bottom: 22px;
-    transition: margin-bottom 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: margin-bottom 0.3s var(--glint-ease-out);
 }
 
 .glint-input-group.glint-error {
@@ -1251,8 +1392,8 @@
      7. Reduced Motion / Accessibility
    ------------------------------------------------------------
    Tasarım dili (glint-input ile birebir):
-     • Easing imza:  cubic-bezier(0.22, 1, 0.36, 1)  (giriş/çıkış)
-     • Hareket/morph: cubic-bezier(0.77, 0, 0.175, 1)
+     • Easing imza:  var(--glint-ease-out)  (giriş/çıkış)
+     • Hareket/morph: var(--glint-ease-move)
      • Süreler < 300ms, sadece transform/opacity animasyonu
      • Odak halkası: 0 0 0 3px rgba(5,150,105,0.30)
      • Basılınca:    transform: scale(0.97)
@@ -1381,7 +1522,7 @@
     /* scale(0)'dan DEĞİL → küçük bir "pop" (kontrat: hiçten belirme yok) */
     transform: scale(0.5);
     opacity: 0;
-    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    transition: transform 0.2s var(--glint-ease-out),
                 opacity 0.18s ease;
     pointer-events: none;
 }
@@ -1483,7 +1624,7 @@
     background: var(--glint-switch-thumb);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     /* SADECE transform animasyonu (GPU). ~180ms imza easing. */
-    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.18s var(--glint-ease-out);
     will-change: transform;
 }
 
@@ -1494,6 +1635,27 @@
 
 .glint-switch-input:checked ~ .glint-switch-track .glint-switch-thumb {
     transform: translateX(calc(var(--glint-switch-w) - var(--glint-switch-h)));
+}
+
+/* v1.6 mikro — varışta squash-stretch (yerleşme). Keyframe transform'u
+   komple sürdüğünden her iki durum için final translateX'i içerir;
+   JS sınıfı yolculuk transition'ı bittikten SONRA basar. */
+.glint-switch-input:not(:checked) ~ .glint-switch-track .glint-switch-thumb--settle {
+    animation: glint-thumb-settle-off 0.24s var(--glint-ease-snap);
+}
+.glint-switch-input:checked ~ .glint-switch-track .glint-switch-thumb--settle {
+    animation: glint-thumb-settle-on 0.24s var(--glint-ease-snap);
+}
+@keyframes glint-thumb-settle-off {
+    0%   { transform: translateX(0) scaleX(1.18) scaleY(0.84); }
+    100% { transform: translateX(0) scale(1); }
+}
+@keyframes glint-thumb-settle-on {
+    0%   { transform: translateX(calc(var(--glint-switch-w) - var(--glint-switch-h))) scaleX(1.18) scaleY(0.84); }
+    100% { transform: translateX(calc(var(--glint-switch-w) - var(--glint-switch-h))) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .glint-switch-thumb--settle { animation: none !important; }
 }
 
 /* Basılınca thumb hafif genişler (dokunma geri bildirimi) */
@@ -1575,8 +1737,8 @@
     transform: translateX(0);
     width: 0;
     z-index: 0;
-    transition: transform 0.25s cubic-bezier(0.77, 0, 0.175, 1),
-                width 0.25s cubic-bezier(0.77, 0, 0.175, 1);
+    transition: transform 0.25s var(--glint-ease-move),
+                width 0.25s var(--glint-ease-move);
     will-change: transform;   /* v1.5.1: width composite edilemez */
     pointer-events: none;
 }
@@ -1699,7 +1861,7 @@
     height: var(--glint-rating-size);
     flex-shrink: 0;
     cursor: pointer;
-    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.18s var(--glint-ease-out);
 }
 .glint-rating:hover .glint-rating-star {
     will-change: transform;
@@ -1852,6 +2014,19 @@
 .glint-rating.is-hovering .glint-rating-star.is-filled,
 .glint-rating.is-hovering .glint-rating-star.is-half {
     transform: scale(1.12);
+}
+
+/* v1.6 mikro — pointer ile SEÇİM anında hedef yıldızda tören pop'u */
+.glint-rating-star.glint-star-pop {
+    animation: glint-star-pop 0.3s var(--glint-ease-snap);
+}
+@keyframes glint-star-pop {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.28); }
+    100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .glint-rating-star.glint-star-pop { animation: none !important; }
 }
 
 /* Aktif tıklanan yıldız anlık basış */
@@ -2042,8 +2217,8 @@
     --glint-tags-min-h: var(--glint-input-height, 52px);
 
     /* Easing imzası — proje geneliyle aynı */
-    --glint-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-    --glint-ease-move: cubic-bezier(0.77, 0, 0.175, 1);
+    /* --glint-ease-out artık :root'ta (v1.6) */
+    /* --glint-ease-move artık :root'ta (v1.6) */
 }
 
 
@@ -2607,7 +2782,7 @@
 
 /* Yinelenen değer reddedildi → kısa shake */
 .glint-tags.is-reject {
-    animation: glint-tags-shake 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    animation: glint-tags-shake 0.38s var(--glint-ease-shake) both;
 }
 
 @keyframes glint-tags-shake {
@@ -2814,9 +2989,9 @@
     --glint-stepper-btn-radius: 8px;
     --glint-stepper-btn-color: #6b7280;     /* dark: #9ca3af */
     --glint-stepper-btn-hover: var(--bs-primary, #059669);
-    --glint-stepper-surface: #f9fafb;       /* dark: #1f2937 */
-    --glint-stepper-surface-hover: color-mix(in srgb, var(--bs-primary, #059669) 8%, transparent);
-    --glint-stepper-focus-ring: color-mix(in srgb, var(--bs-primary, #059669) 30%, transparent);
+    /* (v1.6: --glint-stepper-surface / -hover / -focus-ring kaldırıldı —
+       kapsül tasarımıyla birlikte gitti; stepper artık imza border-draw
+       sistemini ve ghost buton dilini kullanıyor.) */
 }
 
 
@@ -2856,7 +3031,7 @@
     transition: border-color 0.2s ease,
                 background 0.2s ease,
                 box-shadow 0.2s ease,
-                transform 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+                transform 0.16s var(--glint-ease-out);
     -webkit-appearance: none;
     appearance: none;
     /* iOS'ta otomatik büyütme/font ölçek engeli */
@@ -2893,25 +3068,18 @@
    /sağına flex ile yerleşir; .glint-input-group--stepper sınıfı
    JS tarafından eklenir. */
 
+/* v1.6 REDESIGN — kapsül + statik box-shadow ring GİTTİ.
+   Stepper artık kütüphanenin İMZASI olan sistemde yaşar: dinlenmede
+   .glint-default-border (grubu sarar, border-radius inherit), odakta
+   çizilen SVG kenarlık (buildBorderSVG geometriyi stepper'da GRUP
+   rect'inden hesaplar). −/+ butonları alanın içinde ghost butonlardır —
+   göz/× aksiyon diliyle aynı. Eski tasarım bu sistemin tamamını
+   display:none ile gizliyordu; "kütüphanenin değilmiş gibi" hissinin
+   sebebi buydu. */
 .glint-input-group--stepper {
     display: flex;
     align-items: stretch;
-    /* v1.5 redesign: BİRLEŞİK KAPSÜL — tek çerçeve, butonlar içeride yapışık.
-       GlintInput'un kendi (yüzen SVG) kenarlığı kapsülle çakışmasın → gizlenir. */
-    border: 1.5px solid var(--glint-border-default);
-    border-radius: var(--glint-radius, 10px);
-    background: var(--glint-stepper-surface);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
-}
-.glint-input-group--stepper .glint-default-border,
-.glint-input-group--stepper .glint-border-svg { display: none !important; }
-.glint-input-group--stepper.glint-focused {
-    border-color: var(--glint-border-focus);
-    box-shadow: 0 0 0 3px var(--glint-stepper-focus-ring);
-}
-[data-bs-theme="dark"] .glint-input-group--stepper {
-    border-color: var(--glint-border-dark);
-    background: var(--glint-surface-dark, #1f2937);
+    border-radius: var(--glint-radius, 10px);   /* default-border inherit alır */
 }
 
 .glint-input-group--stepper .glint-stepper {
@@ -2960,18 +3128,21 @@
     justify-content: center;
 }
 
+/* v1.6 — GHOST buton: şeffaf zemin, alanın içinde yüzen yumuşak kare;
+   hover'da aksan tint'i, basışta scale (göz/× aksiyon butonu dili). */
 .glint-stepper-btn {
     flex: 0 0 auto;
-    width: var(--glint-stepper-btn-size);
-    align-self: stretch;          /* kapsül yüksekliğini tam doldur (yapışık) */
-    height: auto;
+    width: calc(var(--glint-stepper-btn-size) - 8px);
+    height: calc(var(--glint-stepper-btn-size) - 8px);
+    align-self: center;
+    margin: 0 5px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border: none;
-    background: transparent;      /* kapsül zemini görünsün */
-    color: var(--glint-stepper-btn-color);
-    border-radius: 0;             /* içeride yapışık — köşe yok */
+    background: transparent;
+    color: var(--glint-action-color, var(--glint-stepper-btn-color));
+    border-radius: var(--glint-stepper-btn-radius);
     cursor: pointer;
     /* Üst üste binmeyi engelle: overlay (z3) ve label (z4) üstünde */
     position: relative;
@@ -2980,24 +3151,10 @@
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
-    transition: color 0.15s ease,
-                background 0.15s ease,
-                box-shadow 0.2s ease,
-                transform 0.13s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: color var(--glint-dur-2) ease,
+                background var(--glint-dur-2) ease,
+                transform 0.13s var(--glint-ease-out);
 }
-
-.glint-stepper-btn--minus {
-    border-right: 1px solid var(--glint-border-default);
-    border-top-left-radius: calc(var(--glint-radius, 10px) - 1.5px);
-    border-bottom-left-radius: calc(var(--glint-radius, 10px) - 1.5px);
-}
-.glint-stepper-btn--plus {
-    border-left: 1px solid var(--glint-border-default);
-    border-top-right-radius: calc(var(--glint-radius, 10px) - 1.5px);
-    border-bottom-right-radius: calc(var(--glint-radius, 10px) - 1.5px);
-}
-[data-bs-theme="dark"] .glint-stepper-btn--minus { border-right-color: var(--glint-border-dark); }
-[data-bs-theme="dark"] .glint-stepper-btn--plus { border-left-color: var(--glint-border-dark); }
 
 .glint-stepper-btn svg {
     width: 18px;
@@ -3005,16 +3162,9 @@
     pointer-events: none;
 }
 
-/* Rakam değişiminde küçük translateY animasyonu için sarmalayıcı.
-   JS, değişen değeri kısa süre bu sınıfla işaretler. */
-.glint-stepper.glint-stepper--bump {
-    animation: glint-stepper-bump 0.18s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes glint-stepper-bump {
-    0%   { transform: translateY(var(--glint-stepper-bump-dir, -22%)); opacity: 0.45; }
-    100% { transform: translateY(0); opacity: 1; }
-}
+/* (v1.6: bump animasyonu kaldırıldı — yerine overlay glifleri üzerinde
+   rakam ODOMETER'ı: eski rakam yukarı süzülür, yenisi alttan gelir;
+   JS GlintStepper._odometer, çekirdek _skipNextAnim bayrağıyla.) */
 
 
 /* (GLINT MASKED INPUT bölümü v1.5.1'de kaldırıldı — sınıf ölü koddu;
@@ -3046,7 +3196,7 @@
 
 /* Dolum animasyonu — karakter girilince hafif pop (transform/opacity) */
 .glint-otp-cell.glint-otp-cell--pop {
-    animation: glint-otp-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: glint-otp-pop 0.2s var(--glint-ease-out);
 }
 
 @keyframes glint-otp-pop {
@@ -3065,8 +3215,55 @@
     border-color: var(--glint-otp-border-error);
 }
 
+/* v1.6 — Başarı dalgası (setSuccess): hücreler soldan sağa 45ms arayla
+   yeşile dönüp hafifçe kabarır — shake'in mutlu simetriği. */
+.glint-otp.glint-otp--success .glint-otp-cell {
+    border-color: var(--glint-state-success);
+    animation: glint-otp-success 0.4s var(--glint-ease-out) calc(var(--i, 0) * 45ms) backwards;
+}
+@keyframes glint-otp-success {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.08); box-shadow: 0 0 0 4px color-mix(in srgb, var(--glint-state-success) 30%, transparent); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+
+/* v1.6 — "Tekrar gönder" sayacı (data-resend) */
+.glint-otp-resend {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--bs-primary, #059669);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background var(--glint-dur-2) ease, color var(--glint-dur-2) ease, opacity var(--glint-dur-2) ease;
+}
+.glint-otp-resend:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--bs-primary, #059669) 10%, transparent);
+}
+.glint-otp-resend:disabled {
+    color: var(--glint-label-default);
+    opacity: 0.6;
+    cursor: default;
+}
+.glint-otp-resend:focus-visible {
+    outline: 2px solid var(--glint-border-focus);
+    outline-offset: 2px;
+}
+[data-bs-theme="dark"] .glint-otp-resend:disabled {
+    color: var(--glint-label-dark);
+}
+@media (prefers-reduced-motion: reduce) {
+    .glint-otp.glint-otp--success .glint-otp-cell { animation: none !important; }
+}
+
 .glint-otp.glint-otp--shake {
-    animation: glint-otp-shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    animation: glint-otp-shake 0.42s var(--glint-ease-shake) both;
 }
 
 @keyframes glint-otp-shake {
@@ -3086,20 +3283,20 @@
     cursor: not-allowed;
 }
 
-/* — Stepper buton durumları — */
+/* — Stepper buton durumları (v1.6 ghost dili) — */
 .glint-stepper-btn:hover:not(:disabled) {
     color: var(--glint-stepper-btn-hover);
-    background: var(--glint-stepper-surface-hover);
+    background: color-mix(in srgb, var(--bs-primary, #059669) 10%, transparent);
 }
 
 .glint-stepper-btn:focus-visible {
-    box-shadow: 0 0 0 3px var(--glint-stepper-focus-ring);
+    outline: 2px solid var(--glint-border-focus);
+    outline-offset: 2px;
 }
 
-/* Yapışık buton — :active'de scale yerine zemin koyulaşması (kapsülde boşluk olmasın) */
+/* Ghost buton — basışta göz/× aksiyonlarıyla aynı scale geri bildirimi */
 .glint-stepper-btn:active:not(:disabled) {
-    background: var(--glint-stepper-surface-hover);
-    filter: brightness(0.95);
+    transform: scale(0.88);
 }
 
 /* min/max sınırına gelince ilgili buton pasif görünür */
@@ -3218,8 +3415,8 @@
     --glint-slider-bubble-fg-dark: #111827;
     --glint-slider-row-h: 36px;              /* dokunma hedefi yüksekliği */
     /* İmza easing'ler */
-    --glint-slider-ease-in: cubic-bezier(0.22, 1, 0.36, 1);   /* giriş/çıkış */
-    --glint-slider-ease-move: cubic-bezier(0.77, 0, 0.175, 1);/* hareket/morph */
+    --glint-slider-ease-in: var(--glint-ease-out);   /* giriş/çıkış */
+    --glint-slider-ease-move: var(--glint-ease-move);/* hareket/morph */
 }
 
 
@@ -3693,8 +3890,8 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
     --glint-up-chip-bg-dark: #111827;
     --glint-up-thumb-size: 40px;
     /* İmza easing'leri (kontrat §3) */
-    --glint-up-ease: cubic-bezier(0.22, 1, 0.36, 1);
-    --glint-up-ease-move: cubic-bezier(0.77, 0, 0.175, 1);
+    --glint-up-ease: var(--glint-ease-out);
+    --glint-up-ease-move: var(--glint-ease-move);
 }
 
 
@@ -3926,6 +4123,26 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
     border-radius: inherit;
     background: var(--glint-up-accent);
     transition: transform 0.2s linear;
+}
+
+/* v1.6 mikro — yükleme sürerken dolgu üzerinde ışık süpürmesi (shimmer).
+   state-sheen ile aynı dil; done olunca durur, reduced-motion'da hiç. */
+.glint-upload-item__progress-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
+    transform: translateX(-100%);
+    animation: glint-up-shimmer 1.1s linear infinite;
+}
+@keyframes glint-up-shimmer {
+    to { transform: translateX(100%); }
+}
+.glint-upload-item--done .glint-upload-item__progress-bar::after {
+    animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    .glint-upload-item__progress-bar::after { animation: none !important; }
 }
 
 .glint-upload-item--done .glint-upload-item__progress {
@@ -4248,8 +4465,8 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
     --glint-color-checker: #d1d5db;
 
     /* İmza easing'leri (kontrat) */
-    --glint-color-ease-io: cubic-bezier(0.22, 1, 0.36, 1);
-    --glint-color-ease-move: cubic-bezier(0.77, 0, 0.175, 1);
+    --glint-color-ease-io: var(--glint-ease-out);
+    --glint-color-ease-move: var(--glint-ease-move);
 }
 
 
@@ -4877,13 +5094,17 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
        ekran dışına kaymayı önler; mobil override bunu `none`'a çeker). */
     max-width: calc(100vw - 24px);
 
-    /* Kapalı state */
+    /* Kapalı state — v1.6 REDESIGN: panel input'un SOL ÜST köşesinden
+       (ikisinin ortak köşesi) sağ alta doğru ÇAPRAZ perdeyle açılır
+       (clip-path). Ölçüm güvenliği: clip-path layout'u etkilemez —
+       _positionPopover kapalıyken offsetWidth/Height okumaya devam eder.
+       Açık durumda negatif inset gölgeyi serbest bırakır (clip-path
+       gölgeyi de kırpar; -40px ile kutu dışına taşan gölge görünür). */
     opacity: 0;
-    transform: scale(0.96) translateY(-4px);
+    clip-path: inset(0px 100% 100% 0px round var(--glint-picker-radius));
     pointer-events: none;
-    transform-origin: top center;
-    transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
-                transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: opacity 200ms var(--glint-ease-out),
+                clip-path 260ms var(--glint-ease-out);
 
     /* Glint tipografi tutarlılığı */
     font-family: inherit;
@@ -4897,18 +5118,38 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
 
 .glint-picker-popover.is-open {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    clip-path: inset(-40px -40px -40px -40px round var(--glint-picker-radius));
     pointer-events: auto;
 }
 
-/* Flip-up modu (viewport overflow) */
+/* Flip-up modu (viewport overflow) — panel input'un ÜSTÜNDE durur;
+   ortak köşe input'un sol üstü = panelin sol ALTI → perde sol alttan. */
 .glint-picker-popover.glint-picker-popover--flip-up {
-    transform-origin: bottom center;
-    transform: scale(0.96) translateY(4px);
+    clip-path: inset(100% 100% 0px 0px round var(--glint-picker-radius));
 }
 
 .glint-picker-popover.glint-picker-popover--flip-up.is-open {
-    transform: scale(1) translateY(0);
+    clip-path: inset(-40px -40px -40px -40px round var(--glint-picker-radius));
+}
+
+/* v1.6 — Panel kenarlık çizimi: açılışta input ile AYNI sol üst
+   köşeden sağ alta doğru akan aksan çizgisi (SVG stroke draw; JS
+   kurar, çizim bitince ışıltı görevini yapıp zarifçe söner). */
+.glint-picker-border-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 5;
+}
+.glint-picker-border-path {
+    fill: none;
+    stroke: var(--glint-picker-accent, var(--bs-primary, #059669));
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 
@@ -4944,7 +5185,7 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
     justify-content: center;
     font-size: 18px;
     line-height: 1;
-    transition: background 150ms ease, color 150ms ease, transform 130ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: background 150ms ease, color 150ms ease, transform 130ms var(--glint-ease-out);
 }
 
 .glint-picker-nav:hover {
@@ -4978,7 +5219,7 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
     color: var(--glint-picker-text);
     border-radius: 8px;
     padding: 0 12px;
-    transition: background 150ms ease, color 150ms ease, transform 130ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: background 150ms ease, color 150ms ease, transform 130ms var(--glint-ease-out);
     text-align: center;
 }
 
@@ -5046,6 +5287,30 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
 .glint-picker-day:hover {
     background: var(--glint-picker-accent-soft);
     color: var(--glint-picker-accent);
+}
+
+/* v1.6 mikro — gün seçiminde tek seferlik halka: aksan renkli ince
+   çember genişleyip solar (yalnız transform+opacity; JS one-shot sınıf
+   basar, animationend'de düşer). */
+.glint-picker-day {
+    position: relative;
+}
+.glint-picker-day.glint-day-ripple::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    border: 2px solid var(--glint-picker-accent, var(--bs-primary, #059669));
+    opacity: 0;
+    pointer-events: none;
+    animation: glint-day-ripple 0.45s var(--glint-ease-out);
+}
+@keyframes glint-day-ripple {
+    0%   { transform: scale(0.85); opacity: 0.8; }
+    100% { transform: scale(1.35); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .glint-picker-day.glint-day-ripple::after { animation: none !important; }
 }
 
 /* Diğer ayın günleri (önceki/sonraki ay overflow) */
@@ -5274,7 +5539,7 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
     font-weight: 500;
     border-radius: 8px;
     cursor: pointer;
-    transition: background 150ms ease, color 150ms ease, transform 130ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: background 150ms ease, color 150ms ease, transform 130ms var(--glint-ease-out);
 }
 
 .glint-picker-action--primary {
@@ -5316,7 +5581,7 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
     background: var(--glint-picker-accent);
     color: #fff;
     border-radius: 9px;
-    transition: filter 150ms ease, transform 130ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: filter 150ms ease, transform 130ms var(--glint-ease-out);
 }
 
 .glint-picker-confirm:hover {
@@ -5370,7 +5635,7 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
         bottom: 0 !important;
         width: 100% !important;
         max-width: none;
-        min-width: 0;
+        min-width: 0 !important;
         border-radius: 18px 18px 0 0;
         padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
         transform: translateY(100%);
@@ -5378,6 +5643,10 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
         max-height: 85vh;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        /* v1.6 — masaüstü çapraz perdesi mobilde devre dışı; sheet
+           kendi translateY animasyonuyla açılır. */
+        clip-path: none;
+        transition: transform 260ms var(--glint-ease-out), opacity 200ms var(--glint-ease-out);
     }
 
     .glint-picker-popover.is-open {
@@ -5515,6 +5784,12 @@ input[type="range"].glint-slider:disabled::-moz-range-thumb {
     .glint-picker-action:active,
     .glint-picker-confirm:active {
         transform: none;
+    }
+
+    /* v1.6 — çapraz perde anlık açılır; panel kenarlık çizimi JS'te
+       prefersReduced ile zaten hiç kurulmaz. */
+    .glint-picker-popover {
+        transition: none !important;
     }
 }
 
@@ -6680,5 +6955,800 @@ input[type="range"].glint-slider.glint-slider--vertical::-webkit-slider-runnable
         content: "";
         position: absolute;
         inset: -8px;
+    }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   PHONE — Uluslararası telefon girişi (v1.6 — ana dosyaya birleştirildi)
+   ════════════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════════════
+ *  ✎ DÜZENLEYİNİZ — projeye özel token'lar (renk/boyut/şekil)
+ *  Aşağıdaki :root bloğunda toplandı. Sık kullanılanlar:
+ *    --bs-primary (vurgu) · --glint-phone-pop-* (popover)
+ *    --glint-phone-badge-* (ISO-2 rozeti) · --glint-z-panel
+ * ════════════════════════════════════════════════════════════════════════ */
+
+/* ============================================================
+   Glint Phone Library v1.0 — Stil Paketi
+   ============================================================
+   Uluslararası telefon girişi (glint-phone.js) stilleri.
+   - CSS prefix:  glint-phone-   (sınıflar & --glint-phone-* değişkenleri)
+   - Aksan:       --bs-primary (Bootstrap 5.3 var), emerald #059669 fallback
+   - Koyu tema:   [data-bs-theme="dark"]
+   - Animasyon:   yalnız transform/opacity · easing var(--glint-ease-out)
+   - Popover:     .glint-select-popover ile aynı görsel dil; çekirdek
+                  yüklüyse --glint-pop-* token'ları yeniden kullanılır,
+                  değilse --glint-phone-pop-* fallback'leri devrededir.
+   ============================================================ */
+
+
+/* ═══════════════════════════════════════════════════════════════
+   1. CSS DEĞİŞKENLERİ
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    /* Popover — çekirdek token'ı varsa onu miras al, yoksa kendi değeri */
+    --glint-phone-pop-bg: var(--glint-pop-bg, #ffffff);
+    --glint-phone-pop-bg-dark: var(--glint-pop-bg-dark, #111827);
+    --glint-phone-pop-radius: var(--glint-pop-radius, 14px);
+    --glint-phone-pop-shadow: var(--glint-pop-shadow,
+            0 12px 32px -8px rgba(0, 0, 0, 0.22), 0 4px 10px -4px rgba(0, 0, 0, 0.12));
+    --glint-phone-pop-shadow-dark: var(--glint-pop-shadow-dark,
+            0 16px 40px -10px rgba(0, 0, 0, 0.6), 0 4px 12px -4px rgba(0, 0, 0, 0.4));
+    --glint-phone-pop-max-h: 320px;
+
+    /* Trigger (bayrak + dial kodu) */
+    --glint-phone-trigger-color: var(--glint-char-color, #111827);
+    --glint-phone-trigger-color-dark: var(--glint-char-dark, #f3f4f6);
+    --glint-phone-trigger-muted: var(--glint-label-default, #6b7280);
+    --glint-phone-trigger-muted-dark: var(--glint-label-dark, #9ca3af);
+    --glint-phone-divider: var(--glint-border-default, #d1d5db);
+    --glint-phone-divider-dark: var(--glint-border-dark, #374151);
+    --glint-phone-focus: var(--bs-primary, #059669);
+    --glint-phone-focus-ring: color-mix(in srgb, var(--bs-primary, #059669) 30%, transparent);
+
+    /* ISO-2 rozeti (emoji bayrak desteklenmeyen platform — Windows) */
+    --glint-phone-badge-bg: color-mix(in srgb, var(--bs-primary, #059669) 12%, transparent);
+    --glint-phone-badge-text: #047857;
+    --glint-phone-badge-bg-dark: rgba(16, 185, 129, 0.18);
+    --glint-phone-badge-text-dark: #6ee7b7;
+
+    /* Liste satırı vurgusu */
+    --glint-phone-opt-text: var(--glint-char-color, #111827);
+    --glint-phone-opt-text-dark: var(--glint-char-dark, #f3f4f6);
+    --glint-phone-opt-active-bg: color-mix(in srgb, var(--bs-primary, #059669) 10%, transparent);
+    --glint-phone-opt-active-bg-dark: rgba(16, 185, 129, 0.16);
+    --glint-phone-opt-selected: var(--bs-primary, #059669);
+
+    /* Scrollbar (çekirdek v1.5.1 token'ı varsa onu kullan) */
+    --glint-phone-scrollbar-thumb: var(--glint-scrollbar-thumb, #d1d5db);
+    --glint-phone-scrollbar-thumb-dark: var(--glint-scrollbar-thumb-dark, #4b5563);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   2. BOX-SIZING GÜVENCESİ (component-scoped)
+   ═══════════════════════════════════════════════════════════════ */
+
+.glint-phone-group,
+.glint-phone-group *,
+.glint-phone-trigger,
+.glint-phone-trigger *,
+.glint-phone-popover,
+.glint-phone-popover * {
+    box-sizing: border-box;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   3. ÜLKE TRIGGER'I (input'un solunda)
+   JS inline set eder: top / left / height (input rect'ine kilitli)
+   ve input paddingLeft + --glint-phone-pad-left.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Konum bağlamı güvencesi — normalde .glint-input-group zaten
+   position:relative verir; sınıf unutulursa trigger yine gruba kilitli. */
+.glint-phone-group {
+    position: relative;
+}
+
+.glint-phone-trigger {
+    position: absolute;
+    z-index: 5;                 /* input(3) + label(4) üstünde tıklanabilir */
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 10px 0 12px;
+    margin: 0;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--glint-phone-trigger-color);
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    border-radius: 8px 0 0 8px;
+    transition: transform 0.13s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                opacity 0.2s ease;
+}
+
+/* Sağda input metninden ayıran ince ayraç çizgisi */
+.glint-phone-trigger::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 22%;
+    bottom: 22%;
+    width: 1px;
+    background: var(--glint-phone-divider);
+    pointer-events: none;
+}
+
+[data-bs-theme="dark"] .glint-phone-trigger {
+    color: var(--glint-phone-trigger-color-dark);
+}
+
+[data-bs-theme="dark"] .glint-phone-trigger::before {
+    background: var(--glint-phone-divider-dark);
+}
+
+/* Basılabilirlik geri bildirimi (kontrat: :active scale 0.97) */
+.glint-phone-trigger:active {
+    transform: scale(0.97);
+}
+
+.glint-phone-trigger:focus-visible {
+    box-shadow: 0 0 0 3px var(--glint-phone-focus-ring);
+}
+
+.glint-phone-trigger:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+/* Dial kodu (+90) */
+.glint-phone-trigger__dial {
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* Açılış oku */
+.glint-phone-trigger__arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    color: var(--glint-phone-trigger-muted);
+    transition: transform 0.22s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                color 0.2s ease;
+}
+
+.glint-phone-trigger__arrow svg { display: block; width: 100%; height: 100%; }
+
+[data-bs-theme="dark"] .glint-phone-trigger__arrow {
+    color: var(--glint-phone-trigger-muted-dark);
+}
+
+/* Popover açıkken ok döner + aksan rengi */
+.glint-phone-group.glint-phone-open .glint-phone-trigger__arrow {
+    transform: rotate(180deg);
+    color: var(--glint-phone-focus);
+}
+
+/* ── Bayrak varyantları ─────────────────────────────────────── */
+
+/* Emoji bayrak (ISO2'den hesaplanır) */
+.glint-phone-flag {
+    font-size: 17px;
+    line-height: 1;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+/* ISO-2 rozeti — emoji desteklenmeyen platformda (Windows) şık fallback */
+.glint-phone-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    padding: 3px 5px;
+    border-radius: 5px;
+    background: var(--glint-phone-badge-bg);
+    color: var(--glint-phone-badge-text);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;   /* tabular hissiyat */
+}
+
+[data-bs-theme="dark"] .glint-phone-badge {
+    background: var(--glint-phone-badge-bg-dark);
+    color: var(--glint-phone-badge-text-dark);
+}
+
+/* url: modu (SALT OPT-IN) — <img loading="lazy"> */
+.glint-phone-flag-img {
+    display: block;
+    width: 21px;
+    height: 15px;
+    max-width: 100%;
+    object-fit: cover;
+    border-radius: 2.5px;
+}
+
+/* ── Yüzen etiket hizası ────────────────────────────────────────
+   JS, trigger genişliğine göre --glint-phone-pad-left set eder;
+   etiket input metniyle aynı hizadan başlar (trigger'ın sağı). */
+.glint-phone-group .glint-label {
+    left: var(--glint-phone-pad-left, 14px);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   4. POPOVER (aranabilir ülke listesi)
+   .glint-select-popover ile aynı görsel dil.
+   ═══════════════════════════════════════════════════════════════ */
+
+.glint-phone-popover {
+    position: absolute;
+    z-index: var(--glint-z-panel, 1060);
+    min-width: 260px;
+    padding: 6px;
+    background: var(--glint-phone-pop-bg);
+    border-radius: var(--glint-phone-pop-radius);
+    box-shadow: var(--glint-phone-pop-shadow);
+    /* scale-in başlangıcı: scale(0.95) + opacity 0 — kontrat gereği */
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+    transform-origin: top center;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 0.16s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                transform 0.20s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                visibility 0s linear 0.20s;
+}
+
+/* will-change yalnız animasyon penceresinde (v1.5.1 dersi) */
+.glint-phone-popover.is-open {
+    will-change: transform, opacity;
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+    visibility: visible;
+    transition: opacity 0.18s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                transform 0.22s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                visibility 0s;
+}
+
+/* Yukarı açılınca origin alt kenara — trigger'dan açılma hissi */
+.glint-phone-popover--flip-up {
+    transform-origin: bottom center;
+}
+
+[data-bs-theme="dark"] .glint-phone-popover {
+    background: var(--glint-phone-pop-bg-dark);
+    box-shadow: var(--glint-phone-pop-shadow-dark);
+}
+
+/* ── Arama kutusu ───────────────────────────────────────────── */
+
+.glint-phone-search-wrap {
+    position: relative;
+    margin-bottom: 6px;
+}
+
+.glint-phone-search {
+    width: 100%;
+    height: 38px;
+    padding: 0 12px 0 34px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--glint-phone-opt-text);
+    background: var(--glint-surface, #f9fafb);
+    border: 1.5px solid transparent;
+    border-radius: 9px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.glint-phone-search:focus {
+    border-color: var(--glint-phone-focus);
+    box-shadow: 0 0 0 3px var(--glint-phone-focus-ring);
+}
+
+[data-bs-theme="dark"] .glint-phone-search {
+    color: var(--glint-phone-opt-text-dark);
+    background: var(--glint-surface-dark, #1f2937);
+}
+
+.glint-phone-search-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    color: var(--glint-phone-trigger-muted);
+}
+
+.glint-phone-search-icon svg { display: block; width: 100%; height: 100%; }
+
+[data-bs-theme="dark"] .glint-phone-search-icon {
+    color: var(--glint-phone-trigger-muted-dark);
+}
+
+/* ── Liste (listbox) ────────────────────────────────────────── */
+
+.glint-phone-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: var(--glint-phone-pop-max-h);   /* JS visualViewport'a göre kısar */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    contain: content;
+    /* Tema uyumlu ince scrollbar (standart özellikler; Safari aşağıda) */
+    scrollbar-width: thin;
+    scrollbar-color: var(--glint-phone-scrollbar-thumb) transparent;
+}
+
+[data-bs-theme="dark"] .glint-phone-list {
+    scrollbar-color: var(--glint-phone-scrollbar-thumb-dark) transparent;
+    color-scheme: dark;
+}
+
+/* Safari (scrollbar-color desteği yok) */
+.glint-phone-list::-webkit-scrollbar { width: 8px; height: 8px; }
+.glint-phone-list::-webkit-scrollbar-track { background: transparent; }
+.glint-phone-list::-webkit-scrollbar-thumb {
+    background: var(--glint-phone-scrollbar-thumb);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+[data-bs-theme="dark"] .glint-phone-list::-webkit-scrollbar-thumb {
+    background: var(--glint-phone-scrollbar-thumb-dark);
+    background-clip: padding-box;
+}
+
+/* ── Ülke satırı ────────────────────────────────────────────── */
+
+.glint-phone-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 11px;
+    font-size: 14px;
+    color: var(--glint-phone-opt-text);
+    border-radius: 9px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.13s ease, color 0.13s ease;
+}
+
+[data-bs-theme="dark"] .glint-phone-option {
+    color: var(--glint-phone-opt-text-dark);
+}
+
+.glint-phone-option.is-hidden { display: none; }
+
+.glint-phone-option:hover,
+.glint-phone-option.is-active {
+    background: var(--glint-phone-opt-active-bg);
+}
+
+[data-bs-theme="dark"] .glint-phone-option:hover,
+[data-bs-theme="dark"] .glint-phone-option.is-active {
+    background: var(--glint-phone-opt-active-bg-dark);
+}
+
+.glint-phone-option__flag {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+}
+
+.glint-phone-option__name {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.glint-phone-option__dial {
+    flex-shrink: 0;
+    color: var(--glint-phone-trigger-muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+}
+
+[data-bs-theme="dark"] .glint-phone-option__dial {
+    color: var(--glint-phone-trigger-muted-dark);
+}
+
+/* Seçili ülkede ✓ (yalnız transform/opacity animasyonu) */
+.glint-phone-option__check {
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    opacity: 0;
+    color: var(--glint-phone-opt-selected);
+    transform: scale(0.6);
+    transition: opacity 0.15s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                transform 0.15s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.glint-phone-option__check svg { display: block; width: 100%; height: 100%; }
+
+.glint-phone-option.is-selected .glint-phone-option__check {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.glint-phone-option.is-selected .glint-phone-option__name {
+    font-weight: 600;
+}
+
+/* ── Öncelikli ülkeler ayracı ───────────────────────────────── */
+
+.glint-phone-sep {
+    height: 1px;
+    margin: 6px 8px;
+    background: var(--glint-phone-divider);
+    pointer-events: none;
+}
+
+[data-bs-theme="dark"] .glint-phone-sep {
+    background: var(--glint-phone-divider-dark);
+}
+
+.glint-phone-sep.is-hidden { display: none; }
+
+/* ── Boş sonuç ──────────────────────────────────────────────── */
+
+.glint-phone-empty {
+    padding: 14px 11px;
+    font-size: 13.5px;
+    text-align: center;
+    color: var(--glint-phone-trigger-muted);
+}
+
+[data-bs-theme="dark"] .glint-phone-empty {
+    color: var(--glint-phone-trigger-muted-dark);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   5. DOKUNMA HEDEFLERİ (mobil direktifi)
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (pointer: coarse) {
+    /* Trigger yüksekliği input'a kilitli (≥44px varsayılan input'ta);
+       dar dial'da (+1) genişliği görünmez halo ile ≥44px'e tamamla.
+       Trigger zaten position:absolute → ::after halosu güvenli. */
+    .glint-phone-trigger::after {
+        content: "";
+        position: absolute;
+        inset: 0 -6px;
+    }
+
+    .glint-phone-option {
+        min-height: 44px;
+        padding-top: 11px;
+        padding-bottom: 11px;
+    }
+
+    .glint-phone-search {
+        height: 44px;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   6. HAREKETİ AZALT (prefers-reduced-motion)
+   Hareket kalkar; opacity/renk geçişleri kalır.
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+    .glint-phone-popover,
+    .glint-phone-popover.is-open {
+        transform: none;
+        transition: opacity 0.15s ease, visibility 0s;
+    }
+
+    .glint-phone-trigger,
+    .glint-phone-trigger:active {
+        transform: none;
+        transition: opacity 0.2s ease;
+    }
+
+    .glint-phone-trigger__arrow,
+    .glint-phone-group.glint-phone-open .glint-phone-trigger__arrow {
+        transform: none;
+        transition: color 0.2s ease;
+    }
+
+    .glint-phone-option__check {
+        transform: none;
+        transition: opacity 0.15s ease;
+    }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   COMBOBOX — Serbest metinli autocomplete (v1.6 — ana dosyaya birleştirildi)
+   ════════════════════════════════════════════════════════════════════════ */
+/* ████████████████████████████████████████████████████████████████████████
+   9) Combobox — serbest metinli autocomplete   (taslak: draft-combobox.css)
+   ████████████████████████████████████████████████████████████████████████ */
+/* ============================================================
+   Glint Combobox v1.0 (taslak) — glint-input.css sonuna YENİ BÖLÜM
+   ============================================================
+   Popover görsel dili Select/Tags ile birebir: --glint-pop-* token'ları
+   yeniden kullanılır (Select bölümünün :root'unda tanımlı; bu bölüm tek
+   başına da yaşayabilsin diye her kullanımda fallback verilir).
+   Eşleşme vurgusu Select'in .glint-select-hl işaretini paylaşır.
+   Grup stili YOK: kenarlık/etiket/overlay GlintInput'a aittir (grup
+   claim edilmez); burada yalnız popover + satır sınıfları tanımlıdır.
+
+   Kullanım (JS enjekte eder; kullanıcı yalnız grubu işaretler):
+     <div class="glint-input-group" data-glint-combobox
+          data-options='["Adana","Ankara"]'>
+       <input class="glint-input" type="text" id="cb1" name="City">
+       <label class="glint-label" for="cb1">Şehir</label>
+     </div>
+   ============================================================ */
+
+/* ── Popover (body'ye eklenir; konumu JS verir) ──────────────── */
+.glint-combobox-pop {
+    position: absolute;
+    z-index: var(--glint-z-panel, 1060);
+    box-sizing: border-box;
+    min-width: 180px;
+    padding: 6px;
+    background: var(--glint-pop-bg, #ffffff);
+    border-radius: var(--glint-pop-radius, 14px);
+    box-shadow: var(--glint-pop-shadow, 0 12px 32px -8px rgba(0, 0, 0, 0.22), 0 4px 10px -4px rgba(0, 0, 0, 0.12));
+    /* Giriş/çıkış .glint-select-popover ile aynı: scale(0.95)+translateY(-4px)
+       → scale(1), opacity 0.16s / transform 0.20s, imza easing */
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+    transform-origin: top center;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 0.16s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                transform 0.20s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                visibility 0s linear 0.20s;
+}
+
+/* will-change yalnız animasyon penceresinde (v1.5.1 select düzeltmesiyle aynı) */
+.glint-combobox-pop.is-open {
+    will-change: transform, opacity;
+}
+
+.glint-combobox-pop.is-open {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+    visibility: visible;
+    transition: opacity 0.16s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                transform 0.20s var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                visibility 0s;
+}
+
+/* Yukarı açılınca origin alt kenara — gruptan açılma hissi */
+.glint-combobox-pop--flip-up {
+    transform-origin: bottom center;
+}
+
+/* ── Liste (role=listbox) ────────────────────────────────────── */
+.glint-combobox__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: var(--glint-pop-max-h, 280px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    /* İnce, tema uyumlu scrollbar — v1.5.1 genel düzeltme katmanı deseni */
+    scrollbar-width: thin;
+    scrollbar-color: var(--glint-scrollbar-thumb, #d1d5db) transparent;
+}
+
+/* Safari (scrollbar-color desteği yok) */
+.glint-combobox__list::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.glint-combobox__list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.glint-combobox__list::-webkit-scrollbar-thumb {
+    background: var(--glint-scrollbar-thumb, #d1d5db);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+/* ── Satırlar (role=option) ──────────────────────────────────── */
+.glint-combobox__item {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    min-height: 40px;              /* dokunma hedefi tabanı (mobil kuralı) */
+    padding: 9px 11px;
+    font-size: 14px;
+    color: var(--glint-select-text, #111827);
+    border-radius: 9px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.13s ease, color 0.13s ease;
+}
+
+.glint-combobox__item:hover,
+.glint-combobox__item.is-active {
+    background: var(--glint-opt-active-bg, color-mix(in srgb, var(--bs-primary, #059669) 10%, transparent));
+}
+
+/* Eşleşme vurgusu — Select'in .glint-select-hl kuralını paylaşır; bu eş
+   kural, bölüm tek başına kullanılırsa da vurgunun çalışmasını garantiler. */
+.glint-combobox-pop .glint-select-hl {
+    background: color-mix(in srgb, var(--glint-select-focus, #059669) 22%, transparent);
+    color: inherit;
+    border-radius: 3px;
+}
+
+/* Boş sonuç satırı ("Sonuç yok" — data-empty-text ile özelleştirilebilir) */
+.glint-combobox__empty {
+    padding: 14px 11px;
+    font-size: 13.5px;
+    text-align: center;
+    color: var(--glint-select-label, #6b7280);
+    cursor: default;
+    user-select: none;
+}
+
+/* ── Mobil: kaba işaretçide satır yüksekliği ≥44px ───────────── */
+@media (pointer: coarse) {
+    .glint-combobox__item {
+        min-height: 44px;
+    }
+}
+
+/* ── Hareket azaltma: anlık göster/gizle ─────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .glint-combobox-pop,
+    .glint-combobox-pop.is-open {
+        transition: none;
+        transform: none;
+    }
+}
+
+/* ── Karanlık tema ───────────────────────────────────────────── */
+[data-bs-theme="dark"] .glint-combobox-pop {
+    background: var(--glint-pop-bg-dark, #111827);
+    box-shadow: var(--glint-pop-shadow-dark, 0 16px 40px -10px rgba(0, 0, 0, 0.6), 0 4px 12px -4px rgba(0, 0, 0, 0.4));
+}
+
+[data-bs-theme="dark"] .glint-combobox__item {
+    color: var(--glint-select-text-dark, #f3f4f6);
+}
+
+[data-bs-theme="dark"] .glint-combobox__item:hover,
+[data-bs-theme="dark"] .glint-combobox__item.is-active {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-bs-theme="dark"] .glint-combobox__empty {
+    color: var(--glint-select-label-dark, #9ca3af);
+}
+
+[data-bs-theme="dark"] .glint-combobox__list {
+    scrollbar-color: var(--glint-scrollbar-thumb-dark, #4b5563) transparent;
+    /* native widget'lar (scrollbar dahil) koyu şemaya geçsin */
+    color-scheme: dark;
+}
+
+[data-bs-theme="dark"] .glint-combobox__list::-webkit-scrollbar-thumb {
+    background: var(--glint-scrollbar-thumb-dark, #4b5563);
+    background-clip: padding-box;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   CARD — Kredi kartı girişi (v1.6 — ana dosyaya birleştirildi)
+   ════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   GLINT CARD — Kredi Kartı Girişi (TASLAK — glint-input.css sonuna)
+   Marka ikonu yuvası · geçerli kart kenarı · koyu tema · reduced motion
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Marka ikonu yuvası ───────────────────────────────────────────
+   .glint-field__action DEĞİL (buton değildir) — salt görsel gösterge.
+   Input'un sağ içine absolute; overlay (3) ve label (4) üstünde ama
+   pointer-events kapalı: tıklama input'a geçer. Renk aksiyon token'ı
+   ile aynı kaynaktan (v1.5.1 --glint-action-color). */
+.glint-input-group .glint-card-brand {
+    position: absolute;
+    right: var(--glint-action-offset, 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--glint-action-size, 28px);
+    height: var(--glint-action-size, 28px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--glint-action-color, var(--glint-label-default));
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* İkon boyutu sabit — boyutsuz SVG flex içinde rastgele ölçeklenmesin
+   (aksiyon butonlarındaki v1.5.1 dersi). Fade-swap geçişi burada:
+   JS giren ikona .is-entering basıp kaldırır, çıkana .is-leaving. */
+.glint-input-group .glint-card-brand svg {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+    transition: opacity 140ms var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+                transform 140ms var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.glint-input-group .glint-card-brand svg.is-entering {
+    opacity: 0;
+    transform: scale(0.7);
+}
+
+/* Çıkan ikon üste bindirilir → giren ikon yerinden oynamaz;
+   sönümlenince JS söker. */
+.glint-input-group .glint-card-brand svg.is-leaving {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    opacity: 0;
+    transform: scale(0.7);
+}
+
+/* ── Geçerli kart: kenar success tonuna döner ─────────────────────
+   Hem dinlenme kenarı (.glint-default-border) hem odak SVG çizimi
+   (.glint-border-path) aynı durumu anlatır. */
+.glint-input-group.glint-card-valid .glint-default-border {
+    border-color: var(--glint-state-success);
+}
+
+.glint-input-group.glint-card-valid .glint-border-path {
+    stroke: var(--glint-state-success);
+}
+
+/* ── Koyu tema ────────────────────────────────────────────────────
+   --glint-state-success zaten [data-bs-theme="dark"]'ta override'lı;
+   ikon rengi aksiyon butonlarıyla aynı kurala uyar. */
+[data-bs-theme="dark"] .glint-input-group .glint-card-brand {
+    color: var(--glint-action-color, var(--glint-label-dark));
+}
+
+[data-bs-theme="dark"] .glint-input-group.glint-card-valid .glint-border-path {
+    stroke: var(--glint-state-success);
+}
+
+/* ── Reduced motion: ikon değişimi anlık ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .glint-input-group .glint-card-brand svg {
+        transition: none;
     }
 }

@@ -31,7 +31,14 @@
         staggerDelay: 140,
         maxVisible: 5,
         collapseDelay: 320,
-        releaseRingMs: 900
+        releaseRingMs: 900,
+        // v1.6 — konum: top-right | top-left | top-center | bottom-right | bottom-left
+        position: "top-right",
+        // v1.6 — aynı tür+metin görünürken tekrar istenirse yeni toast yerine
+        // mevcuda ×N rozeti işlenir ve süresi tazelenir (bildirim spam'i biter)
+        dedupe: true,
+        // v1.6 — mobilde/kalemde yatay kaydırarak kapatma
+        swipeToDismiss: true
     };
 
     const LABELS = {
@@ -58,12 +65,32 @@
     let container = null;
     let activeToasts = [];
 
+    const POSITIONS = ["top-right", "top-left", "top-center", "bottom-right", "bottom-left"];
+
     function ensureContainer() {
-        if (container && document.contains(container)) return container;
+        if (container && document.contains(container)) {
+            applyPosition(container);
+            return container;
+        }
         container = document.createElement("div");
         container.id = "glint-toast-container";
+        applyPosition(container);
         document.body.appendChild(container);
         return container;
+    }
+
+    /** v1.6 — konum sınıfını uygula (CONFIG.position). */
+    function applyPosition(c) {
+        const pos = POSITIONS.includes(CONFIG.position) ? CONFIG.position : "top-right";
+        POSITIONS.forEach(p => c.classList.remove("glint-pos-" + p));
+        c.classList.add("glint-pos-" + pos);
+    }
+
+    /** v1.6 — entegrasyon eventleri (document üzerinde). */
+    function emit(name, detail) {
+        try {
+            document.dispatchEvent(new CustomEvent(name, { detail }));
+        } catch (e) { /* sessiz */ }
     }
 
     function parseType(raw) {
@@ -81,10 +108,16 @@
     //  TOAST DOM
     // ══════════════════════════════════════════════════════════════
 
-    function buildToastEl(type, messages) {
+    // v1.6 — Yükleme (promise) görünümü: dönen halka spinner (SVG değil,
+    // border tabanlı — CSS'te .glint-toast-spinner).
+    const ICON_LOADING = `<span class="glint-toast-spinner" aria-hidden="true"></span>`;
+
+    function buildToastEl(type, messages, opts) {
+        opts = opts || {};
         const toast = document.createElement("div");
         toast.className = `glint-toast ${CSS_CLASSES[type] ?? ""}`;
-        toast.setAttribute("role", "alert");
+        if (opts.loading) toast.classList.add("glint-toast--loading");
+        toast.setAttribute("role", type === TYPE.ERROR ? "alert" : "status");
         toast.setAttribute("aria-live", type === TYPE.ERROR ? "assertive" : "polite");
 
         const inner = document.createElement("div");
@@ -95,11 +128,11 @@
 
         const iconWrap = document.createElement("span");
         iconWrap.className = "glint-toast-icon";
-        iconWrap.innerHTML = ICONS[type] ?? ICONS[TYPE.INFO];
+        iconWrap.innerHTML = opts.loading ? ICON_LOADING : (ICONS[type] ?? ICONS[TYPE.INFO]);
 
         const title = document.createElement("span");
         title.className = "glint-toast-title";
-        title.textContent = LABELS[type] ?? "Bildirim";
+        title.textContent = opts.title || (opts.loading ? "İşleniyor" : (LABELS[type] ?? "Bildirim"));
 
         const closeBtn = document.createElement("button");
         closeBtn.className = "glint-toast-close";
@@ -127,10 +160,26 @@
             body.appendChild(ul);
         }
 
+        // v1.6 — Aksiyon butonu ("Geri Al" gibi): opts.action = { label,
+        // onClick(ev), keepOpen? }. Tıklamada varsayılan davranış kapatmadır.
+        if (opts.action && opts.action.label) {
+            const act = document.createElement("button");
+            act.type = "button";
+            act.className = "glint-toast-action";
+            act.textContent = opts.action.label;
+            act.addEventListener("click", (ev) => {
+                ev.stopPropagation();
+                try { opts.action.onClick && opts.action.onClick(ev); } catch (e) { }
+                if (!opts.action.keepOpen) dismiss(toast);
+            });
+            body.appendChild(act);
+        }
+
         inner.append(header, body);
         toast.appendChild(inner);
 
-        const autoDismissMs = CONFIG.autoDismiss[type];
+        const autoDismissMs = opts.sticky ? 0
+            : (typeof opts.duration === "number" ? opts.duration : CONFIG.autoDismiss[type]);
         if (autoDismissMs > 0) {
             const progress = document.createElement("div");
             progress.className = "glint-toast-progress";
@@ -199,17 +248,57 @@
     //  GÖSTER / KAPAT
     // ══════════════════════════════════════════════════════════════
 
-    function show(type, messages, staggerMs = 0) {
-        if (!messages?.length) return;
+    /** v1.6 — Aynı tür + aynı tek-mesaj zaten görünürse yenisini açma:
+     *  mevcut toast'a ×N rozeti bas, süresini tazele, pulse ver. */
+    function tryCoalesce(type, messages, opts) {
+        if (!CONFIG.dedupe || opts.loading || messages.length !== 1 || messages[0].fieldId) return false;
+        const msg = messages[0].message;
+        const entry = activeToasts.find(t =>
+            t.type === type && t.text === msg && !t.el.classList.contains("glint-toast-exit"));
+        if (!entry) return false;
+        entry.count = (entry.count || 1) + 1;
+        let badge = entry.el.querySelector(".glint-toast-count");
+        if (!badge) {
+            badge = document.createElement("span");
+            badge.className = "glint-toast-count";
+            const header = entry.el.querySelector(".glint-toast-header");
+            const closeB = header && header.querySelector(".glint-toast-close");
+            if (header) header.insertBefore(badge, closeB || null);
+        }
+        badge.textContent = "×" + entry.count;
+        badge.classList.remove("glint-count-pop");
+        void badge.offsetWidth;
+        badge.classList.add("glint-count-pop");
+        // Süreyi tazele + progress'i yeniden başlat
+        if (entry.timerId) clearTimeout(entry.timerId);
+        if (entry.baseDuration > 0 && !entry.paused) {
+            entry.remaining = entry.baseDuration;
+            entry.startedAt = Date.now();
+            entry.timerId = setTimeout(() => dismiss(entry.el), entry.baseDuration);
+            const progress = entry.el.querySelector(".glint-toast-progress");
+            if (progress) {
+                progress.classList.remove("glint-progress-running");
+                void progress.offsetWidth;
+                progress.classList.add("glint-progress-running");
+            }
+        }
+        return true;
+    }
+
+    function show(type, messages, staggerMs = 0, opts = {}) {
+        if (!messages?.length) return null;
 
         // Akıllı alan-hata politikası (SENKRON): görünür alanlar inline'lanır,
         // toast'ta yalnız genel + görünmeyen-alan mesajları kalır. Hepsi
         // inline'landıysa toast HİÇ gösterilmez (gereksiz bildirim olmaz).
         const policy = applyFieldErrorPolicy(type, messages);
         messages = policy.messages;
-        if (!messages.length) return;
+        if (!messages.length) return null;
 
-        const toastEl = buildToastEl(type, messages);
+        // v1.6 — bildirim spam'i önleme (×N rozeti)
+        if (tryCoalesce(type, messages, opts)) return null;
+
+        const toastEl = buildToastEl(type, messages, opts);
 
         // Görünmeyen/genel hatalar toast'ta → tıkla ilk hatalı alana kaydır+odakla.
         if (policy.scrollTargetId) {
@@ -223,10 +312,15 @@
         }
 
         const c = ensureContainer();
-        const autoDismissMs = CONFIG.autoDismiss[type] ?? 0;
+        const autoDismissMs = opts.sticky ? 0
+            : (typeof opts.duration === "number" ? opts.duration : (CONFIG.autoDismiss[type] ?? 0));
 
         const entry = {
             el: toastEl,
+            type,
+            text: messages.length === 1 ? messages[0].message : null,
+            count: 1,
+            baseDuration: autoDismissMs,
             timerId: null,
             remaining: autoDismissMs,
             startedAt: 0,
@@ -264,8 +358,62 @@
             if (autoDismissMs > 0) {
                 attachHoverPause(toastEl, entry);
             }
+            if (CONFIG.swipeToDismiss) attachSwipe(toastEl);
+            emit("glint:toast-open", { type, element: toastEl });
             // Alan köprüsü artık show() başında SENKRON uygulanıyor (applyFieldErrorPolicy).
         }, staggerMs);
+
+        return toastEl;
+    }
+
+    /**
+     * v1.6 — Kaydırarak kapatma (mobil öncelikli, her işaretçiyle çalışır):
+     * yatay sürükleme toast'ı takip eder; eşik aşılırsa savrularak kapanır,
+     * aşılmazsa yayla yerine döner. Dikey kaydırma (sayfa scroll'u) bozulmaz
+     * (CSS: touch-action: pan-y).
+     */
+    function attachSwipe(toastEl) {
+        let startX = 0, dx = 0, dragging = false, pid = null;
+        const THRESHOLD = 72;
+
+        toastEl.addEventListener("pointerdown", (e) => {
+            if (e.button != null && e.button !== 0) return;
+            if (e.target.closest(".glint-toast-close, .glint-toast-action")) return;
+            dragging = true; pid = e.pointerId; startX = e.clientX; dx = 0;
+            // glint-toast-in fill:forwards inline transform'u ezer → final
+            // durumu sabitleyen sınıfa geçip enter animasyonunu bırak.
+            toastEl.classList.add("glint-toast-settled");
+            toastEl.classList.remove("glint-toast-enter");
+            toastEl.classList.add("glint-toast-swiping");
+            try { toastEl.setPointerCapture(pid); } catch (err) { }
+        });
+        toastEl.addEventListener("pointermove", (e) => {
+            if (!dragging || e.pointerId !== pid) return;
+            dx = e.clientX - startX;
+            toastEl.style.transform = "translateX(" + dx + "px)";
+            toastEl.style.opacity = String(Math.max(0.25, 1 - Math.abs(dx) / 260));
+        });
+        const end = (e) => {
+            if (!dragging || (e.pointerId != null && e.pointerId !== pid)) return;
+            dragging = false;
+            try { toastEl.releasePointerCapture(pid); } catch (err) { }
+            toastEl.classList.remove("glint-toast-swiping");
+            if (Math.abs(dx) > THRESHOLD) {
+                // Savrulma: mevcut yönde uç + kapat (exit animasyonu yerine)
+                toastEl.style.transition = "transform 0.22s cubic-bezier(0.4, 0, 0.7, 0.2), opacity 0.22s ease-out";
+                toastEl.style.transform = "translateX(" + (dx > 0 ? 420 : -420) + "px)";
+                toastEl.style.opacity = "0";
+                setTimeout(() => dismiss(toastEl, false), 200);
+            } else {
+                // Yayla yerine dön
+                toastEl.style.transition = "transform 0.3s var(--glint-ease-pop, cubic-bezier(0.34, 1.56, 0.64, 1)), opacity 0.2s ease-out";
+                toastEl.style.transform = "";
+                toastEl.style.opacity = "";
+                setTimeout(() => { toastEl.style.transition = ""; }, 320);
+            }
+        };
+        toastEl.addEventListener("pointerup", end);
+        toastEl.addEventListener("pointercancel", end);
     }
 
     function dismiss(toastEl, animate = true) {
@@ -278,6 +426,7 @@
             if (entry.timerId) clearTimeout(entry.timerId);
             activeToasts.splice(idx, 1);
         }
+        emit("glint:toast-close", { element: toastEl });
 
         if (!animate) {
             toastEl.remove();
@@ -494,20 +643,124 @@
         init();
     }
 
+    /**
+     * v1.6 — Yükleme toast'ını sonuca MORF et: ikon/başlık/mesaj/renk aynı
+     * kutuda değişir, otomatik kapanma + progress o anda başlar.
+     */
+    function morphToast(toastEl, newType, message, opts) {
+        opts = opts || {};
+        if (!toastEl || !document.contains(toastEl)) {
+            // Toast bu arada kapatıldıysa sonucu normal yolla göster
+            show(newType, [{ message }], 0, opts);
+            return;
+        }
+        toastEl.classList.remove("glint-toast--loading",
+            CSS_CLASSES[TYPE.SUCCESS], CSS_CLASSES[TYPE.ERROR],
+            CSS_CLASSES[TYPE.WARNING], CSS_CLASSES[TYPE.INFO]);
+        toastEl.classList.add(CSS_CLASSES[newType] ?? "");
+        toastEl.setAttribute("role", newType === TYPE.ERROR ? "alert" : "status");
+        toastEl.setAttribute("aria-live", newType === TYPE.ERROR ? "assertive" : "polite");
+
+        const iconWrap = toastEl.querySelector(".glint-toast-icon");
+        if (iconWrap) {
+            iconWrap.classList.remove("glint-icon-morph");
+            void iconWrap.offsetWidth;
+            iconWrap.innerHTML = ICONS[newType] ?? ICONS[TYPE.INFO];
+            iconWrap.classList.add("glint-icon-morph");
+        }
+        const title = toastEl.querySelector(".glint-toast-title");
+        if (title) title.textContent = opts.title || (LABELS[newType] ?? "Bildirim");
+        const p = toastEl.querySelector(".glint-toast-body p");
+        if (p) p.textContent = message;
+
+        // Otomatik kapanma + progress şimdi başlar
+        const ms = opts.sticky ? 0
+            : (typeof opts.duration === "number" ? opts.duration : (CONFIG.autoDismiss[newType] ?? 0));
+        const entry = activeToasts.find(t => t.el === toastEl);
+        if (entry) {
+            entry.type = newType;
+            entry.text = message;
+            entry.baseDuration = ms;
+            if (entry.timerId) clearTimeout(entry.timerId);
+            if (ms > 0) {
+                entry.remaining = ms;
+                entry.startedAt = Date.now();
+                entry.timerId = setTimeout(() => dismiss(toastEl), ms);
+                let progress = toastEl.querySelector(".glint-toast-progress");
+                if (!progress) {
+                    progress = document.createElement("div");
+                    progress.className = "glint-toast-progress";
+                    toastEl.appendChild(progress);
+                }
+                progress.style.animationDuration = ms + "ms";
+                progress.classList.remove("glint-progress-running");
+                void progress.offsetWidth;
+                progress.classList.add("glint-progress-running");
+                attachHoverPause(toastEl, entry);
+            }
+        }
+    }
+
     // Single namespace exposure: window.Glint.Toast
     const GlintToast = {
-        show(type, messages) {
+        /** show(type, mesaj|mesajlar, opts?) — opts: {duration, sticky, title,
+         *  action: {label, onClick, keepOpen}} */
+        show(type, messages, opts) {
             const t = parseType(type);
             const arr = typeof messages === "string"
                 ? [{ message: messages }]
                 : Array.isArray(messages) ? messages
                     : [{ message: String(messages) }];
-            show(t, arr);
+            return show(t, arr, 0, opts || {});
         },
-        success(msg) { show(TYPE.SUCCESS, [{ message: msg }]); },
-        error(msg, fieldId) { show(TYPE.ERROR, [{ message: msg, fieldId }]); },
-        warning(msg) { show(TYPE.WARNING, [{ message: msg }]); },
-        info(msg) { show(TYPE.INFO, [{ message: msg }]); },
+        success(msg, opts) { return show(TYPE.SUCCESS, [{ message: msg }], 0, opts || {}); },
+        error(msg, fieldId, opts) { return show(TYPE.ERROR, [{ message: msg, fieldId }], 0, opts || {}); },
+        warning(msg, opts) { return show(TYPE.WARNING, [{ message: msg }], 0, opts || {}); },
+        info(msg, opts) { return show(TYPE.INFO, [{ message: msg }], 0, opts || {}); },
+
+        /**
+         * v1.6 — Promise toast'ı: yükleme görünümüyle açılır, promise
+         * çözülünce AYNI kutu başarı/hataya morf olur. Ağ işini KULLANICI
+         * yapar (kütüphane fetch etmez); bu yalnız görsel akıştır.
+         *   Glint.Toast.promise(fetchYerineKendiIsin(), {
+         *     loading: "Kaydediliyor…",
+         *     success: "Kaydedildi!",            // veya (sonuc) => "..."
+         *     error:   "Kaydedilemedi."          // veya (hata)  => "..."
+         *   });
+         * Dönüş: aynı promise (zincirlenebilir).
+         */
+        promise(promise, msgs) {
+            msgs = msgs || {};
+            const el = show(TYPE.INFO, [{ message: msgs.loading || "İşleniyor…" }], 0,
+                { loading: true, sticky: true });
+            const resolveMsg = (m, arg, fallback) =>
+                (typeof m === "function" ? m(arg) : m) || fallback;
+            Promise.resolve(promise).then(
+                (val) => { morphToast(el, TYPE.SUCCESS, resolveMsg(msgs.success, val, "Tamamlandı."), msgs.opts); },
+                (err) => { morphToast(el, TYPE.ERROR, resolveMsg(msgs.error, err, "Bir hata oluştu."), msgs.opts); }
+            );
+            return promise;
+        },
+
+        /** v1.6 — Çalışma zamanı yapılandırması: {position, maxVisible,
+         *  dedupe, swipeToDismiss, staggerDelay, autoDismiss:{success|error|
+         *  warning|info: ms}} */
+        configure(partial) {
+            if (partial && typeof partial === "object") {
+                const p = Object.assign({}, partial);   // çağıranın objesini bozma
+                if (p.autoDismiss && typeof p.autoDismiss === "object") {
+                    for (const k in p.autoDismiss) {
+                        const t = NAME_TO_TYPE[String(k).toLowerCase()];
+                        if (t != null) CONFIG.autoDismiss[t] = p.autoDismiss[k];
+                    }
+                    delete p.autoDismiss;
+                }
+                Object.assign(CONFIG, p);
+                if (container) applyPosition(container);
+            }
+            return CONFIG;
+        },
+
         dismiss(el) { dismiss(el); },
         dismissAll() { dismissAll(); },
         TYPE

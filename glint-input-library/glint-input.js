@@ -36,7 +36,11 @@
  *   5) Slider & Range
  *   6) Upload / Dropzone
  *   7) Color Picker
- *   8) Date / Time / DateTime Picker (v2)
+ *   8) Date / Time / DateTime Picker (v2) + Ay modu (type=month)
+ *   9) Phone — ülke verisi (v1.6)
+ *  10) Phone — uluslararası telefon girişi (v1.6)
+ *  11) Combobox — serbest metinli autocomplete (v1.6)
+ *  12) Card — kredi kartı girişi (v1.6)
  */
 
 
@@ -338,6 +342,18 @@
 
             // — Binlik ayraç (değer biçimleme; Glint.format) —
             this._groupThousands = g.hasAttribute("data-glint-group-thousands");
+            // — v1.6: rakam-düzeyi animasyon bayrağı — dış biçimleyiciler
+            //   (GlintCard 4-4-4-4 gruplama gibi) değeri kendisi yazar; bu
+            //   bayrakla çekirdek animasyonu rakam-diff'iyle oynar (ayraçlar
+            //   araya süzülür, mevcut rakamlar yeniden "yazılmaz").
+            this._digitAnim = g.hasAttribute("data-glint-digit-anim");
+
+            // — v1.6: E-posta yardımcıları (opt-in, type=email) —
+            //   data-glint-email-assist → ghost @ + alan adı tamamlama (Tab/→)
+            //   data-glint-email-memory → hatırlanan e-posta chip'i (localStorage)
+            this._emailAssist = (t === "email") && g.hasAttribute("data-glint-email-assist");
+            this._emailMemory = (t === "email") && g.hasAttribute("data-glint-email-memory");
+            if (this._emailAssist || this._emailMemory) this._setupEmail();
 
             // — Parola güç göstergesi (opt-in) —
             if (this.isPassword && g.hasAttribute("data-glint-strength")) {
@@ -584,12 +600,327 @@
             });
         }
 
+        // ════════════════════════════════════════════════════════════
+        //  v1.6 — E-POSTA YARDIMCILARI (opt-in)
+        //  Ghost tamamlama: overlay'e eklenen soluk öneri span'ı — native
+        //  input'un DEĞERİNE girmez (form asla yanlış değer görmez, caret
+        //  hiç etkilenmez). Tab veya → kabul eder; kabulde "mürekkep
+        //  katılaşması" oynar (yerinde soldan sağa netleşme — yazma
+        //  animasyonu DEĞİL). Hafıza: yalnız başarılı form submit'inde
+        //  localStorage'a yazılır; chip alanın sol altından, alt çizginin
+        //  altından yükselerek belirir; tıklamada glifler chip'ten alana
+        //  FLIP ile uçar.
+        // ════════════════════════════════════════════════════════════
+
+        _setupEmail() {
+            const g = this.group, input = this.input;
+            // buildDOM (→ _buildExtras) bindEvents'ten ÖNCE koşar; controller'ı
+            // burada kur, bindEvents paylaşır (üzerine yazmaz).
+            if (!this._ac) this._ac = new AbortController();
+            const sig = { signal: this._ac.signal };
+
+            this._emailDomains = (g.getAttribute("data-glint-email-domains") ||
+                "gmail.com,hotmail.com,outlook.com,yandex.com,icloud.com,yahoo.com")
+                .split(",").map(s => s.trim()).filter(Boolean);
+            this._emailKey = "glint:email-history" +
+                (g.getAttribute("data-glint-memory-key") ? ":" + g.getAttribute("data-glint-memory-key") : "");
+            this._emailHistory = [];
+            this._chipIdx = 0;
+            this._chipDismissed = false;
+            this._ghostHint = "";
+            this._ghostSource = null;
+
+            if (this._emailMemory) {
+                this._loadEmailHistory();
+                // Kayıt YALNIZ form gönderiminde (gizlilik: her tuşta değil)
+                const form = input.form;
+                if (form) {
+                    form.addEventListener("submit", () => this._saveEmailToHistory(), sig);
+                }
+                this._buildEmailChip();
+            }
+
+            const refresh = () => this._updateEmailGhost();
+            // ÖNEMLİ SIRALAMA: _setupEmail (buildDOM) çekirdek bindEvents'ten
+            // ÖNCE koşar → bu listener core onInput'tan ÖNCE tetiklenir ve
+            // core rebuildSpans track'i silip ghost'u YOK EDERDİ. Mikrotask
+            // ertelemesi ghost'u tüm input dinleyicileri bittikten sonra çizer.
+            const refreshDeferred = () => { Promise.resolve().then(refresh); };
+            input.addEventListener("input", refreshDeferred, sig);
+            input.addEventListener("keyup", refreshDeferred, sig);
+            input.addEventListener("focus", () => { refresh(); this._updateEmailChip(); }, sig);
+            input.addEventListener("blur", () => {
+                this._removeEmailGhost();
+                // Chip'e tıklama/odak blur'u tetikler — chip'e gidiyorsa kapatma
+                setTimeout(() => {
+                    if (this._chipEl && !this._chipEl.contains(document.activeElement) &&
+                        document.activeElement !== input) this._hideEmailChip();
+                }, 120);
+            }, sig);
+            input.addEventListener("keydown", (e) => {
+                if ((e.key === "ArrowRight" || e.key === "Tab") && this._ghostHint && this._caretAtEnd()) {
+                    e.preventDefault();
+                    this._acceptEmailGhost();
+                } else if (e.key === "ArrowDown" && this._chipEl && this._chipEl.classList.contains("is-visible")) {
+                    e.preventDefault();
+                    this._chipEl.focus();
+                } else if (e.key === "Escape" && this._chipEl && this._chipEl.classList.contains("is-visible")) {
+                    this._chipDismissed = true;   // bu oturumluk kapat
+                    this._hideEmailChip();
+                }
+            }, sig);
+        }
+
+        _caretAtEnd() {
+            const v = this.input.value;
+            const s = this.input.selectionStart, e = this.input.selectionEnd;
+            // Chrome, type=email inputlarda selection API'sini desteklemez
+            // (null döner) — odaklı yazımda imleç pratikte hep uçtadır,
+            // ghost bu varsayımla gösterilir.
+            if (s == null || e == null) return true;
+            return s === v.length && e === v.length;
+        }
+
+        /** Ghost önerisini hesapla + overlay'de çiz (öncelik: hafıza > @ > alan adı). */
+        _updateEmailGhost() {
+            if (!this.charTrack) return;   // reduced-motion: overlay yok → ghost yok
+            const v = this.input.value;
+            let hint = "", source = null;
+
+            if (document.activeElement === this.input && v && this._caretAtEnd()) {
+                if (this._emailMemory && this._emailHistory.length) {
+                    const m = this._emailHistory.find(e => e.startsWith(v) && e !== v);
+                    if (m) { hint = m.slice(v.length); source = "memory"; }
+                }
+                if (!hint && this._emailAssist) {
+                    const at = v.indexOf("@");
+                    if (at === -1) {
+                        hint = "@"; source = "at";
+                    } else {
+                        // "@"dan sonra: boşken ilk popüler alan adı, yazarken
+                        // prefix eşleşmesi ("gm" → "ail.com" kalanı) önerilir.
+                        const dom = v.slice(at + 1);
+                        const dm = this._emailDomains.find(d => d.startsWith(dom) && d !== dom);
+                        if (dm) { hint = dm.slice(dom.length); source = "domain"; }
+                    }
+                }
+            }
+
+            this._ghostHint = hint;
+            this._ghostSource = source;
+            if (!hint) { this._removeEmailGhost(); return; }
+            if (!this._ghostEl || !this._ghostEl.isConnected || this._ghostEl.parentNode !== this.charTrack) {
+                this._ghostEl && this._ghostEl.remove();
+                this._ghostEl = document.createElement("span");
+                this._ghostEl.className = "glint-char-hint";
+                this._ghostEl.setAttribute("aria-hidden", "true");
+            }
+            this._ghostEl.textContent = hint;
+            // rebuildSpans track'i sildiğinden her güncellemede sona iliştir
+            this.charTrack.appendChild(this._ghostEl);
+        }
+
+        _removeEmailGhost() {
+            this._ghostHint = "";
+            this._ghostSource = null;
+            if (this._ghostEl) { this._ghostEl.remove(); }
+        }
+
+        /** Ghost'u değere kat: "mürekkep katılaşması" — glifler yerinde,
+         *  soldan sağa hızlı bir netleşme süpürmesiyle gerçek metne dönüşür. */
+        _acceptEmailGhost() {
+            const hint = this._ghostHint;
+            if (!hint) return;
+            const start = this.input.value.length;
+            this._removeEmailGhost();
+            this._skipNextAnim = true;   // çekirdek yazma animasyonu YOK
+            this.input.value += hint;
+            try { this.input.setSelectionRange(this.input.value.length, this.input.value.length); } catch (_) { }
+            this.input.dispatchEvent(new Event("input", { bubbles: true }));
+            if (!prefersReduced && this.charSpans) {
+                for (let i = start; i < this.charSpans.length; i++) {
+                    const span = this.charSpans[i];
+                    if (!span) continue;
+                    span.animate([
+                        { opacity: 0.35, filter: "blur(0.6px)", letterSpacing: "0.5px" },
+                        { opacity: 1, filter: "blur(0)", letterSpacing: "0" }
+                    ], {
+                        duration: 110,
+                        delay: (i - start) * 26,
+                        easing: "ease-out",
+                        fill: "backwards"
+                    });
+                }
+            }
+            // Zincirleme öneri: @ kabul edilince alan adı ghost'u hemen gelsin
+            this._updateEmailGhost();
+        }
+
+        // ── Hafıza (localStorage; yalnız submit'te yazılır) ──
+
+        _loadEmailHistory() {
+            try {
+                const raw = localStorage.getItem(this._emailKey);
+                const arr = raw ? JSON.parse(raw) : [];
+                if (Array.isArray(arr)) this._emailHistory = arr.filter(x => typeof x === "string").slice(0, 5);
+            } catch (_) { /* gizli mod / kota → sessiz */ }
+        }
+
+        _saveEmailToHistory() {
+            const v = (this.input.value || "").trim();
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return;
+            try {
+                this._emailHistory = [v].concat(this._emailHistory.filter(e => e !== v)).slice(0, 5);
+                localStorage.setItem(this._emailKey, JSON.stringify(this._emailHistory));
+            } catch (_) { /* sessiz */ }
+        }
+
+        // ── Hafıza chip'i ──
+
+        _buildEmailChip() {
+            if (!this._emailHistory.length) return;
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "glint-email-chip";
+            chip.tabIndex = -1;   // klavye erişimi input'tan ↓ ile
+            this._chipEl = chip;
+            this._renderEmailChip();
+            // mousedown'da odak input'tan kaçmasın (border sönmesin)
+            chip.addEventListener("mousedown", (e) => e.preventDefault(),
+                { signal: this._ac ? this._ac.signal : undefined });
+            chip.addEventListener("click", () => this._fillFromChip(),
+                { signal: this._ac ? this._ac.signal : undefined });
+            chip.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); this._fillFromChip(); }
+                else if (e.key === "ArrowUp") { e.preventDefault(); this.input.focus(); }
+                else if (e.key === "ArrowDown" && this._emailHistory.length > 1) {
+                    e.preventDefault();
+                    this._chipIdx = (this._chipIdx + 1) % this._emailHistory.length;
+                    this._renderEmailChip();
+                } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    this._chipDismissed = true;
+                    this._hideEmailChip();
+                    this.input.focus();
+                }
+            }, { signal: this._ac ? this._ac.signal : undefined });
+            chip.addEventListener("blur", () => {
+                setTimeout(() => {
+                    if (document.activeElement !== this.input &&
+                        document.activeElement !== chip) this._hideEmailChip();
+                }, 120);
+            }, { signal: this._ac ? this._ac.signal : undefined });
+            this.group.appendChild(chip);
+        }
+
+        _renderEmailChip() {
+            const chip = this._chipEl;
+            if (!chip) return;
+            const email = this._emailHistory[this._chipIdx] || this._emailHistory[0];
+            if (!email) return;
+            chip.innerHTML =
+                '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+            const txt = document.createElement("span");
+            txt.className = "glint-email-chip__text";
+            // Glif FLIP için karakter başına span
+            for (const ch of email) {
+                const s = document.createElement("span");
+                s.textContent = ch;
+                txt.appendChild(s);
+            }
+            chip.appendChild(txt);
+            if (this._emailHistory.length > 1) {
+                const more = document.createElement("span");
+                more.className = "glint-email-chip__more";
+                more.textContent = (this._chipIdx + 1) + "/" + this._emailHistory.length;
+                chip.appendChild(more);
+            }
+            chip.setAttribute("aria-label", "Kayıtlı e-postayı kullan: " + email +
+                (this._emailHistory.length > 1 ? " (↓ ile diğerleri)" : ""));
+        }
+
+        _updateEmailChip() {
+            if (!this._chipEl || this._chipDismissed || !this._emailHistory.length) return;
+            // Alan zaten kayıtlı adresin kendisini taşıyorsa gösterme
+            if (this._emailHistory.includes(this.input.value.trim())) { this._hideEmailChip(); return; }
+            if (!this._chipEl.classList.contains("is-visible")) {
+                this._chipEl.classList.add("is-visible");
+                // Alt çizgide kısa bir parıltı: chip çizginin altından
+                // "süzülürken" border bir an nefes alır.
+                if (!prefersReduced && this.pathBottom) {
+                    try {
+                        this.pathBottom.animate(
+                            [{ strokeOpacity: 1 }, { strokeOpacity: 0.3 }, { strokeOpacity: 1 }],
+                            { duration: 420, easing: "ease-in-out" });
+                    } catch (_) { }
+                }
+            }
+        }
+
+        _hideEmailChip() {
+            this._chipEl && this._chipEl.classList.remove("is-visible");
+        }
+
+        /** Chip'ten alana doldurma — glif FLIP: chip'teki karakterler alandaki
+         *  hedef konumlarına uçar (yazma animasyonu YOK; shared-element hissi). */
+        _fillFromChip() {
+            const email = this._emailHistory[this._chipIdx] || this._emailHistory[0];
+            if (!email) return;
+            const chip = this._chipEl;
+            const chipSpans = chip ? Array.from(chip.querySelectorAll(".glint-email-chip__text > span")) : [];
+            const grpRect = this.group.getBoundingClientRect();
+            const srcRects = chipSpans.map(s => s.getBoundingClientRect());
+
+            this._removeEmailGhost();
+            this._skipNextAnim = true;
+            this.input.value = email;
+            this.input.focus();
+            try { this.input.setSelectionRange(email.length, email.length); } catch (_) { }
+            this.input.dispatchEvent(new Event("input", { bubbles: true }));
+            this.input.dispatchEvent(new Event("change", { bubbles: true }));
+            this._hideEmailChip();
+
+            if (prefersReduced || !this.charSpans || !this.charSpans.length || !srcRects.length) return;
+
+            // Hedef konumlar (yeni span'lar) — grup koordinat uzayında ghost'lar
+            this.charSpans.forEach((span, i) => {
+                const src = srcRects[i];
+                if (!src) return;
+                const dst = span.getBoundingClientRect();
+                // Overlay clip'i chip'i kapsamaz → ghost'lar GRUBA eklenir
+                span.style.opacity = "0";
+                const ghost = document.createElement("span");
+                ghost.className = "glint-char-ghost";
+                ghost.textContent = email[i];
+                ghost.style.left = (dst.left - grpRect.left) + "px";
+                ghost.style.top = (dst.top - grpRect.top) + "px";
+                ghost.style.zIndex = "30";
+                this.group.appendChild(ghost);
+                const reveal = () => { span.style.opacity = ""; ghost.remove(); };
+                ghost.animate([
+                    { transform: `translate(${src.left - dst.left}px, ${src.top - dst.top}px) scale(0.92)`, opacity: 0.85 },
+                    { transform: "translate(0, 0) scale(1)", opacity: 1 }
+                ], {
+                    duration: 300,
+                    delay: i * 10,
+                    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                    fill: "backwards"
+                }).finished.then(reveal).catch(reveal);
+            });
+        }
+
         buildBorderSVG() {
-            const rect = this.input.getBoundingClientRect();
+            // v1.6 — Stepper'da çizim GRUBU sarar (−/+ butonlar dahil tek
+            // kapsül); diğer alanlarda eskisi gibi input ölçülür. SVG zaten
+            // inset:0 ile grubun üzerinde durduğundan yalnız geometri kaynağı
+            // değişir.
+            const host = this.group.classList.contains("glint-input-group--stepper")
+                ? this.group : this.input;
+            const rect = host.getBoundingClientRect();
             const W = rect.width, H = rect.height;
             if (W === 0 || H === 0) return;
 
-            const R = Math.min(parseFloat(getComputedStyle(this.input).borderRadius) || 12, W / 2, H / 2);
+            const R = Math.min(parseFloat(getComputedStyle(host).borderRadius) || 12, W / 2, H / 2);
             if (this.svg) { this.svg.remove(); this.svg = null; }
 
             this.svg = svgEl("svg", {
@@ -599,16 +930,38 @@
             });
 
             const S = 1;
-            const d1 = [
-                `M ${S} ${H / 2}`, `L ${S} ${R + S}`,
-                `Q ${S} ${S} ${R + S} ${S}`, `L ${W - R - S} ${S}`,
-                `Q ${W - S} ${S} ${W - S} ${R + S}`, `L ${W - S} ${H / 2}`
-            ].join(" ");
-            const d2 = [
-                `M ${S} ${H / 2}`, `L ${S} ${H - R - S}`,
-                `Q ${S} ${H - S} ${R + S} ${H - S}`, `L ${W - R - S} ${H - S}`,
-                `Q ${W - S} ${H - S} ${W - S} ${H - R - S}`, `L ${W - S} ${H / 2}`
-            ].join(" ");
+            // v1.6 — ÇAPRAZ çizim modu: picker gruplarında (ve data-glint-diagonal
+            // ile herhangi bir alanda) iki yol SOL ÜST köşeden başlar ve SAĞ ALT
+            // köşede buluşur (kullanıcının istediği "sol çaprazdan sağ çapraza"
+            // açılış). Panel de aynı köşeden çizildiği için input+panel tek
+            // hareketmiş gibi okunur. Standart alanlarda klasik sol-orta →
+            // sağ-orta süpürme korunur.
+            const diagonal = this.group.classList.contains("glint-input-group--picker") ||
+                this.group.hasAttribute("data-glint-diagonal");
+            let d1, d2;
+            if (diagonal) {
+                d1 = [
+                    `M ${S} ${R + S}`,
+                    `Q ${S} ${S} ${R + S} ${S}`, `L ${W - R - S} ${S}`,
+                    `Q ${W - S} ${S} ${W - S} ${R + S}`, `L ${W - S} ${H - R - S}`,
+                    `Q ${W - S} ${H - S} ${W - R - S} ${H - S}`
+                ].join(" ");
+                d2 = [
+                    `M ${S} ${R + S}`, `L ${S} ${H - R - S}`,
+                    `Q ${S} ${H - S} ${R + S} ${H - S}`, `L ${W - R - S} ${H - S}`
+                ].join(" ");
+            } else {
+                d1 = [
+                    `M ${S} ${H / 2}`, `L ${S} ${R + S}`,
+                    `Q ${S} ${S} ${R + S} ${S}`, `L ${W - R - S} ${S}`,
+                    `Q ${W - S} ${S} ${W - S} ${R + S}`, `L ${W - S} ${H / 2}`
+                ].join(" ");
+                d2 = [
+                    `M ${S} ${H / 2}`, `L ${S} ${H - R - S}`,
+                    `Q ${S} ${H - S} ${R + S} ${H - S}`, `L ${W - R - S} ${H - S}`,
+                    `Q ${W - S} ${H - S} ${W - S} ${H - R - S}`, `L ${W - S} ${H / 2}`
+                ].join(" ");
+            }
 
             this.pathTop = svgEl("path", { d: d1, class: "glint-border-path" });
             this.pathBottom = svgEl("path", { d: d2, class: "glint-border-path" });
@@ -672,7 +1025,9 @@
             // Tüm listener'lar tek AbortController sinyaline bağlanır →
             // destroy()'da this._ac.abort() ile hepsi tek seferde sökülür
             // (MVC partial-view / SPA yeniden render'da sızıntı önleme).
-            this._ac = new AbortController();
+            // v1.6: _setupEmail (buildDOM içinde) controller'ı daha erken
+            // kurmuş olabilir — üzerine YAZMA, paylaş.
+            if (!this._ac) this._ac = new AbortController();
             const sig = { signal: this._ac.signal };
 
             this.input.addEventListener("focus", () => this.onFocus(), sig);
@@ -685,7 +1040,9 @@
             // klavye ile Tab erişimi de bozulmaz. Delegasyon: sonradan
             // eklenen butonlar (ör. picker toggle) da kapsanır.
             this.group.addEventListener("mousedown", (e) => {
-                if (e.target.closest && e.target.closest(".glint-field__action")) {
+                // v1.6 — stepper ghost butonları da odak çalmasın (border-draw
+                // artık stepper'da da aktif; buton tıklaması çizimi söndürmemeli)
+                if (e.target.closest && e.target.closest(".glint-field__action, .glint-stepper-btn")) {
                     e.preventDefault();
                 }
             }, sig);
@@ -807,12 +1164,27 @@
                 return;
             }
 
+            // v1.6 — dış bileşen (stepper odometer'ı gibi) bu değişimin
+            // animasyonunu KENDİSİ üstlenecekse çekirdek yalnız senkron yapar.
+            if (this._skipNextAnim) {
+                this._skipNextAnim = false;
+                this.rebuildSpans(newVal);
+                if (this.isAutoGrow) this._autoGrow();
+                this.prevValue = newVal;
+                this.updateLabelState();
+                this._updateCounter();
+                this._updateStrength();
+                this.syncScroll();
+                return;
+            }
+
             // v1.5.1 — Binlik ayraçlı alan: generic prefix/suffix diff ayraç
             // kaymasını "toplu sil + yeniden yaz" olarak yorumlayıp ghost
             // fırtınası yaratıyordu ("12.345"+"6" → 4 silme + 5 ekleme).
             // Rakam-düzeyi diff yalnız gerçek değişimi oynatır; ayraçlar
-            // caret'e dokunmadan araya süzülür.
-            if (this._groupThousands) {
+            // caret'e dokunmadan araya süzülür. (v1.6: data-glint-digit-anim
+            // ile dış biçimleyiciler de aynı yoldan yararlanır — kart no.)
+            if (this._groupThousands || this._digitAnim) {
                 this._animateThousands(oldVal, newVal, e.inputType || "");
                 this.prevValue = newVal;
                 this.updateLabelState();
@@ -1412,6 +1784,8 @@
             this.clearBtn?.remove();
             this.strengthEl?.remove();
             this.strengthText?.remove();
+            this._chipEl?.remove();     // v1.6 e-posta chip'i
+            this._ghostEl?.remove();    // v1.6 ghost öneri span'ı
             if (this.input) {
                 this.input.style.borderColor = "";
                 // _addAction ikinci+ buton için input'a inline paddingRight
@@ -1575,8 +1949,15 @@
                 this._drawPath(this.minusPath, true);
                 this._drawPath(this.checkPath, false);
             } else if (isChecked) {
-                this._drawPath(this.checkPath, true);
+                this._drawPath(this.checkPath, true, 60);
                 this._drawPath(this.minusPath, false);
+                // v1.6 mikro — kutu snap'i: 0.9 → 1.04 → 1 (sert mikro-yay).
+                // İmza çizimi 60ms gecikmeli başlar: "önce kutu dolar,
+                // sonra imza atılır". Sınıf one-shot; animationend'de düşer.
+                box.classList.remove("glint-cb-snap");
+                void box.offsetWidth;
+                box.classList.add("glint-cb-snap");
+                box.addEventListener("animationend", () => box.classList.remove("glint-cb-snap"), { once: true });
             } else {
                 this._drawPath(this.checkPath, false);
                 this._drawPath(this.minusPath, false);
@@ -1596,8 +1977,8 @@
             path.style.strokeDashoffset = visible ? 0 : len;
         }
 
-        /** Stroke-draw animasyonu */
-        _drawPath(path, show) {
+        /** Stroke-draw animasyonu (delayMs: çizime gecikmeli başlama — v1.6) */
+        _drawPath(path, show, delayMs) {
             const len = this._getLen(path);
             path.style.strokeDasharray = len;
 
@@ -1606,7 +1987,8 @@
                 path.style.transition = "none";
                 path.style.strokeDashoffset = len;
                 void path.getBoundingClientRect();
-                path.style.transition = "stroke-dashoffset 0.28s cubic-bezier(0.22, 1, 0.36, 1)";
+                path.style.transition = "stroke-dashoffset 0.28s cubic-bezier(0.22, 1, 0.36, 1)" +
+                    (delayMs ? " " + delayMs + "ms" : "");
                 path.style.strokeDashoffset = 0;
             } else {
                 path.style.transition = "stroke-dashoffset 0.18s ease-in";
@@ -1707,7 +2089,7 @@
     // ══════════════════════════════════════════════════════════════
 
     /** Birleşik sürüm (input + toast ortak). */
-    Glint.version = "1.5.1";
+    Glint.version = "1.6.0";
 
     /**
      * Merkezi yapılandırma. Glint.configure({...}) ile değiştirilir.
@@ -1730,8 +2112,163 @@
     };
     Glint.configure = function (partial) {
         if (partial && typeof partial === "object") Object.assign(Glint.config, partial);
+        // v1.6 — reducedMotion artık runtime'da da etkili: true → kök sınıf
+        // tüm glint-* CSS geçiş/animasyonlarını anlık yapar ve hareket
+        // çarpanını sıfıra çeker. ("auto" → OS ayarı; false → sınıf kalkar,
+        // OS media query'si yine geçerli kalır.)
+        const forceOff = Glint.config.reducedMotion === true;
+        document.documentElement.classList.toggle("glint-motion-off", forceOff);
+        document.documentElement.style.setProperty("--glint-motion-scale", forceOff ? "0.01" : "1");
         return Glint.config;
     };
+
+    /**
+     * v1.6 — Glint.flip(container, mutate, opts?)
+     * First-Last-Invert-Play yardımcıcısı: kapsayıcının çocuklarının (veya
+     * opts.targets'ın) konumunu ölçer, mutate() ile DOM'u değiştirir, konumu
+     * değişenleri eski yerlerinden yenilerine kaydırır (yalnız transform).
+     * Layout değişimini markanın "taşıma" diliyle animasyonlu hale getirir.
+     * reduced-motion'da yalnız mutate çalışır.
+     */
+    Glint.flip = function (container, mutate, opts) {
+        const o = opts || {};
+        if (typeof mutate !== "function") return undefined;
+        if (Glint.reducedMotion() || !container) return mutate();
+        const targets = Array.from(o.targets || container.children);
+        const first = targets.map(el => el.getBoundingClientRect());
+        const result = mutate();
+        targets.forEach((el, i) => {
+            const f = first[i];
+            if (!f || !el.isConnected) return;
+            const l = el.getBoundingClientRect();
+            const dx = f.left - l.left, dy = f.top - l.top;
+            if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+            el.animate(
+                [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }],
+                { duration: o.duration || 320, easing: o.easing || "cubic-bezier(0.77, 0, 0.175, 1)", fill: "backwards" }
+            );
+        });
+        return result;
+    };
+
+    /**
+     * v1.6 — E-posta hafızası yardımcıları (KVKK/gizlilik):
+     * Glint.email.clearMemory()        → varsayılan geçmişi siler
+     * Glint.email.clearMemory("login") → data-glint-memory-key="login" geçmişini siler
+     */
+    Glint.email = {
+        clearMemory(key) {
+            try { localStorage.removeItem("glint:email-history" + (key ? ":" + key : "")); } catch (_) { }
+        }
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    //  v1.6 — GlintForm: form orkestratörü
+    // ══════════════════════════════════════════════════════════════
+    //
+    // <form data-glint-form> → submit'te istemci tarafı toplu doğrulama:
+    //   • native validity (email biçimi, min/max, pattern...)
+    //   • hidden/gizlenmiş Glint alanlarında `required` (native hidden'ları
+    //     doğrulamaz: picker'ın native input'u, OTP'nin hidden'ı vb.)
+    // Geçersizse submit engellenir, hatalar toast köprüsü yüklüyse ORADAN
+    // (politika: inline/toast/smart — köprü inline'ı da kendisi basar),
+    // değilse doğrudan inline uygulanır; ilk hatalı alana kaydır + odakla.
+    // Event: form üzerinde `glint:form-invalid { errors: [{id, message}] }`.
+    // Ağ isteği YOKTUR; doğrulama tamamen istemcide, submit native akıştır.
+    class GlintForm {
+        constructor(form) {
+            if (form._glintFormInit) return;
+            form._glintFormInit = true;
+            form._glintFormInstance = this;
+            this.form = form;
+            form.setAttribute("novalidate", "");   // native balonlar yerine Glint dili
+            this._ac = new AbortController();
+            form.addEventListener("submit", (e) => this._onSubmit(e), { signal: this._ac.signal });
+            Glint.register(form, this);
+        }
+
+        _fieldLabel(el) {
+            const group = (el.closest && el.closest(".glint-input-group")) || null;
+            const lbl = group && group.querySelector(".glint-label");
+            if (lbl && lbl.textContent.trim()) return lbl.textContent.trim();
+            if (el.labels && el.labels[0]) return el.labels[0].textContent.trim();
+            return el.name || el.id || "Alan";
+        }
+
+        _collectErrors() {
+            const errors = [];
+            const seen = new Set();
+            const push = (el, message) => {
+                const group = (el.closest && el.closest(".glint-input-group")) || el;
+                if (seen.has(group)) return;   // grup başına tek hata
+                seen.add(group);
+                errors.push({ el, id: el.id || "", message });
+            };
+            this.form.querySelectorAll("input, select, textarea").forEach(el => {
+                if (el.disabled) return;
+                if (el.willValidate && !el.checkValidity()) {
+                    push(el, el.validationMessage || (this._fieldLabel(el) + " geçersiz."));
+                    return;
+                }
+                // Native'in doğrulamadığı gizli zorunlular (picker/OTP hidden'ları)
+                if (el.required && !el.willValidate && !String(el.value || "").trim()) {
+                    push(el, el.getAttribute("data-glint-required-msg") ||
+                        (this._fieldLabel(el) + " zorunludur."));
+                }
+            });
+            return errors;
+        }
+
+        _onSubmit(e) {
+            const errors = this._collectErrors();
+            if (!errors.length) return;   // geçerli → native submit akışı sürer
+            e.preventDefault();
+
+            const gt = window.glintToast;
+            if (gt && typeof gt.error === "function") {
+                // Köprü politikası inline + toast + tıkla-kaydır işini üstlenir
+                errors.forEach(er => gt.error(er.message, er.id || undefined));
+            } else {
+                // Toast yok → doğrudan inline
+                errors.forEach(er => {
+                    const withText = Glint.config.fieldErrorText ? er.message : undefined;
+                    const inst = Glint.Input && Glint.Input._getInstance && Glint.Input._getInstance(er.el);
+                    if (inst && Glint.Input.setError) Glint.Input.setError(er.el, withText);
+                    else Glint.setState(er.el, "error", withText || null);
+                });
+            }
+
+            // İlk hatalı alana kaydır + odakla
+            const first = errors[0].el;
+            const group = (first.closest && first.closest(".glint-input-group")) || first;
+            try { group.scrollIntoView({ behavior: Glint.reducedMotion() ? "auto" : "smooth", block: "center" }); } catch (_) { }
+            const focusable = group.querySelector(
+                "input:not([type=hidden]):not([hidden]), select, textarea, button, [tabindex]") || first;
+            try { focusable.focus({ preventScroll: true }); } catch (_) { try { focusable.focus(); } catch (__) { } }
+
+            this.form.dispatchEvent(new CustomEvent("glint:form-invalid", {
+                bubbles: true,
+                detail: { errors: errors.map(er => ({ id: er.id, message: er.message })) }
+            }));
+        }
+
+        /** Programatik doğrulama: geçerliyse true (hata basmaz). */
+        validate() { return this._collectErrors().length === 0; }
+
+        destroy() {
+            if (this._ac) { this._ac.abort(); this._ac = null; }
+            this.form.removeAttribute("novalidate");
+            this.form._glintFormInit = false;
+            this.form._glintFormInstance = null;
+            Glint.unregister(this.form);
+        }
+
+        static get(el) {
+            const f = el && (el.tagName === "FORM" ? el : el.closest && el.closest("form"));
+            return (f && f._glintFormInstance) || null;
+        }
+    }
+    Glint.Form = GlintForm;
 
     // ── Canlı reduced-motion (TEK kaynak; her modül buradan okur) ──
     const _rmQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -1854,7 +2391,7 @@
     // başlatır (çift border/overlay önlenir).
     function isPickerGroup(group) {
         return !!group.querySelector(
-            "input[type='date'], input[type='time'], input[type='datetime-local']"
+            "input[type='date'], input[type='time'], input[type='datetime-local'], input[type='month']"
         );
     }
 
@@ -1869,6 +2406,13 @@
         selector: "input[type='checkbox'].glint-checkbox",
         match: cb => !cb._glintCbInit,
         mount: cb => new GlintCheckbox(cb)
+    });
+
+    // v1.6 — Form orkestratörü
+    Glint.defineComponent("form", {
+        selector: "form[data-glint-form]",
+        match: f => !f._glintFormInit,
+        mount: f => new GlintForm(f)
     });
 
     // ── Başlatma + tek paylaşılan observer (rAF-batch + teardown) ──
@@ -2140,7 +2684,10 @@
             if (!this.input.hasAttribute("role")) this.input.setAttribute("role", "switch");
             this._syncAria();
             this._ac = new AbortController();
-            this.input.addEventListener("change", () => this._syncAria(), { signal: this._ac.signal });
+            this.input.addEventListener("change", () => {
+                this._syncAria();
+                this._squash();   // v1.6 mikro — thumb squash-stretch
+            }, { signal: this._ac.signal });
 
             // v1.5.1 — Programatik `el.checked = ...` değişiminde aria-checked
             // güncellensin (checkbox/radio'daki intercept'in switch karşılığı;
@@ -2167,6 +2714,33 @@
 
         _syncAria() {
             this.input.setAttribute("aria-checked", this.input.checked ? "true" : "false");
+        }
+
+        /**
+         * v1.6 mikro — VARIŞTA squash-stretch: thumb yolculuğu (translateX
+         * transition'ı) bittiği anda yatayda ezilip yayla toparlanır.
+         * Keyframe transform'u komple ezdiğinden yolculuk SIRASINDA
+         * uygulanamaz; transitionend beklenir ve keyframe kendi durumunun
+         * final translateX'ini içerir (CSS'te --on/--off varyantları).
+         */
+        _squash() {
+            if (prefersReduced || !this.track) return;
+            const thumb = this.track.querySelector(".glint-switch-thumb");
+            if (!thumb) return;
+            const arm = (e) => {
+                if (e && e.propertyName !== "transform") return;   // yalnız yolculuk
+                clearTimeout(t);
+                thumb.removeEventListener("transitionend", arm);
+                thumb.classList.remove("glint-switch-thumb--settle");
+                void thumb.offsetWidth;
+                thumb.classList.add("glint-switch-thumb--settle");
+                thumb.addEventListener("animationend", () => {
+                    thumb.classList.remove("glint-switch-thumb--settle");
+                }, { once: true });
+            };
+            thumb.addEventListener("transitionend", arm);
+            // Emniyet: transition hiç ateşlenmezse (zaten yerindeyse) vazgeç
+            const t = setTimeout(() => thumb.removeEventListener("transitionend", arm), 400);
         }
 
         /**
@@ -2547,6 +3121,17 @@
         _clickValue(v) {
             if (this.allowClear && this.value === v) v = 0;   // aynı değere tekrar tık → sıfırla
             this._set(v);
+            // v1.6 mikro — POINTER seçiminde hedef yıldızda güçlü pop
+            // (klavyede yalnız mevcut hover pop'u; tören farede kalır).
+            if (!prefersReduced && v > 0) {
+                const star = this.stars[Math.ceil(v) - 1];
+                if (star) {
+                    star.classList.remove("glint-star-pop");
+                    void star.offsetWidth;
+                    star.classList.add("glint-star-pop");
+                    star.addEventListener("animationend", () => star.classList.remove("glint-star-pop"), { once: true });
+                }
+            }
         }
 
         _onKeydown(e) {
@@ -3691,7 +4276,35 @@
                     }
                 } else {
                     this.valueEl.classList.remove("is-placeholder");
-                    this.valueEl.textContent = selected[0].label;
+                    const newLabel = selected[0].label;
+                    const oldLabel = this.valueEl.textContent;
+                    // v1.6 mikro — değer odometer'ı: eski metin yukarı süzülüp
+                    // solar, yenisi alttan gelir (yalnız DEĞER DEĞİŞİMİNDE;
+                    // ilk render ve aynı değerde animasyon yok).
+                    if (!prefersReduced && oldLabel && oldLabel !== newLabel &&
+                        oldLabel !== this.placeholder && this._odometerReady) {
+                        const el = this.valueEl;
+                        // Hızlı ardışık seçimde bayat closure'a karşı sıra numarası
+                        this._odoSeq = (this._odoSeq || 0) + 1;
+                        const seq = this._odoSeq;
+                        const settle = () => { if (seq === this._odoSeq) el.textContent = newLabel; };
+                        el.animate([
+                            { transform: "translateY(0)", opacity: 1 },
+                            { transform: "translateY(-55%)", opacity: 0 }
+                        ], { duration: 120, easing: "cubic-bezier(0.4, 0, 0.7, 0.2)" }
+                        ).finished.then(() => {
+                            if (seq !== this._odoSeq) return;
+                            el.textContent = newLabel;
+                            el.animate([
+                                { transform: "translateY(55%)", opacity: 0 },
+                                { transform: "translateY(0)", opacity: 1 }
+                            ], { duration: 160, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+                        }).catch(settle);
+                    } else {
+                        this._odoSeq = (this._odoSeq || 0) + 1;
+                        this.valueEl.textContent = newLabel;
+                    }
+                    this._odometerReady = true;
                 }
             }
         }
@@ -4643,6 +5256,8 @@
             // v1.5.1 — kod tamamlanınca formu otomatik gönder (opt-in).
             this.autoSubmit = root.hasAttribute("data-autosubmit");
             this._lastComplete = null;
+            // v1.6 — yeniden gönder sayacı (opt-in): data-resend="60"
+            this.resendSecs = Math.max(0, parseInt(root.getAttribute("data-resend"), 10) || 0);
             this._groupRaw = (root.getAttribute("data-group") || "").trim();
             this.groupSize = parseInt(this._groupRaw, 10) || 0;
             // data-group="middle" → uzunluk çiftse TAM ortaya tek ayraç koy
@@ -4741,15 +5356,78 @@
                     cell.value = initial[i];
                     cell.classList.add("glint-otp-cell--filled");
                 }
+                // v1.6 — başarı dalgası stagger'ı için hücre indeksi
+                cell.style.setProperty("--i", String(i));
                 root.appendChild(cell);
                 this.cells.push(cell);
             }
 
             this._syncHidden(false);
+            if (this.resendSecs > 0) this._buildResend();
         }
 
+        /**
+         * v1.6 — "Tekrar gönder" sayacı: kutuların altında geri sayım;
+         * sıfırlanınca buton aktifleşir, tıklamada glint:otp-resend yayılır
+         * ve sayaç yeniden başlar (SMS'i GÖNDERMEK uygulamanın işi — ağ
+         * isteği kütüphanede yok).
+         */
+        _buildResend() {
+            // _build, _bind'den ÖNCE koşar → controller'ı burada kur (paylaşımlı)
+            if (!this._ac) this._ac = new AbortController();
+            this.resendBtn = document.createElement("button");
+            this.resendBtn.type = "button";
+            this.resendBtn.className = "glint-otp-resend";
+            this.root.insertAdjacentElement("afterend", this.resendBtn);
+            this.resendBtn.addEventListener("click", () => {
+                if (this._resendLeft > 0) return;
+                this.root.dispatchEvent(new CustomEvent("glint:otp-resend", { bubbles: true }));
+                this._startResend();
+            }, { signal: this._ac.signal });
+            this._startResend();
+        }
+
+        _startResend() {
+            clearInterval(this._resendTimer);
+            this._resendLeft = this.resendSecs;
+            const tick = () => {
+                if (this._resendLeft > 0) {
+                    this.resendBtn.disabled = true;
+                    this.resendBtn.textContent = "Tekrar gönder (" + this._resendLeft + "s)";
+                    this._resendLeft--;
+                } else {
+                    clearInterval(this._resendTimer);
+                    this.resendBtn.disabled = false;
+                    this.resendBtn.textContent = "Tekrar gönder";
+                }
+            };
+            tick();
+            this._resendTimer = setInterval(tick, 1000);
+        }
+
+        /**
+         * v1.6 — Mutlu yolun kutlaması: hücre hücre soldan sağa yeşil dalga
+         * (setError'ın shake'inin simetriği). Sunucu kodu doğruladığında
+         * uygulama çağırır: Glint.Otp.get(el)?.setSuccess() gibi.
+         */
+        setSuccess() {
+            this._clearError();
+            this.root.classList.remove("glint-otp--success");
+            void this.root.offsetWidth;
+            this.root.classList.add("glint-otp--success");
+            const last = this.cells[this.cells.length - 1];
+            if (last) {
+                last.addEventListener("animationend", () => {
+                    // sınıf kalır (yeşil kenar) — dalga bir kez oynar
+                }, { once: true });
+            }
+        }
+
+        clearSuccess() { this.root.classList.remove("glint-otp--success"); }
+
         _bind() {
-            this._ac = new AbortController();
+            // _buildResend controller'ı erken kurmuş olabilir — paylaş
+            if (!this._ac) this._ac = new AbortController();
             const sig = { signal: this._ac.signal };
             this.cells.forEach((cell, i) => {
                 cell.addEventListener("input", (e) => this._onInput(e, i), sig);
@@ -4768,6 +5446,9 @@
             this.cells = [];
             this.root.querySelectorAll(".glint-otp-sep").forEach(s => s.remove());
             if (this._liveEl) { this._liveEl.remove(); this._liveEl = null; }
+            clearInterval(this._resendTimer);          // v1.6
+            this.resendBtn?.remove();                  // v1.6
+            this.root.classList.remove("glint-otp--success");
             if (this._ownHidden) this.hidden?.remove();
             this.root._glintOtpInit = false;
             this.root._glintOtpInstance = null;
@@ -5241,29 +5922,52 @@
                 try { inst.onBeforeInput(); } catch (_) { }
             }
 
+            const oldStr = this.input.value;
             this.input.value = next;
-            this._bump(dir);
             this._updateButtons();
-            // GlintInput overlay'i + form validasyon için input/change yay
+            // v1.6 — çekirdeğin generic yazma/silme animasyonu bastırılır;
+            // buton kaynaklı değişimde ODOMETER oynar (klavyeyle yazımda
+            // normal yazma animasyonları aynen kalır).
+            if (inst && this.group._glintInstance === inst) inst._skipNextAnim = true;
             this.input.dispatchEvent(new Event("input", { bubbles: true }));
+            this._odometer(dir, oldStr, inst);
             this.input.dispatchEvent(new Event("change", { bubbles: true }));
             return true;
         }
 
-        _bump(dir) {
+        /**
+         * v1.6 mikro — RAKAM ODOMETER'I: eski değer glifleri yukarı süzülüp
+         * solar (azalışta aşağı), yeni glifler ters yönden gelir. Çekirdeğin
+         * overlay altyapısı (savedRects + _makeGhost + charSpans) kullanılır;
+         * generic diff animasyonu _skipNextAnim ile susturulmuştur.
+         */
+        _odometer(dir, oldStr, inst) {
             if (prefersReduced) return;
-            // Artarken yukarıdan, azalırken aşağıdan kayar
-            this.input.style.setProperty("--glint-stepper-bump-dir", dir > 0 ? "22%" : "-22%");
-            this.input.classList.remove("glint-stepper--bump");
-            void this.input.offsetWidth;
-            this.input.classList.add("glint-stepper--bump");
-            this.input.addEventListener("animationend", () => {
-                this.input.classList.remove("glint-stepper--bump");
-                // Bump, input'a transform uygular; overlay takip etmez.
-                // Animasyon bitince input rect'i tekrar nötr; overlay'i resync et
-                // ki hızlı ardışık tıklamada birikmiş desync kalmasın.
-                this._resyncOverlay();
-            }, { once: true });
+            if (!inst || !inst.overlay || !inst.charSpans) return;
+            const contRect = inst.overlay.getBoundingClientRect();
+            const outY = dir > 0 ? "-60%" : "60%";
+            const inY = dir > 0 ? "60%" : "-60%";
+
+            if (inst.savedRects && inst.savedRects.length && oldStr) {
+                for (let i = 0; i < oldStr.length && i < inst.savedRects.length; i++) {
+                    const r = inst.savedRects[i];
+                    if (!r) continue;
+                    const relLeft = r.left - contRect.left;
+                    if (relLeft + r.width < 0 || relLeft > contRect.width) continue;
+                    const ghost = inst._makeGhost(oldStr[i], relLeft, r.top - contRect.top);
+                    ghost.animate([
+                        { transform: "translateY(0)", opacity: 1 },
+                        { transform: "translateY(" + outY + ")", opacity: 0 }
+                    ], { duration: 160, easing: "cubic-bezier(0.4, 0, 0.7, 0.2)", fill: "forwards" })
+                        .finished.then(() => ghost.remove()).catch(() => ghost.remove());
+                }
+            }
+            inst.charSpans.forEach((span, i) => {
+                span.animate([
+                    { transform: "translateY(" + inY + ")", opacity: 0 },
+                    { transform: "translateY(0)", opacity: 1 }
+                ], { duration: 200, delay: i * 14, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "backwards" });
+            });
         }
 
         _updateButtons() {
@@ -8646,7 +9350,12 @@
         constructor(group, nativeInput) {
             this.group = group;
             this.nativeInput = nativeInput;
-            this.type = nativeInput.type; // "date" | "time" | "datetime-local"
+            this.type = nativeInput.type; // "date" | "time" | "datetime-local" | "month"
+            // v1.6 — AY MODU: input[type=month] date'in İNCE varyantı olarak
+            // çalışır (iç mantık date; gün daima 1, native değer "YYYY-MM",
+            // panel doğrudan ay ızgarasıyla açılır ve ay seçimi commit eder).
+            this.isMonth = this.type === "month";
+            if (this.isMonth) this.type = "date";
             this.locale = getLocale();
             this.isOpen = false;
 
@@ -8813,7 +9522,9 @@
 
         /** Native input value'sundan state hesapla — DOM dokunmaz */
         _calculateInitialState() {
-            const raw = this.nativeInput.value;
+            let raw = this.nativeInput.value;
+            // v1.6 — ay modunda "YYYY-MM" → "YYYY-MM-01" normalize edilir
+            if (this.isMonth && /^\d{4}-\d{2}/.test(raw)) raw = raw.slice(0, 7) + "-01";
 
             if (this.isRange) {
                 // "YYYY-MM-DD/YYYY-MM-DD" veya tek tarih
@@ -8864,7 +9575,11 @@
         _initialDisplayValue() {
             if (this.isRange) return this._formatRangeDisplay();
             if (!this.value) return "";
-            if (this.type === "date") return formatDisplayDate(this.value);
+            if (this.type === "date") {
+                return this.isMonth
+                    ? (this.locale.months[this.value.getMonth()] + " " + this.value.getFullYear())
+                    : formatDisplayDate(this.value);
+            }
             if (this.type === "time") return formatISOTime(this.value.getHours(), this.value.getMinutes());
             return formatDisplayDateTime(this.value);
         }
@@ -9468,7 +10183,7 @@
                 } else if (e.key === "Escape" && this.isOpen) {
                     e.preventDefault();
                     this.close();
-                } else if (/^[0-9]$/.test(e.key) && this.type !== "time") {
+                } else if (/^[0-9]$/.test(e.key) && this.type !== "time" && !this.isMonth) {
                     // Numarik klavyeyle tarih yaz: gerekiyorsa aç, rakamı işle (DDMMYYYY)
                     e.preventDefault();
                     if (!this.isOpen) this.open();
@@ -9608,7 +10323,7 @@
                     return;
                 default:
                     // Numarik klavyeyle tarih yazımı (DDMMYYYY) — date/datetime
-                    if (/^[0-9]$/.test(k) && this.type !== "time") {
+                    if (/^[0-9]$/.test(k) && this.type !== "time" && !this.isMonth) {
                         e.preventDefault();
                         this._typeDate(k);
                         return;
@@ -9793,7 +10508,8 @@
                 return;
             }
 
-            const raw = this.nativeInput.value;
+            let raw = this.nativeInput.value;
+            if (this.isMonth && /^\d{4}-\d{2}/.test(raw)) raw = raw.slice(0, 7) + "-01";
             let d = null;
             if (this.type === "date") {
                 d = parseISODate(raw);
@@ -9827,8 +10543,11 @@
 
             if (d) {
                 if (this.type === "date") {
-                    nativeVal = formatISODate(d);
-                    displayVal = formatDisplayDate(d);
+                    // v1.6 — ay modu: native "YYYY-MM", görüntü "Temmuz 2026"
+                    nativeVal = this.isMonth ? formatISODate(d).slice(0, 7) : formatISODate(d);
+                    displayVal = this.isMonth
+                        ? (this.locale.months[d.getMonth()] + " " + d.getFullYear())
+                        : formatDisplayDate(d);
                 } else if (this.type === "time") {
                     nativeVal = formatISOTime(d.getHours(), d.getMinutes());
                     displayVal = nativeVal;
@@ -9894,6 +10613,11 @@
         }
 
         _onTitle() {
+            // v1.6 — ay modunda gün görünümü yok: months ↔ years arasında döner
+            if (this.isMonth) {
+                this._setView(this._view === "months" ? "years" : "months");
+                return;
+            }
             this._setView(this._view === "days" ? "months" : this._view === "months" ? "years" : "days");
         }
         _onPrev() {
@@ -9920,10 +10644,33 @@
                 b.type = "button";
                 b.className = "glint-picker-altcell";
                 b.textContent = mName;
-                if (mi === this.viewMonth) b.classList.add("is-selected");
-                b.addEventListener("click", () => { this.viewMonth = mi; this._setView("days"); });
+                // v1.6 — ay modunda "seçili" işareti DEĞERİ yansıtır (yıl+ay);
+                // gezinme modunda eskisi gibi görüntülenen ayı gösterir.
+                if (this.isMonth) {
+                    if (this.value &&
+                        this.value.getFullYear() === this.viewYear &&
+                        this.value.getMonth() === mi) b.classList.add("is-selected");
+                } else if (mi === this.viewMonth) {
+                    b.classList.add("is-selected");
+                }
+                b.addEventListener("click", () => {
+                    if (this.isMonth) { this._pickMonth(mi); return; }
+                    this.viewMonth = mi;
+                    this._setView("days");
+                });
                 this.altGrid.appendChild(b);
             });
+        }
+
+        /** v1.6 — ay modunda ay seçimi: değeri yaz, commit et, kapat. */
+        _pickMonth(mi) {
+            this.viewMonth = mi;
+            const d = new Date(this.viewYear, mi, 1);
+            this.value = d;
+            this.focusDate = new Date(d);
+            this._renderCalendar();
+            this._commit();
+            this.close();
         }
         _renderYears() {
             this._setDayViewVisible(false);
@@ -10203,10 +10950,24 @@
             this._renderCalendar();
             this._renderTime();
             this._commit();
+            this._rippleSelected();   // v1.6 mikro — seçilen günde halka
 
             if (this.type === "date") {
                 this.close();
             }
+        }
+
+        /**
+         * v1.6 mikro — gün seçiminde tek seferlik halka: odak halkasının
+         * genişleyip solan kopyası (::after keyframe'i CSS'te). Takvim
+         * yeniden çizildiği için sınıf YENİ seçili hücreye basılır.
+         */
+        _rippleSelected() {
+            if (prefersReduced || !this.daysGrid) return;
+            const cell = this.daysGrid.querySelector(".glint-picker-day.is-selected");
+            if (!cell) return;
+            cell.classList.add("glint-day-ripple");
+            cell.addEventListener("animationend", () => cell.classList.remove("glint-day-ripple"), { once: true });
         }
 
         /** Range seçim mantığı — ilk tık başlangıç, ikinci bitiş, üçüncü reset */
@@ -10354,7 +11115,8 @@
         open() {
             if (this.isOpen) return;
             this.isOpen = true;
-            this._view = "days";       // her açılışta gün görünümüne dön
+            // v1.6 — ay modunda birincil yüzey AY IZGARASIDIR
+            this._view = this.isMonth ? "months" : "days";
             this._hoverDate = null;
             this._renderAll();
 
@@ -10369,9 +11131,20 @@
 
             requestAnimationFrame(() => {
                 this.popover.classList.add("is-open");
-                // Takvim varsa odaklı hücreye fokus ver (klavye nav hazır)
+                // v1.6 — panel kenarlığı input ile aynı sol üst köşeden
+                // çapraz çizilir (masaüstü; mobil sheet kendi dilinde).
+                if (!isMobile) this._drawPanelBorder();
+                // Takvim varsa odaklı hücreye fokus ver (klavye nav hazır);
+                // ay modunda odak seçili/ilk ay hücresine gider.
                 if (this.daysGrid) {
-                    requestAnimationFrame(() => this._focusActiveCell());
+                    requestAnimationFrame(() => {
+                        if (this.isMonth && this.altGrid) {
+                            const c = this.altGrid.querySelector(".is-selected") || this.altGrid.firstElementChild;
+                            if (c) { try { c.focus(); } catch (e) { } }
+                        } else {
+                            this._focusActiveCell();
+                        }
+                    });
                 }
             });
 
@@ -10398,7 +11171,64 @@
             }
             this.group.classList.remove("glint-picker-open");
             this.toggleBtn.setAttribute("aria-expanded", "false");
+            if (this._panelSvg) { this._panelSvg.remove(); this._panelSvg = null; }
             if (restoreFocus) { try { this.display.focus(); } catch (e) { } }
+        }
+
+        /**
+         * v1.6 — Panel kenarlık çizimi: popover boyutunda tek seferlik SVG;
+         * iki yol sol üstten sağ alta akar (input'un çapraz çizimiyle aynı
+         * gramer), çizim oturunca ışıltı görevini yapıp zarifçe söner.
+         * Uzun yol (üst+sağ) ile kısa yol (sol+alt) aynı sürede çizildiğinden
+         * ikisi sağ alt köşede AYNI anda buluşur.
+         */
+        _drawPanelBorder() {
+            if (prefersReduced) return;
+            if (this._panelSvg) { this._panelSvg.remove(); this._panelSvg = null; }
+            const W = this.popover.offsetWidth, H = this.popover.offsetHeight;
+            if (!W || !H) return;
+            const NS = "http://www.w3.org/2000/svg";
+            const R = Math.min(parseFloat(getComputedStyle(this.popover).borderRadius) || 14, W / 2, H / 2);
+            const S = 1;
+            const svg = document.createElementNS(NS, "svg");
+            svg.setAttribute("class", "glint-picker-border-svg");
+            svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+            svg.setAttribute("preserveAspectRatio", "none");
+            const mk = (d) => {
+                const p = document.createElementNS(NS, "path");
+                p.setAttribute("d", d);
+                p.setAttribute("class", "glint-picker-border-path");
+                svg.appendChild(p);
+                return p;
+            };
+            const p1 = mk([
+                `M ${S} ${R + S}`,
+                `Q ${S} ${S} ${R + S} ${S}`, `L ${W - R - S} ${S}`,
+                `Q ${W - S} ${S} ${W - S} ${R + S}`, `L ${W - S} ${H - R - S}`,
+                `Q ${W - S} ${H - S} ${W - R - S} ${H - S}`
+            ].join(" "));
+            const p2 = mk([
+                `M ${S} ${R + S}`, `L ${S} ${H - R - S}`,
+                `Q ${S} ${H - S} ${R + S} ${H - S}`, `L ${W - R - S} ${H - S}`
+            ].join(" "));
+            this.popover.appendChild(svg);
+            this._panelSvg = svg;
+            [p1, p2].forEach(p => {
+                let len = 0;
+                try { len = p.getTotalLength(); } catch (e) { len = (W + H) * 2; }
+                p.style.strokeDasharray = len;
+                p.style.strokeDashoffset = len;
+                try {
+                    p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+                        { duration: 480, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" });
+                } catch (e) { p.style.strokeDashoffset = 0; }
+            });
+            svg.animate(
+                [{ opacity: 1 }, { opacity: 1, offset: 0.72 }, { opacity: 0 }],
+                { duration: 1150, easing: "ease-out", fill: "forwards" }
+            ).finished.then(() => {
+                if (this._panelSvg === svg) { svg.remove(); this._panelSvg = null; }
+            }).catch(() => { });
         }
 
         toggle() {
@@ -10407,15 +11237,44 @@
 
         // ── Positioning (desktop) ─────────────────────────────────
 
+        /**
+         * v1.6 — Varyantın gerçekten ihtiyaç duyduğu taban genişlik.
+         * Kural: panel = input genişliği; yalnız çoklu-ay ve preset'li
+         * range daha geniş olabilir (sol kenar hizası korunur — çapraz
+         * çizim ortak köşeden başlar). 240px mutlak alt sınır, aşırı dar
+         * inputlarda saat/aksiyon satırının ezilmesini önler.
+         */
+        _contentMinWidth() {
+            let w = 240;
+            if (this.popover.classList.contains("glint-picker-popover--with-presets")) {
+                w = Math.max(w, 420);
+            }
+            const dual = this.popover.querySelector(".glint-picker-calendar--dual");
+            if (dual) {
+                const months = dual.querySelectorAll(".glint-picker-panel").length;
+                w = Math.max(w, months >= 3 ? 740 : 520);
+            }
+            return w;
+        }
+
         _positionPopover() {
             const rect = this.group.getBoundingClientRect();
             this.popover.classList.remove("glint-picker-popover--flip-up");
+
+            // v1.6 — genişlik input ile EŞİT (varyant tabanı daha genişse o);
+            // ölçümden ÖNCE uygulanmalı ki flip/clamp matematiği doğru olsun.
+            // CSS min-width tabanları inline min-width:0 ile etkisizleştirilir
+            // (mobil bottom-sheet bloğu !important ile kendi genişliğini korur).
+            this.popover.style.minWidth = "0";
+            this.popover.style.width = Math.max(rect.width, this._contentMinWidth()) + "px";
 
             const popH = this.popover.offsetHeight || 320;
             const popW = this.popover.offsetWidth || 296;
             const vpH = window.innerHeight;
             const vpW = window.innerWidth;
-            const margin = 8;
+            // v1.6 — "hemen altına": panel input'a daha yakın durur; çapraz
+            // çizim ortak köşeden aktığı için ikisi tek parça okunur.
+            const margin = 4;
 
             let top = rect.bottom + margin;
             let flip = false;
@@ -10502,14 +11361,14 @@
 
     function isPickerGroup(group) {
         return !!group.querySelector(
-            "input[type='date'], input[type='time'], input[type='datetime-local']"
+            "input[type='date'], input[type='time'], input[type='datetime-local'], input[type='month']"
         );
     }
 
     function initPickerForGroup(group) {
         if (group._glintPickerInit) return;
         const nativeInput = group.querySelector(
-            "input[type='date'], input[type='time'], input[type='datetime-local']"
+            "input[type='date'], input[type='time'], input[type='datetime-local'], input[type='month']"
         );
         if (!nativeInput) return;
         group._glintPickerInit = true;
@@ -10546,6 +11405,2958 @@
         document.addEventListener("DOMContentLoaded", function () {
             if (window.Glint && window.Glint.defineComponent) register();
             else fallbackScan();
+        });
+    }
+
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+ *  9) Phone — Ülke verisi (242 ülke/bölge)
+ *     (v1.6'da ana dosyaya birleştirildi — kaynak paket: glint-phone-data.js)
+ * ════════════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════════════
+ *  ✎ DÜZENLEYİNİZ — Glint Phone ülke/bölge verisi
+ *  ────────────────────────────────────────────────────────────────────────
+ *  Bu dosya glint-phone.js'ten ÖNCE yüklenmelidir:
+ *      <script src="glint-phone-data.js"></script>
+ *      <script src="glint-phone.js"></script>
+ *
+ *  KAYIT FORMATI (dizi):
+ *      [iso2, adTR, adEN, dialCode, masks|null, priority, minLen?, maxLen?]
+ *
+ *      iso2      : ISO 3166-1 alpha-2 kodu ("TR")
+ *      adTR      : Türkçe ülke adı (arama her iki dilde eşleşir)
+ *      adEN      : İngilizce ülke adı
+ *      dialCode  : uluslararası kod, '+' işaretsiz ("90")
+ *      masks     : ulusal maske dizisi — '#' = rakam, diğer karakterler
+ *                  otomatik literal ("### ### ## ##" → "536 401 08 26").
+ *                  Birden çok maske: rakam sayısına İLK SIĞAN kullanılır.
+ *                  null → serbest rakam girişi; minLen/maxLen ZORUNLU olur.
+ *      priority  : paylaşılan dialCode'larda ana ülke 0'dır
+ *                  (+1 → US=0, CA=1, NANP adaları=2 · +7 → RU=0, KZ=1
+ *                   +44 → GB=0, GG/JE/IM=1 · +61 → AU=0 · +358 → FI=0
+ *                   +212 → MA=0 · +39 → IT=0 · +47 → NO=0 · +262 → RE=0
+ *                   +590 → GP=0 · +599 → CW=0). '+kod' algılamada ve
+ *                  yapıştırmada öncelik 0 olan ülke seçilir.
+ *      minLen    : (masks null ise) ulusal numara en az rakam sayısı
+ *      maxLen    : (masks null ise) ulusal numara en çok rakam sayısı
+ *
+ *  Maskeler ULUSAL ANLAMLI numara içindir (trunk '0' HARİÇ):
+ *      TR → "536 401 08 26"  (baştaki 0 glint-phone.js tarafından atılır)
+ *
+ *  Kapsam: BM üyeleri + gözlemciler (PS, VA) + yaygın bölgeler
+ *  (TW, HK, MO, PR, XK, GG, JE, IM, GI, FO, GL, AX, RE, YT, NC, PF ...).
+ *  Sıralama: ISO2'ye göre alfabetik (bakım kolaylığı; görünen liste
+ *  glint-phone.js tarafından seçili dile göre yeniden sıralanır).
+ * ════════════════════════════════════════════════════════════════════════ */
+
+window.Glint = window.Glint || {};
+
+window.Glint.phoneData = [
+    /* ── A ── */
+    ["AD", "Andorra", "Andorra", "376", null, 0, 6, 9],
+    ["AE", "Birleşik Arap Emirlikleri", "United Arab Emirates", "971", ["# ### ####", "## ### ####"], 0],
+    ["AF", "Afganistan", "Afghanistan", "93", null, 0, 9, 9],
+    ["AG", "Antigua ve Barbuda", "Antigua and Barbuda", "1", ["(###) ###-####"], 2],
+    ["AI", "Anguilla", "Anguilla", "1", ["(###) ###-####"], 2],
+    ["AL", "Arnavutluk", "Albania", "355", null, 0, 8, 9],
+    ["AM", "Ermenistan", "Armenia", "374", ["## ######"], 0],
+    ["AO", "Angola", "Angola", "244", null, 0, 9, 9],
+    ["AR", "Arjantin", "Argentina", "54", ["## ####-####"], 0],
+    ["AS", "Amerikan Samoası", "American Samoa", "1", ["(###) ###-####"], 2],
+    ["AT", "Avusturya", "Austria", "43", ["### #######", "### ########"], 0],
+    ["AU", "Avustralya", "Australia", "61", ["### ### ###"], 0],
+    ["AW", "Aruba", "Aruba", "297", null, 0, 7, 7],
+    ["AX", "Åland Adaları", "Åland Islands", "358", null, 1, 6, 12],
+    ["AZ", "Azerbaycan", "Azerbaijan", "994", ["## ### ## ##"], 0],
+    /* ── B ── */
+    ["BA", "Bosna-Hersek", "Bosnia and Herzegovina", "387", null, 0, 8, 9],
+    ["BB", "Barbados", "Barbados", "1", ["(###) ###-####"], 2],
+    ["BD", "Bangladeş", "Bangladesh", "880", ["####-######"], 0],
+    ["BE", "Belçika", "Belgium", "32", ["# ### ## ##", "### ## ## ##"], 0],
+    ["BF", "Burkina Faso", "Burkina Faso", "226", null, 0, 8, 8],
+    ["BG", "Bulgaristan", "Bulgaria", "359", ["## ### ###", "### ### ###"], 0],
+    ["BH", "Bahreyn", "Bahrain", "973", ["#### ####"], 0],
+    ["BI", "Burundi", "Burundi", "257", null, 0, 8, 8],
+    ["BJ", "Benin", "Benin", "229", null, 0, 8, 10],
+    ["BL", "Saint Barthélemy", "Saint Barthélemy", "590", null, 1, 9, 9],
+    ["BM", "Bermuda", "Bermuda", "1", ["(###) ###-####"], 2],
+    ["BN", "Brunei", "Brunei", "673", null, 0, 7, 7],
+    ["BO", "Bolivya", "Bolivia", "591", null, 0, 8, 8],
+    ["BQ", "Karayip Hollandası", "Caribbean Netherlands", "599", null, 1, 7, 7],
+    ["BR", "Brezilya", "Brazil", "55", ["(##) ####-####", "(##) #####-####"], 0],
+    ["BS", "Bahamalar", "Bahamas", "1", ["(###) ###-####"], 2],
+    ["BT", "Butan", "Bhutan", "975", null, 0, 8, 8],
+    ["BW", "Botsvana", "Botswana", "267", null, 0, 7, 8],
+    ["BY", "Belarus", "Belarus", "375", null, 0, 9, 9],
+    ["BZ", "Belize", "Belize", "501", null, 0, 7, 7],
+    /* ── C ── */
+    ["CA", "Kanada", "Canada", "1", ["(###) ###-####"], 1],
+    ["CC", "Cocos (Keeling) Adaları", "Cocos (Keeling) Islands", "61", null, 1, 9, 9],
+    ["CD", "Demokratik Kongo Cumhuriyeti", "DR Congo", "243", null, 0, 9, 9],
+    ["CF", "Orta Afrika Cumhuriyeti", "Central African Republic", "236", null, 0, 8, 8],
+    ["CG", "Kongo Cumhuriyeti", "Republic of the Congo", "242", null, 0, 9, 9],
+    ["CH", "İsviçre", "Switzerland", "41", ["## ### ## ##"], 0],
+    ["CI", "Fildişi Sahili", "Côte d'Ivoire", "225", null, 0, 10, 10],
+    ["CK", "Cook Adaları", "Cook Islands", "682", null, 0, 5, 5],
+    ["CL", "Şili", "Chile", "56", ["# #### ####"], 0],
+    ["CM", "Kamerun", "Cameroon", "237", null, 0, 9, 9],
+    ["CN", "Çin", "China", "86", ["### #### ####"], 0],
+    ["CO", "Kolombiya", "Colombia", "57", ["### #######"], 0],
+    ["CR", "Kosta Rika", "Costa Rica", "506", null, 0, 8, 8],
+    ["CU", "Küba", "Cuba", "53", null, 0, 8, 8],
+    ["CV", "Yeşil Burun Adaları", "Cape Verde", "238", null, 0, 7, 7],
+    ["CW", "Curaçao", "Curaçao", "599", null, 0, 7, 8],
+    ["CX", "Christmas Adası", "Christmas Island", "61", null, 1, 9, 9],
+    ["CY", "Kıbrıs", "Cyprus", "357", null, 0, 8, 8],
+    ["CZ", "Çekya", "Czech Republic", "420", ["### ### ###"], 0],
+    /* ── D ── */
+    ["DE", "Almanya", "Germany", "49", ["#### ######", "#### #######"], 0],
+    ["DJ", "Cibuti", "Djibouti", "253", null, 0, 8, 8],
+    ["DK", "Danimarka", "Denmark", "45", ["## ## ## ##"], 0],
+    ["DM", "Dominika", "Dominica", "1", ["(###) ###-####"], 2],
+    ["DO", "Dominik Cumhuriyeti", "Dominican Republic", "1", ["(###) ###-####"], 2],
+    ["DZ", "Cezayir", "Algeria", "213", ["### ## ## ##"], 0],
+    /* ── E ── */
+    ["EC", "Ekvador", "Ecuador", "593", null, 0, 8, 9],
+    ["EE", "Estonya", "Estonia", "372", null, 0, 7, 8],
+    ["EG", "Mısır", "Egypt", "20", ["## ### ####", "### ### ####"], 0],
+    ["EH", "Batı Sahra", "Western Sahara", "212", null, 1, 9, 9],
+    ["ER", "Eritre", "Eritrea", "291", null, 0, 7, 7],
+    ["ES", "İspanya", "Spain", "34", ["### ### ###"], 0],
+    ["ET", "Etiyopya", "Ethiopia", "251", null, 0, 9, 9],
+    /* ── F ── */
+    ["FI", "Finlandiya", "Finland", "358", ["## ### ####", "### ### ####"], 0],
+    ["FJ", "Fiji", "Fiji", "679", null, 0, 7, 7],
+    ["FK", "Falkland Adaları", "Falkland Islands", "500", null, 0, 5, 5],
+    ["FM", "Mikronezya", "Micronesia", "691", null, 0, 7, 7],
+    ["FO", "Faroe Adaları", "Faroe Islands", "298", null, 0, 6, 6],
+    ["FR", "Fransa", "France", "33", ["# ## ## ## ##"], 0],
+    /* ── G ── */
+    ["GA", "Gabon", "Gabon", "241", null, 0, 7, 8],
+    ["GB", "Birleşik Krallık", "United Kingdom", "44", ["#### ######"], 0],
+    ["GD", "Grenada", "Grenada", "1", ["(###) ###-####"], 2],
+    ["GE", "Gürcistan", "Georgia", "995", ["### ## ## ##"], 0],
+    ["GF", "Fransız Guyanası", "French Guiana", "594", null, 0, 9, 9],
+    ["GG", "Guernsey", "Guernsey", "44", null, 1, 10, 10],
+    ["GH", "Gana", "Ghana", "233", null, 0, 9, 9],
+    ["GI", "Cebelitarık", "Gibraltar", "350", null, 0, 8, 8],
+    ["GL", "Grönland", "Greenland", "299", null, 0, 6, 6],
+    ["GM", "Gambiya", "Gambia", "220", null, 0, 7, 7],
+    ["GN", "Gine", "Guinea", "224", null, 0, 8, 9],
+    ["GP", "Guadeloupe", "Guadeloupe", "590", null, 0, 9, 9],
+    ["GQ", "Ekvator Ginesi", "Equatorial Guinea", "240", null, 0, 9, 9],
+    ["GR", "Yunanistan", "Greece", "30", ["### ### ####"], 0],
+    ["GT", "Guatemala", "Guatemala", "502", null, 0, 8, 8],
+    ["GU", "Guam", "Guam", "1", ["(###) ###-####"], 2],
+    ["GW", "Gine-Bissau", "Guinea-Bissau", "245", null, 0, 7, 9],
+    ["GY", "Guyana", "Guyana", "592", null, 0, 7, 7],
+    /* ── H ── */
+    ["HK", "Hong Kong", "Hong Kong", "852", ["#### ####"], 0],
+    ["HN", "Honduras", "Honduras", "504", null, 0, 8, 8],
+    ["HR", "Hırvatistan", "Croatia", "385", null, 0, 8, 9],
+    ["HT", "Haiti", "Haiti", "509", null, 0, 8, 8],
+    ["HU", "Macaristan", "Hungary", "36", ["# ### ####", "## ### ####"], 0],
+    /* ── I ── */
+    ["ID", "Endonezya", "Indonesia", "62", ["###-###-####", "###-####-####", "###-####-#####"], 0],
+    ["IE", "İrlanda", "Ireland", "353", ["## ### ####"], 0],
+    ["IL", "İsrail", "Israel", "972", ["#-###-####", "##-###-####"], 0],
+    ["IM", "Man Adası", "Isle of Man", "44", null, 1, 10, 10],
+    ["IN", "Hindistan", "India", "91", ["##### #####"], 0],
+    ["IQ", "Irak", "Iraq", "964", null, 0, 10, 10],
+    ["IR", "İran", "Iran", "98", null, 0, 10, 10],
+    ["IS", "İzlanda", "Iceland", "354", null, 0, 7, 9],
+    ["IT", "İtalya", "Italy", "39", ["### ### ###", "### ### ####"], 0],
+    /* ── J ── */
+    ["JE", "Jersey", "Jersey", "44", null, 1, 10, 10],
+    ["JM", "Jamaika", "Jamaica", "1", ["(###) ###-####"], 2],
+    ["JO", "Ürdün", "Jordan", "962", null, 0, 8, 9],
+    ["JP", "Japonya", "Japan", "81", ["#-####-####", "##-####-####"], 0],
+    /* ── K ── */
+    ["KE", "Kenya", "Kenya", "254", ["### ### ###"], 0],
+    ["KG", "Kırgızistan", "Kyrgyzstan", "996", null, 0, 9, 9],
+    ["KH", "Kamboçya", "Cambodia", "855", null, 0, 8, 9],
+    ["KI", "Kiribati", "Kiribati", "686", null, 0, 5, 8],
+    ["KM", "Komorlar", "Comoros", "269", null, 0, 7, 7],
+    ["KN", "Saint Kitts ve Nevis", "Saint Kitts and Nevis", "1", ["(###) ###-####"], 2],
+    ["KP", "Kuzey Kore", "North Korea", "850", null, 0, 8, 10],
+    ["KR", "Güney Kore", "South Korea", "82", ["##-###-####", "##-####-####"], 0],
+    ["KW", "Kuveyt", "Kuwait", "965", ["#### ####"], 0],
+    ["KY", "Cayman Adaları", "Cayman Islands", "1", ["(###) ###-####"], 2],
+    ["KZ", "Kazakistan", "Kazakhstan", "7", ["### ###-##-##"], 1],
+    /* ── L ── */
+    ["LA", "Laos", "Laos", "856", null, 0, 8, 10],
+    ["LB", "Lübnan", "Lebanon", "961", null, 0, 7, 8],
+    ["LC", "Saint Lucia", "Saint Lucia", "1", ["(###) ###-####"], 2],
+    ["LI", "Lihtenştayn", "Liechtenstein", "423", null, 0, 7, 9],
+    ["LK", "Sri Lanka", "Sri Lanka", "94", null, 0, 9, 9],
+    ["LR", "Liberya", "Liberia", "231", null, 0, 7, 9],
+    ["LS", "Lesotho", "Lesotho", "266", null, 0, 8, 8],
+    ["LT", "Litvanya", "Lithuania", "370", null, 0, 8, 8],
+    ["LU", "Lüksemburg", "Luxembourg", "352", null, 0, 6, 9],
+    ["LV", "Letonya", "Latvia", "371", null, 0, 8, 8],
+    ["LY", "Libya", "Libya", "218", null, 0, 9, 9],
+    /* ── M ── */
+    ["MA", "Fas", "Morocco", "212", ["# ## ## ## ##"], 0],
+    ["MC", "Monako", "Monaco", "377", null, 0, 8, 9],
+    ["MD", "Moldova", "Moldova", "373", null, 0, 8, 8],
+    ["ME", "Karadağ", "Montenegro", "382", null, 0, 8, 8],
+    ["MF", "Saint Martin", "Saint Martin", "590", null, 1, 9, 9],
+    ["MG", "Madagaskar", "Madagascar", "261", null, 0, 9, 9],
+    ["MH", "Marshall Adaları", "Marshall Islands", "692", null, 0, 7, 7],
+    ["MK", "Kuzey Makedonya", "North Macedonia", "389", null, 0, 8, 8],
+    ["ML", "Mali", "Mali", "223", null, 0, 8, 8],
+    ["MM", "Myanmar", "Myanmar", "95", null, 0, 8, 10],
+    ["MN", "Moğolistan", "Mongolia", "976", null, 0, 8, 8],
+    ["MO", "Makao", "Macau", "853", ["#### ####"], 0],
+    ["MP", "Kuzey Mariana Adaları", "Northern Mariana Islands", "1", ["(###) ###-####"], 2],
+    ["MQ", "Martinik", "Martinique", "596", null, 0, 9, 9],
+    ["MR", "Moritanya", "Mauritania", "222", null, 0, 8, 8],
+    ["MS", "Montserrat", "Montserrat", "1", ["(###) ###-####"], 2],
+    ["MT", "Malta", "Malta", "356", null, 0, 8, 8],
+    ["MU", "Mauritius", "Mauritius", "230", null, 0, 7, 8],
+    ["MV", "Maldivler", "Maldives", "960", null, 0, 7, 7],
+    ["MW", "Malavi", "Malawi", "265", null, 0, 7, 9],
+    ["MX", "Meksika", "Mexico", "52", ["## #### ####"], 0],
+    ["MY", "Malezya", "Malaysia", "60", ["##-### ####", "##-#### ####"], 0],
+    ["MZ", "Mozambik", "Mozambique", "258", null, 0, 9, 9],
+    /* ── N ── */
+    ["NA", "Namibya", "Namibia", "264", null, 0, 8, 9],
+    ["NC", "Yeni Kaledonya", "New Caledonia", "687", null, 0, 6, 6],
+    ["NE", "Nijer", "Niger", "227", null, 0, 8, 8],
+    ["NF", "Norfolk Adası", "Norfolk Island", "672", null, 0, 6, 6],
+    ["NG", "Nijerya", "Nigeria", "234", ["# ### ####", "### ### ####"], 0],
+    ["NI", "Nikaragua", "Nicaragua", "505", null, 0, 8, 8],
+    ["NL", "Hollanda", "Netherlands", "31", ["## ### ####"], 0],
+    ["NO", "Norveç", "Norway", "47", ["### ## ###"], 0],
+    ["NP", "Nepal", "Nepal", "977", null, 0, 8, 10],
+    ["NR", "Nauru", "Nauru", "674", null, 0, 7, 7],
+    ["NU", "Niue", "Niue", "683", null, 0, 4, 4],
+    ["NZ", "Yeni Zelanda", "New Zealand", "64", ["## ### ###", "## ### ####", "## #### ####"], 0],
+    /* ── O ── */
+    ["OM", "Umman", "Oman", "968", ["#### ####"], 0],
+    /* ── P ── */
+    ["PA", "Panama", "Panama", "507", null, 0, 7, 8],
+    ["PE", "Peru", "Peru", "51", ["### ### ###"], 0],
+    ["PF", "Fransız Polinezyası", "French Polynesia", "689", null, 0, 6, 8],
+    ["PG", "Papua Yeni Gine", "Papua New Guinea", "675", null, 0, 7, 8],
+    ["PH", "Filipinler", "Philippines", "63", ["### ### ####"], 0],
+    ["PK", "Pakistan", "Pakistan", "92", ["### #######"], 0],
+    ["PL", "Polonya", "Poland", "48", ["### ### ###"], 0],
+    ["PM", "Saint Pierre ve Miquelon", "Saint Pierre and Miquelon", "508", null, 0, 6, 6],
+    ["PR", "Porto Riko", "Puerto Rico", "1", ["(###) ###-####"], 2],
+    ["PS", "Filistin", "Palestine", "970", null, 0, 9, 9],
+    ["PT", "Portekiz", "Portugal", "351", ["### ### ###"], 0],
+    ["PW", "Palau", "Palau", "680", null, 0, 7, 7],
+    ["PY", "Paraguay", "Paraguay", "595", null, 0, 9, 9],
+    /* ── Q ── */
+    ["QA", "Katar", "Qatar", "974", ["#### ####"], 0],
+    /* ── R ── */
+    ["RE", "Réunion", "Réunion", "262", null, 0, 9, 9],
+    ["RO", "Romanya", "Romania", "40", ["### ### ###"], 0],
+    ["RS", "Sırbistan", "Serbia", "381", null, 0, 8, 9],
+    ["RU", "Rusya", "Russia", "7", ["### ###-##-##"], 0],
+    ["RW", "Ruanda", "Rwanda", "250", null, 0, 9, 9],
+    /* ── S ── */
+    ["SA", "Suudi Arabistan", "Saudi Arabia", "966", ["## ### ####"], 0],
+    ["SB", "Solomon Adaları", "Solomon Islands", "677", null, 0, 5, 7],
+    ["SC", "Seyşeller", "Seychelles", "248", null, 0, 7, 7],
+    ["SD", "Sudan", "Sudan", "249", null, 0, 9, 9],
+    ["SE", "İsveç", "Sweden", "46", ["## ## ## ##", "## ### ## ##"], 0],
+    ["SG", "Singapur", "Singapore", "65", ["#### ####"], 0],
+    ["SH", "Saint Helena", "Saint Helena", "290", null, 0, 4, 5],
+    ["SI", "Slovenya", "Slovenia", "386", null, 0, 8, 8],
+    ["SJ", "Svalbard ve Jan Mayen", "Svalbard and Jan Mayen", "47", null, 1, 8, 8],
+    ["SK", "Slovakya", "Slovakia", "421", ["### ### ###"], 0],
+    ["SL", "Sierra Leone", "Sierra Leone", "232", null, 0, 8, 8],
+    ["SM", "San Marino", "San Marino", "378", null, 0, 6, 10],
+    ["SN", "Senegal", "Senegal", "221", null, 0, 9, 9],
+    ["SO", "Somali", "Somalia", "252", null, 0, 7, 9],
+    ["SR", "Surinam", "Suriname", "597", null, 0, 6, 7],
+    ["SS", "Güney Sudan", "South Sudan", "211", null, 0, 9, 9],
+    ["ST", "São Tomé ve Príncipe", "São Tomé and Príncipe", "239", null, 0, 7, 7],
+    ["SV", "El Salvador", "El Salvador", "503", null, 0, 8, 8],
+    ["SX", "Sint Maarten", "Sint Maarten", "1", ["(###) ###-####"], 2],
+    ["SY", "Suriye", "Syria", "963", null, 0, 9, 9],
+    ["SZ", "Esvatini", "Eswatini", "268", null, 0, 8, 8],
+    /* ── T ── */
+    ["TC", "Turks ve Caicos Adaları", "Turks and Caicos Islands", "1", ["(###) ###-####"], 2],
+    ["TD", "Çad", "Chad", "235", null, 0, 8, 8],
+    ["TG", "Togo", "Togo", "228", null, 0, 8, 8],
+    ["TH", "Tayland", "Thailand", "66", ["# ### ####", "## ### ####"], 0],
+    ["TJ", "Tacikistan", "Tajikistan", "992", null, 0, 9, 9],
+    ["TK", "Tokelau", "Tokelau", "690", null, 0, 4, 4],
+    ["TL", "Doğu Timor", "Timor-Leste", "670", null, 0, 7, 8],
+    ["TM", "Türkmenistan", "Turkmenistan", "993", null, 0, 8, 8],
+    ["TN", "Tunus", "Tunisia", "216", ["## ### ###"], 0],
+    ["TO", "Tonga", "Tonga", "676", null, 0, 5, 7],
+    ["TR", "Türkiye", "Turkey", "90", ["### ### ## ##"], 0],
+    ["TT", "Trinidad ve Tobago", "Trinidad and Tobago", "1", ["(###) ###-####"], 2],
+    ["TV", "Tuvalu", "Tuvalu", "688", null, 0, 5, 6],
+    ["TW", "Tayvan", "Taiwan", "886", ["### ### ###"], 0],
+    ["TZ", "Tanzanya", "Tanzania", "255", null, 0, 9, 9],
+    /* ── U ── */
+    ["UA", "Ukrayna", "Ukraine", "380", ["## ### ####"], 0],
+    ["UG", "Uganda", "Uganda", "256", null, 0, 9, 9],
+    ["US", "Amerika Birleşik Devletleri", "United States", "1", ["(###) ###-####"], 0],
+    ["UY", "Uruguay", "Uruguay", "598", ["# ### ## ##"], 0],
+    ["UZ", "Özbekistan", "Uzbekistan", "998", null, 0, 9, 9],
+    /* ── V ── */
+    ["VA", "Vatikan", "Vatican City", "39", null, 1, 6, 11],
+    ["VC", "Saint Vincent ve Grenadinler", "Saint Vincent and the Grenadines", "1", ["(###) ###-####"], 2],
+    ["VE", "Venezuela", "Venezuela", "58", ["###-#######"], 0],
+    ["VG", "Britanya Virjin Adaları", "British Virgin Islands", "1", ["(###) ###-####"], 2],
+    ["VI", "ABD Virjin Adaları", "U.S. Virgin Islands", "1", ["(###) ###-####"], 2],
+    ["VN", "Vietnam", "Vietnam", "84", ["### ### ###", "## #### ####"], 0],
+    ["VU", "Vanuatu", "Vanuatu", "678", null, 0, 5, 7],
+    /* ── W ── */
+    ["WF", "Wallis ve Futuna", "Wallis and Futuna", "681", null, 0, 6, 6],
+    ["WS", "Samoa", "Samoa", "685", null, 0, 5, 7],
+    /* ── X ── */
+    ["XK", "Kosova", "Kosovo", "383", null, 0, 8, 9],
+    /* ── Y ── */
+    ["YE", "Yemen", "Yemen", "967", null, 0, 9, 9],
+    ["YT", "Mayotte", "Mayotte", "262", null, 1, 9, 9],
+    /* ── Z ── */
+    ["ZA", "Güney Afrika", "South Africa", "27", ["## ### ####"], 0],
+    ["ZM", "Zambiya", "Zambia", "260", null, 0, 9, 9],
+    ["ZW", "Zimbabve", "Zimbabwe", "263", null, 0, 9, 9]
+];
+
+
+/* ════════════════════════════════════════════════════════════════════════
+ *  10) Phone — Uluslararası telefon girişi
+ *     (v1.6'da ana dosyaya birleştirildi — kaynak paket: glint-phone.js)
+ * ════════════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════════════
+ *  ✎ DÜZENLEYİNİZ — projeye özel değiştirilebilir veriler
+ *  ────────────────────────────────────────────────────────────────────────
+ *  • Ülke/bölge listesi + maskeler   → glint-phone-data.js (Glint.phoneData)
+ *  • Renk/boyut/şekil TOKEN'ları     → glint-phone.css :root bloğu
+ *      --bs-primary · --glint-phone-pop-* · --glint-phone-trigger-*
+ *  • Davranış AYARLARI (markup)      → data-country · data-flags ·
+ *      data-priority-countries · data-lang · data-raw-name · data-strict ·
+ *      data-auto-error
+ * ════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Glint Phone Library v1.0
+ * ============================================================================
+ * Uluslararası telefon girişi — glint-input çekirdeğinin (Glint.defineComponent)
+ * uzantısı. Sıfır bağımlılık, saf vanilla. ASLA ağ isteği yapmaz; tüm ülke
+ * verisi glint-phone-data.js içinden yerel okunur.
+ *
+ * Yükleme sırası:
+ *   <script src="glint-input.js"></script>        (çekirdek — önce)
+ *   <script src="glint-phone-data.js"></script>   (ülke verisi)
+ *   <script src="glint-phone.js"></script>        (bu dosya)
+ *
+ * ── KULLANIM ──────────────────────────────────────────────────────────────
+ *   <div class="glint-phone-group glint-input-group"
+ *        data-country="auto"                 auto → navigator.language bölgesi
+ *                                            (tr-TR→TR; bulunamazsa TR) veya
+ *                                            sabit ISO2: data-country="DE"
+ *        data-flags="auto"                   auto|badge|none|url:<şablon>
+ *                                            auto → emoji destekli platformda
+ *                                            emoji bayrak, desteksizde (Windows)
+ *                                            ISO-2 rozeti. url modu SALT OPT-IN:
+ *                                            url:https://ör.nek/24x18/{iso2}.png
+ *                                            ({iso2} → küçük harf kod; <img
+ *                                            loading="lazy"> ile).
+ *        data-priority-countries="TR,DE,NL"  listede en üste sabitlenir
+ *        data-lang="tr"                      tr|en görünen ad; arama HER İKİ
+ *                                            dilde de eşleşir
+ *        data-raw-name="PhoneE164"           OPT-IN gizli input: E.164 değeri
+ *                                            (+905324010826); verilmezse üretilmez
+ *        data-strict="true"                  ülke deseni uygula (ör. TR mobil ^5)
+ *        data-auto-error="true"              blur'da eksik/geçersiz numarada
+ *                                            GlintInput.setError entegrasyonu>
+ *     <input class="glint-input" type="tel" name="Phone" id="phone">
+ *     <label class="glint-label" for="phone">Telefon</label>
+ *   </div>
+ *
+ *   Grup .glint-input-group olduğu için GlintInput (çekirdek) border/label/
+ *   karakter-overlay'i zaten kurar — GlintPhone grubu CLAIM ETMEZ (stepper
+ *   deseni), yalnızca zenginleştirir:
+ *     1) input'un SOLUNA ülke trigger'ı enjekte eder (bayrak/rozet + +90),
+ *        input'a inline paddingLeft açar (destroy'da geri alınır),
+ *     2) body'ye aranabilir ülke popover'ı ekler (klavye + ARIA listbox),
+ *     3) input'a ülke maskesiyle biçimleme bağlar (TR: "536 401 08 26").
+ *
+ * ── ASP.NET Core MVC / Razor notu ─────────────────────────────────────────
+ *   Gerçek <input name="Phone"> DOM'da kalır → asp-for / model binding bozulmaz:
+ *     <div class="glint-phone-group glint-input-group" data-country="TR"
+ *          data-raw-name="PhoneE164" data-strict="true">
+ *       <input class="glint-input" type="tel" asp-for="Phone">
+ *       <label class="glint-label" asp-for="Phone">Telefon</label>
+ *     </div>
+ *   POST'ta iki alan gelir: Phone = "536 401 08 26" (ulusal biçimli görünen),
+ *   PhoneE164 = "+905364010826" (normalize; data-raw-name verilirse).
+ *   Sunucudan dolu değer geldiğinde (+90…/05…/E.164) otomatik çözülür.
+ *
+ * ── DAVRANIŞ ──────────────────────────────────────────────────────────────
+ *   • Maske grameri: '#' = rakam, diğer karakterler otomatik literal.
+ *   • Çoklu maske: rakam sayısına İLK SIĞAN maske; en uzun maskeden fazla
+ *     rakam reddedilir. Maskesiz ülkede serbest rakam + [min,max] uzunluk.
+ *   • Trunk '0': ülkenin trunk'ı 0 ise baştaki 0 sessizce atılır (05xx
+ *     alışkanlığı). Ham değer = ulusal anlamlı numara.
+ *   • '+XX' / '00XX' algılama: longest-prefix dial-code eşleşmesi (paylaşılan
+ *     kodlarda öncelik: +1→US, +7→RU, +44→GB, +212→MA, +358→FI, +61→AU...);
+ *     eşleşince ülke otomatik değişir, kod alandan sıyrılır, kalan rakamlar
+ *     ulusal maskeyle yazılır. E.164 yapıştırma da aynı yoldan çalışır.
+ *
+ * ── EVENTS (input elemanında, bubbles) ────────────────────────────────────
+ *   glint:phone-countrychange  { iso2, dialCode, reason: "user"|"inferred"|
+ *                                                        "auto"|"api" }
+ *   glint:phone-input          { digits, e164, complete }
+ *   glint:phone-validity       { complete, tooShort, tooLong, e164 }
+ *
+ * ── PROGRAMATİK API (Glint.Phone) ─────────────────────────────────────────
+ *   const p = Glint.Phone.get(document.getElementById("phone"));
+ *   p.country            → "TR" (seçili ISO2)
+ *   p.setCountry("DE")   → ülke değiştir (reason: "api")
+ *   p.value              → "536 401 08 26" (ulusal biçimli) — get/set
+ *   p.digits             → "5364010826" (ulusal anlamlı rakamlar)
+ *   p.e164               → "+905364010826"
+ *   p.isComplete         → true/false
+ *   p.destroy()          → DOM'u eski haline döndürür
+ *
+ * Animasyon imzası (kontrat):
+ *   easing  cubic-bezier(0.22, 1, 0.36, 1) — yalnız transform/opacity
+ *   popover scale-in (scale .95 + opacity 0 → 1)
+ *   :active scale(0.97) · prefers-reduced-motion → hareket kalkar.
+ */
+
+(function () {
+    "use strict";
+
+    // ══════════════════════════════════════════════════════════════
+    //  YARDIMCILAR
+    // ══════════════════════════════════════════════════════════════
+
+    let _uid = 0;
+    function uid(prefix) { return (prefix || "glint-phone") + "-" + (++_uid) + "-" + Date.now().toString(36); }
+
+    /** "Türkçe duyarlı" küçültme — arama eşleştirmesi için (İ→i, ı→i, ş/ç/ö/ü/ğ sadeleşir). */
+    function normalize(s) {
+        return (s || "")
+            .toLocaleLowerCase("tr")
+            .replace(/ı/g, "i")
+            .normalize("NFD")
+            .replace(/[̀-ͯ]/g, "");
+    }
+
+    /** Maskedeki '#' sayısı = rakam kapasitesi. */
+    function maskCap(mask) { return (mask.match(/#/g) || []).length; }
+
+    /** Rakam dizisini maskeye döker; son rakamdan sonraki literal'ler yazılmaz. */
+    function maskFormat(mask, digits) {
+        let out = "", di = 0;
+        for (let i = 0; i < mask.length && di < digits.length; i++) {
+            const ch = mask[i];
+            if (ch === "#") out += digits[di++];
+            else out += ch;
+        }
+        return out;
+    }
+
+    /**
+     * Caret'i "rakam-öncesi-sayım" ile korur. Çekirdek yüklüyse test edilmiş
+     * Glint.format.restoreCaret kullanılır; değilse birebir yerel kopya.
+     */
+    function restoreCaret(oldValue, oldCaret, newValue) {
+        const G = window.Glint;
+        if (G && G.format && typeof G.format.restoreCaret === "function") {
+            return G.format.restoreCaret(oldValue, oldCaret, newValue, /\d/);
+        }
+        // Yerel kopya (Glint.format ile aynı mantık)
+        const re = /\d/;
+        const before = String(oldValue).slice(0, oldCaret);
+        let significant = 0;
+        for (let k = 0; k < before.length; k++) if (re.test(before[k])) significant++;
+        let count = 0, pos = 0;
+        while (pos < newValue.length && count < significant) {
+            if (re.test(newValue[pos])) count++;
+            pos++;
+        }
+        return pos;
+    }
+
+    // SVG ikonlar (select ile aynı dil)
+    const ICON_ARROW =
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
+    const ICON_CHECK =
+        `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6 12 L13.5 4"/></svg>`;
+    const ICON_SEARCH =
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/>
+              <path d="M21 21l-4.3-4.3"/></svg>`;
+
+    // i18n metinleri (data-lang="tr"|"en")
+    const TEXT = {
+        tr: {
+            search: "Ülke ara...",
+            searchAria: "Ülkelerde ara",
+            empty: "Sonuç yok",
+            chooseCountry: "Ülke seç: ",
+            invalid: "Telefon numarası eksik veya geçersiz"
+        },
+        en: {
+            search: "Search country...",
+            searchAria: "Search countries",
+            empty: "No results",
+            chooseCountry: "Choose country: ",
+            invalid: "Phone number is incomplete or invalid"
+        }
+    };
+
+    // ── Trunk '0' istisnaları ──────────────────────────────────────
+    // Varsayılan: baştaki tek '0' trunk kabul edilip sessizce atılır
+    // (05xx alışkanlığı). Bu kümede ulusal anlamlı numara MEŞRU olarak
+    // 0 ile başlayabildiğinden (İtalya sabit hat 02/06, San Marino 0549,
+    // Fildişi Sahili 01/05/07) baştaki 0 KORUNUR.
+    const TRUNK_KEEP = new Set(["IT", "SM", "CI"]);
+
+    // ── data-strict="true" ülke desenleri ──────────────────────────
+    // Ulusal anlamlı RAKAM dizisi üzerinde tam-eşleşme. Mobil odaklı,
+    // yalnızca emin olunan ülkeler; listede olmayan ülkede strict yalnız
+    // uzunluk denetimine düşer (yanlış pozitif üretmemek için).
+    const STRICT_RE = {
+        TR: /^5\d{9}$/,                     // TR mobil: 5xx xxx xx xx
+        US: /^[2-9]\d{2}[2-9]\d{6}$/,       // NANP: alan kodu/santral 0-1 ile başlayamaz
+        CA: /^[2-9]\d{2}[2-9]\d{6}$/,
+        GB: /^7[1-9]\d{8}$/,                // UK mobil
+        DE: /^1[5-7]\d{8,9}$/,              // DE mobil (15x/16x/17x)
+        FR: /^[67]\d{8}$/,                  // FR mobil
+        IT: /^3\d{8,9}$/,                   // IT mobil
+        ES: /^[67]\d{8}$/,
+        NL: /^6\d{8}$/,
+        RU: /^9\d{9}$/,                     // RU mobil (9xx)
+        KZ: /^7\d{9}$/,                     // KZ mobil (7xx)
+        UA: /^[3-9]\d{8}$/,
+        IN: /^[6-9]\d{9}$/,
+        PK: /^3\d{9}$/,
+        SA: /^5\d{8}$/,
+        AE: /^5\d{8}$/,
+        EG: /^1\d{9}$/,
+        IL: /^5\d{8}$/,
+        AZ: /^[1-9]\d{8}$/,
+        CN: /^1[3-9]\d{9}$/,
+        JP: /^[789]0\d{8}$/,
+        KR: /^1\d{8,9}$/,
+        AU: /^4\d{8}$/,                     // AU mobil
+        NZ: /^2\d{7,9}$/,
+        SG: /^[689]\d{7}$/,
+        MY: /^1\d{8,9}$/,
+        ID: /^8\d{9,11}$/,
+        PH: /^9\d{9}$/,
+        TH: /^[689]\d{7,8}$/,
+        VN: /^[35789]\d{8}$/,
+        ZA: /^[1-9]\d{8}$/,
+        GR: /^69\d{8}$/,
+        PL: /^[4-8]\d{8}$/,
+        BR: /^[1-9]\d{9,10}$/,
+        MX: /^[1-9]\d{9}$/
+    };
+
+    // ══════════════════════════════════════════════════════════════
+    //  ÜLKE MODELLERİ (Glint.phoneData → normalize edilmiş model)
+    //  Veri statik olduğundan modeller modül düzeyinde bir kez kurulur.
+    // ══════════════════════════════════════════════════════════════
+
+    let _countries = null;   // model dizisi
+    let _isoMap = null;      // iso2 → model
+    let _dialMap = null;     // dialCode → öncelikli model (+1 → US, +7 → RU...)
+    let _maxDialLen = 1;
+
+    function buildModels() {
+        if (_countries) return _countries;
+        const raw = (window.Glint && window.Glint.phoneData) || [];
+        if (!raw.length) return [];
+        _countries = raw.map(r => {
+            let masks = null, caps = null;
+            if (r[4] && r[4].length) {
+                // Maskeleri kapasiteye göre artan sırala — "ilk sığan" seçimi
+                // için deterministik zemin.
+                masks = r[4].slice().sort((a, b) => maskCap(a) - maskCap(b));
+                caps = masks.map(maskCap);
+            }
+            return {
+                iso2: String(r[0]).toUpperCase(),
+                nameTr: r[1],
+                nameEn: r[2],
+                dial: String(r[3]),
+                masks,
+                caps,
+                priority: r[5] || 0,
+                min: caps ? caps[0] : (r[6] != null ? r[6] : 6),
+                max: caps ? caps[caps.length - 1] : (r[7] != null ? r[7] : 12),
+                normTr: normalize(r[1]),
+                normEn: normalize(r[2])
+            };
+        });
+        _isoMap = {};
+        _dialMap = {};
+        for (const c of _countries) {
+            _isoMap[c.iso2] = c;
+            if (c.dial.length > _maxDialLen) _maxDialLen = c.dial.length;
+            const cur = _dialMap[c.dial];
+            // Paylaşılan kodda küçük priority kazanır (0 = ana ülke)
+            if (!cur || c.priority < cur.priority) _dialMap[c.dial] = c;
+        }
+        return _countries;
+    }
+
+    function byIso(iso2) {
+        buildModels();
+        return (_isoMap && _isoMap[String(iso2 || "").toUpperCase()]) || null;
+    }
+
+    /**
+     * Longest-prefix dial-code eşleşmesi. "905324010826" → {c: TR, dial: "90"}.
+     * Paylaşılan kodlarda _dialMap zaten öncelikli ülkeyi tutar.
+     */
+    function matchDial(digits) {
+        buildModels();
+        const maxL = Math.min(_maxDialLen, digits.length);
+        for (let len = maxL; len >= 1; len--) {
+            const c = _dialMap[digits.slice(0, len)];
+            if (c) return { c, dial: digits.slice(0, len) };
+        }
+        return null;
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  EMOJİ BAYRAK DESTEĞİ (canvas measureText — bir kez)
+    //  Bayrak ligatürü destekleniyorsa 🇹🇷 ~tek glif genişliğinde
+    //  render olur; desteksiz platformda (Windows) iki ayrı bölgesel
+    //  gösterge harfi çizilir → genişlik ~2 katına çıkar.
+    // ══════════════════════════════════════════════════════════════
+
+    let _flagEmojiOk = null;
+    function supportsEmojiFlags() {
+        if (_flagEmojiOk !== null) return _flagEmojiOk;
+        try {
+            const canvas = document.createElement("canvas");
+            canvas.width = 64; canvas.height = 32;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) { _flagEmojiOk = false; return false; }
+            ctx.font = "24px 'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif";
+            const flagW = ctx.measureText("\u{1F1F9}\u{1F1F7}").width;  // 🇹🇷 çifti
+            const oneW = ctx.measureText("\u{1F1F9}").width;            // tek gösterge
+            _flagEmojiOk = flagW > 0 && oneW > 0 && flagW < oneW * 1.6;
+        } catch (_) { _flagEmojiOk = false; }
+        return _flagEmojiOk;
+    }
+
+    /** ISO2'den bayrak emojisi HESAPLANIR (veri taşınmaz). */
+    function flagEmoji(iso2) {
+        const s = String(iso2 || "").toUpperCase();
+        if (s.length !== 2) return "";
+        return String.fromCodePoint(
+            0x1F1E6 + (s.charCodeAt(0) - 65),
+            0x1F1E6 + (s.charCodeAt(1) - 65)
+        );
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  GlintPhone
+    // ══════════════════════════════════════════════════════════════
+
+    class GlintPhone {
+
+        constructor(group) {
+            if (!group || group._glintPhoneInit) return;
+
+            const countries = buildModels();
+            if (!countries.length) {
+                // Guard SET EDİLMEZ → veri sonradan yüklenirse Glint.refresh
+                // ile tekrar denenebilir.
+                console.warn("[Glint:phone] Glint.phoneData bulunamadı — glint-phone-data.js'i glint-phone.js'ten ÖNCE ekleyin.");
+                return;
+            }
+            const input = group.querySelector("input.glint-input") ||
+                group.querySelector("input:not([type='hidden'])");
+            if (!input) {
+                console.warn("[Glint:phone] .glint-phone-group içinde input bulunamadı.");
+                return;
+            }
+
+            group._glintPhoneInit = true;
+            group._glintPhoneInstance = this;
+            this.group = group;
+            this.input = input;
+            this.label = group.querySelector(".glint-label");
+            this.countries = countries;
+
+            // ── data-* yapılandırma ───────────────────────────────
+            this.lang = (group.getAttribute("data-lang") || "tr").toLowerCase() === "en" ? "en" : "tr";
+            this.t = TEXT[this.lang];
+            this.strict = group.getAttribute("data-strict") === "true";
+            this.autoError = group.getAttribute("data-auto-error") === "true";
+            this.rawName = group.getAttribute("data-raw-name") || null;
+
+            const flagsAttr = group.getAttribute("data-flags") || "auto";
+            if (flagsAttr.slice(0, 4) === "url:") {
+                // SALT OPT-IN dış görsel modu — kütüphane kendisi asla istek
+                // atmaz; şablonu geliştirici bilinçli verir.
+                this.flagMode = "url";
+                this.flagUrlTpl = flagsAttr.slice(4);
+            } else {
+                this.flagMode = (flagsAttr === "badge" || flagsAttr === "none") ? flagsAttr : "auto";
+            }
+
+            this.priorityIso = (group.getAttribute("data-priority-countries") || "")
+                .split(",").map(s => s.trim().toUpperCase()).filter(Boolean);
+
+            // ── başlangıç ülkesi ──────────────────────────────────
+            const wanted = (group.getAttribute("data-country") || "auto").trim();
+            let initialReason = "api";
+            let initial = null;
+            if (wanted && wanted.toLowerCase() !== "auto") initial = byIso(wanted);
+            if (!initial) {
+                initialReason = "auto";
+                initial = byIso(this._navRegion()) || byIso("TR") || countries[0];
+            }
+            this._country = initial;
+
+            // ── durum ─────────────────────────────────────────────
+            this.isOpen = false;
+            this.activeIndex = -1;
+            this._visible = [];        // popover'da o an görünür satırlar
+            this._items = null;        // popover satır modelleri (lazy)
+            this._digits = "";         // ulusal anlamlı rakamlar (kaynak-of-truth)
+            this._lastValidity = { complete: false, tooShort: false, tooLong: false };
+            this._composing = false;
+            this._layoutQueued = false;
+
+            this._ac = new AbortController();
+
+            this._build();
+            this._bind();
+
+            // Sunucudan gelen değer (MVC model) → çöz + biçimle
+            // (+90…/00…/05… hepsi desteklenir).
+            if (this.input.value) this._reformat();
+            else this._afterChange("");
+
+            // DİKKAT: GlintInput aynı grup elementini register ettiği için
+            // (çekirdek WeakMap element başına TEK instance tutar) GlintPhone
+            // kendini INPUT üzerinden kaydeder — stepper ile aynı desen.
+            // Grup DOM'dan kalkınca çekirdek her iki instance'ı da yıkar.
+            window.Glint.register(input, this);
+
+            // Otomatik tespit haberi (rAF: mount sonrası bağlanan dinleyiciler
+            // de duyabilsin).
+            if (initialReason === "auto") {
+                requestAnimationFrame(() => {
+                    if (this._ac) this._emitCountryChange("auto");
+                });
+            }
+        }
+
+        /** navigator.language bölge alt-etiketi: "tr-TR" → "TR". */
+        _navRegion() {
+            const langs = (navigator.languages && navigator.languages.length)
+                ? navigator.languages : [navigator.language || ""];
+            for (const l of langs) {
+                const m = /^[a-z]{2,3}[-_]([a-z]{2})\b/i.exec(l || "");
+                if (m && byIso(m[1])) return m[1].toUpperCase();
+            }
+            return null;
+        }
+
+        _name(c) { return this.lang === "en" ? c.nameEn : c.nameTr; }
+
+        // ── DOM KURULUMU ────────────────────────────────────────────
+
+        _build() {
+            const input = this.input;
+
+            // Input hijyeni — mevcut attribute ASLA ezilmez; eklenenler
+            // destroy'da geri alınır.
+            if (!input.hasAttribute("inputmode")) { input.setAttribute("inputmode", "tel"); this._ownInputmode = true; }
+            if (!input.hasAttribute("autocomplete")) { input.setAttribute("autocomplete", "tel"); this._ownAutocomplete = true; }
+            // Telefon numarası evrensel LTR okunur (RTL sayfada da).
+            if (!input.hasAttribute("dir")) { input.setAttribute("dir", "ltr"); this._ownDir = true; }
+
+            // ── Ülke trigger'ı (input'un SOLUNA) ──────────────────
+            this.trigger = document.createElement("button");
+            this.trigger.type = "button";   // form submit etmesin
+            this.trigger.className = "glint-phone-trigger";
+            this.trigger.setAttribute("aria-haspopup", "listbox");
+            this.trigger.setAttribute("aria-expanded", "false");
+            this.listId = uid("glint-phone-list");
+            this.trigger.setAttribute("aria-controls", this.listId);
+            if (input.disabled) this.trigger.disabled = true;
+
+            this.flagWrap = document.createElement("span");
+            this.flagWrap.className = "glint-phone-trigger__flag";
+            this.flagWrap.setAttribute("aria-hidden", "true");
+            this.trigger.appendChild(this.flagWrap);
+
+            this.dialEl = document.createElement("span");
+            this.dialEl.className = "glint-phone-trigger__dial";
+            this.trigger.appendChild(this.dialEl);
+
+            this.arrowEl = document.createElement("span");
+            this.arrowEl.className = "glint-phone-trigger__arrow";
+            this.arrowEl.setAttribute("aria-hidden", "true");
+            this.arrowEl.innerHTML = ICON_ARROW;
+            this.trigger.appendChild(this.arrowEl);
+
+            input.insertAdjacentElement("beforebegin", this.trigger);
+
+            // ── Gizli E.164 input (SALT OPT-IN: data-raw-name) ────
+            if (this.rawName) {
+                this.hidden = document.createElement("input");
+                this.hidden.type = "hidden";
+                this.hidden.name = this.rawName;
+                this.group.appendChild(this.hidden);
+            }
+
+            // ── Popover iskeleti (satırlar ilk açılışta — lazy) ───
+            this.popover = document.createElement("div");
+            this.popover.className = "glint-phone-popover";
+
+            const sw = document.createElement("div");
+            sw.className = "glint-phone-search-wrap";
+            const sicon = document.createElement("span");
+            sicon.className = "glint-phone-search-icon";
+            sicon.setAttribute("aria-hidden", "true");
+            sicon.innerHTML = ICON_SEARCH;
+            this.search = document.createElement("input");
+            this.search.type = "text";
+            this.search.className = "glint-phone-search";
+            this.search.placeholder = this.t.search;
+            this.search.autocomplete = "off";
+            this.search.setAttribute("spellcheck", "false");
+            this.search.setAttribute("aria-label", this.t.searchAria);
+            this.search.setAttribute("aria-controls", this.listId);
+            sw.appendChild(sicon);
+            sw.appendChild(this.search);
+            this.popover.appendChild(sw);
+
+            this.list = document.createElement("ul");
+            this.list.className = "glint-phone-list";
+            this.list.id = this.listId;
+            this.list.setAttribute("role", "listbox");
+            this.popover.appendChild(this.list);
+
+            this.emptyEl = document.createElement("li");
+            this.emptyEl.className = "glint-phone-empty";
+            this.emptyEl.textContent = this.t.empty;
+            this.emptyEl.style.display = "none";
+            this.list.appendChild(this.emptyEl);
+
+            document.body.appendChild(this.popover);
+
+            this._renderTrigger();
+        }
+
+        /** Trigger içeriğini (bayrak + dial) seçili ülkeye göre yeniler. */
+        _renderTrigger() {
+            const c = this._country;
+            this.flagWrap.textContent = "";
+            const f = this._flagNode(c.iso2);
+            if (f) { this.flagWrap.appendChild(f); this.flagWrap.style.display = ""; }
+            else this.flagWrap.style.display = "none";
+            this.dialEl.textContent = "+" + c.dial;
+            this.trigger.setAttribute("aria-label",
+                this.t.chooseCountry + this._name(c) + " (+" + c.dial + ")");
+            // Dial genişliği değişmiş olabilir (+1 → +358) → padding'i tazele
+            this._layout();
+        }
+
+        /** Bayrak düğümü üretir: emoji | rozet | <img> | null. */
+        _flagNode(iso2) {
+            if (this.flagMode === "none") return null;
+            if (this.flagMode === "url") {
+                const img = document.createElement("img");
+                img.className = "glint-phone-flag-img";
+                img.loading = "lazy";
+                img.alt = "";
+                img.src = this.flagUrlTpl.replace("{iso2}", iso2.toLowerCase());
+                return img;
+            }
+            if (this.flagMode === "badge" || !supportsEmojiFlags()) {
+                const b = document.createElement("span");
+                b.className = "glint-phone-badge";
+                b.textContent = iso2.toUpperCase();
+                return b;
+            }
+            const e = document.createElement("span");
+            e.className = "glint-phone-flag";
+            e.textContent = flagEmoji(iso2);
+            return e;
+        }
+
+        /**
+         * Trigger'ı input'un solundaki alana kilitle + input'a paddingLeft aç.
+         * Çift rAF: ilk frame'de flex/font yerleşir, ikincide ölçüm kararlı
+         * okunur (stepper _resyncOverlay deseni). Sonra GlintInput karakter
+         * overlay'i yeni padding'e resync edilir.
+         */
+        _layout() {
+            if (this._layoutQueued) return;
+            this._layoutQueued = true;
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                this._layoutQueued = false;
+                if (!this._ac || !this.trigger) return;   // destroy edildi
+                const inp = this.input;
+                this.trigger.style.top = inp.offsetTop + "px";
+                this.trigger.style.left = inp.offsetLeft + "px";
+                this.trigger.style.height = inp.offsetHeight + "px";
+                const w = this.trigger.offsetWidth;
+                if (!w) return;   // display:none ağaçta — sonraki RO turunda
+                const pad = w + 12;
+                if (this._origPadLeft === undefined) this._origPadLeft = inp.style.paddingLeft || "";
+                inp.style.paddingLeft = pad + "px";
+                // Etiket de trigger'ın sağından başlasın (CSS değişkeni)
+                this.group.style.setProperty("--glint-phone-pad-left", pad + "px");
+                // GlintInput overlay'ini yeni text alanına kilitle
+                const inst = this.group._glintInstance;
+                if (inst && typeof inst.rebuildSVG === "function") {
+                    try { inst.rebuildSVG(); } catch (_) { }
+                }
+            }));
+        }
+
+        // ── EVENT BAĞLAMA ───────────────────────────────────────────
+
+        _bind() {
+            const sig = { signal: this._ac.signal };
+
+            // Biçimleme CAPTURE fazında grup üzerinden dinlenir: aynı input
+            // eventinde GlintInput'un kendi (target) dinleyicisinden ÖNCE
+            // çalışır → değer önce maskelenir, GlintInput overlay'i aynı
+            // turda SON değeri okur. Ek input eventi DISPATCH EDİLMEZ.
+            this.group.addEventListener("input", (e) => {
+                if (e.target === this.input) this._onInput();
+            }, { capture: true, signal: this._ac.signal });
+
+            // IME bestelemesi bitmeden biçimleme yapma
+            this.input.addEventListener("compositionstart", () => { this._composing = true; }, sig);
+            this.input.addEventListener("compositionend", () => {
+                this._composing = false;
+                this._onInput();
+            }, sig);
+
+            // data-auto-error: blur'da eksik numara → GlintInput.setError
+            this.input.addEventListener("blur", () => {
+                if (!this.autoError) return;
+                if (this._digits && !this._lastValidity.complete) this._setAutoError();
+            }, sig);
+
+            // Trigger aç/kapa + klavye
+            this.trigger.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();   // grup click-to-focus davranışlarını tetikleme
+                this.toggle();
+            }, sig);
+            this.trigger.addEventListener("keydown", (e) => this._onTriggerKey(e), sig);
+
+            // Arama: filtre + liste klavyesi
+            this.search.addEventListener("input", () => this._filter(this.search.value), sig);
+            this.search.addEventListener("keydown", (e) => this._onListKey(e), sig);
+
+            // Seçenek tıklama (delegasyon) + hover vurgusu
+            this.list.addEventListener("click", (e) => {
+                const li = e.target.closest(".glint-phone-option");
+                if (li && li._phItem) this._choose(li._phItem);
+            }, sig);
+            this.list.addEventListener("mousemove", (e) => {
+                const li = e.target.closest(".glint-phone-option");
+                if (li && li._phItem) {
+                    const idx = this._visible.indexOf(li._phItem);
+                    if (idx >= 0 && idx !== this.activeIndex) this._setActive(idx, false);
+                }
+            }, sig);
+
+            // Popover içine mousedown → arama odağı kaçmasın
+            this.popover.addEventListener("mousedown", (e) => {
+                if (e.target !== this.search) e.preventDefault();
+            }, sig);
+
+            // Dışarı tıkla → kapat
+            document.addEventListener("mousedown", (e) => {
+                if (!this.isOpen) return;
+                if (this.group.contains(e.target) || this.popover.contains(e.target)) return;
+                this.close();
+            }, sig);
+
+            // Reposition — rAF-throttle (select deseni)
+            this._reposScheduled = false;
+            const repos = () => {
+                if (!this.isOpen || this._reposScheduled) return;
+                this._reposScheduled = true;
+                requestAnimationFrame(() => {
+                    this._reposScheduled = false;
+                    if (this.isOpen) this._position();
+                });
+            };
+            window.addEventListener("resize", repos, sig);
+            window.addEventListener("scroll", repos, { capture: true, passive: true, signal: this._ac.signal });
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener("resize", repos, sig);
+            }
+
+            // Trigger genişliği (font yüklenmesi, dial değişimi) veya input
+            // boyutu değişince yerleşimi tazele.
+            if ("ResizeObserver" in window) {
+                this._ro = new ResizeObserver(() => this._layout());
+                this._ro.observe(this.trigger);
+                this._ro.observe(this.input);
+            }
+
+            // form.reset() input eventi üretmez → bir tick sonra yeniden çöz
+            this._form = this.input.form;
+            if (this._form) {
+                this._form.addEventListener("reset", () => {
+                    requestAnimationFrame(() => { if (this._ac) this._reformat(); });
+                }, sig);
+            }
+        }
+
+        // ── BİÇİMLEME ÇEKİRDEĞİ ─────────────────────────────────────
+
+        /**
+         * Ham input değerini çözer:
+         *   { value: biçimli görünen, digits: ulusal rakamlar, inferred: ülke|null }
+         * '+XX' / '00XX' başlangıcında longest-prefix dial eşleşmesi yapar.
+         */
+        _compute(raw) {
+            const s = String(raw || "");
+            const digits = s.replace(/\D/g, "");
+            const plus = /^\s*\+/.test(s);
+
+            if (plus || digits.slice(0, 2) === "00") {
+                const rest = plus ? digits : digits.slice(2);
+                const hit = rest ? matchDial(rest) : null;
+                if (hit) {
+                    const c = hit.c;
+                    const national = this._truncate(this._stripTrunk(rest.slice(hit.dial.length), c), c);
+                    return { value: this._format(national, c), digits: national, inferred: c };
+                }
+                // Henüz eşleşen kod yok → ham bekleme biçimi ("+9", "009"...)
+                return { value: (plus ? "+" : "") + digits, digits: "", inferred: null };
+            }
+
+            // Tek başına "0" → trunk mu, "00" başlangıcı mı henüz belirsiz;
+            // ekranda tut, ham değer sayma (bir sonraki tuşta netleşir).
+            if (digits === "0") return { value: "0", digits: "", inferred: null };
+
+            const c = this._country;
+            const national = this._truncate(this._stripTrunk(digits, c), c);
+            return { value: this._format(national, c), digits: national, inferred: null };
+        }
+
+        /** Trunk '0' ise baştaki tek 0'ı sessizce at (TRUNK_KEEP hariç). */
+        _stripTrunk(d, c) {
+            if (!d || d[0] !== "0") return d;
+            if (TRUNK_KEEP.has(c.iso2)) return d;
+            return d.slice(1);
+        }
+
+        /** En uzun maskeden (veya maxLen'den) fazla rakam reddedilir. */
+        _truncate(d, c) { return d.slice(0, c.max); }
+
+        /** Rakamları ülkeye göre biçimle: ilk sığan maske; maskesizde serbest. */
+        _format(d, c) {
+            if (!d) return "";
+            if (!c.masks) return d;
+            for (let i = 0; i < c.caps.length; i++) {
+                if (d.length <= c.caps[i]) return maskFormat(c.masks[i], d);
+            }
+            return maskFormat(c.masks[c.masks.length - 1], d);
+        }
+
+        /** input handler — değeri YERİNDE maskeler, ek event dispatch etmez. */
+        _onInput() {
+            if (this._composing) return;
+            const raw = this.input.value;
+            const caret = this.input.selectionStart;
+            const res = this._compute(raw);
+
+            if (res.inferred && res.inferred !== this._country) {
+                this._country = res.inferred;
+                this._renderTrigger();
+                this._syncSelected();
+                this._emitCountryChange("inferred");
+            }
+            if (res.value !== raw) {
+                this.input.value = res.value;
+                // Caret: rakam-öncesi-sayım koruması (yalnız odaklıyken)
+                if (document.activeElement === this.input && caret != null) {
+                    const pos = restoreCaret(raw, caret, res.value);
+                    try { this.input.setSelectionRange(pos, pos); } catch (_) { }
+                }
+            }
+            this._afterChange(res.digits);
+        }
+
+        /**
+         * Değeri baştan çöz + gerekiyorsa input eventiyle senkronla
+         * (mount'taki sunucu değeri, form reset). Handler idempotent —
+         * dispatch edilen event ikinci geçişte değeri değiştirmez.
+         */
+        _reformat() {
+            const raw = this.input.value;
+            const res = this._compute(raw);
+            if (res.inferred && res.inferred !== this._country) {
+                this._country = res.inferred;
+                this._renderTrigger();
+                this._syncSelected();
+                this._emitCountryChange("inferred");
+            }
+            if (res.value !== raw) {
+                this.input.value = res.value;
+                // GlintInput overlay/label senkronu gerçek input eventi ister
+                this.input.dispatchEvent(new Event("input", { bubbles: true }));
+            } else {
+                this._afterChange(res.digits);
+            }
+        }
+
+        /** Her değer değişiminde: doğrulama + hidden + events + auto-error. */
+        _afterChange(digits) {
+            this._digits = digits;
+            const v = this._validity(digits);
+            this._lastValidity = v;
+            const e164 = digits ? "+" + this._country.dial + digits : "";
+            if (this.hidden) this.hidden.value = e164;
+
+            this._emit("glint:phone-input", { digits, e164, complete: v.complete });
+            this._emit("glint:phone-validity", {
+                complete: v.complete, tooShort: v.tooShort, tooLong: v.tooLong, e164
+            });
+
+            // Tamamlanınca / boşalınca inline hatayı kaldır
+            if (this.autoError && (v.complete || !digits)) this._clearAutoError();
+        }
+
+        /** complete ⇔ rakam sayısı bir maskeye eşit (veya [min,max] içinde)
+            VE strict'te ülke deseni geçer. */
+        _validity(digits) {
+            const c = this._country;
+            const len = digits.length;
+            let complete;
+            if (c.caps) complete = c.caps.indexOf(len) !== -1;
+            else complete = len >= c.min && len <= c.max;
+            if (complete && this.strict) {
+                const re = STRICT_RE[c.iso2];
+                if (re && !re.test(digits)) complete = false;
+            }
+            return {
+                complete,
+                tooShort: len > 0 && len < c.min,
+                tooLong: len > c.max
+            };
+        }
+
+        _emit(name, detail) {
+            this.input.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }));
+        }
+
+        _emitCountryChange(reason) {
+            this._emit("glint:phone-countrychange", {
+                iso2: this._country.iso2,
+                dialCode: this._country.dial,
+                reason
+            });
+        }
+
+        _setAutoError() {
+            const G = window.Glint;
+            if (G && G.Input && typeof G.Input.setError === "function") {
+                G.Input.setError(this.input, this.t.invalid);
+            }
+        }
+
+        _clearAutoError() {
+            const G = window.Glint;
+            if (G && G.Input && typeof G.Input.clearError === "function") {
+                if (this.group.classList.contains("glint-error")) {
+                    G.Input.clearError(this.input);
+                }
+            }
+        }
+
+        // ── POPOVER: LİSTE KURULUMU (lazy) ──────────────────────────
+
+        _buildList() {
+            if (this._items) return;
+            this._items = [];
+            const frag = document.createDocumentFragment();
+
+            // Öncelikli ülkeler üstte, ayraçla
+            const prio = this.priorityIso.map(i => byIso(i)).filter(Boolean);
+            prio.forEach(c => frag.appendChild(this._buildOption(c, true)));
+            if (prio.length) {
+                this._sepEl = document.createElement("li");
+                this._sepEl.className = "glint-phone-sep";
+                this._sepEl.setAttribute("role", "presentation");
+                this._sepEl.setAttribute("aria-hidden", "true");
+                frag.appendChild(this._sepEl);
+            }
+
+            // Ana liste — görünen ada göre yerel sıralama
+            const sorted = this.countries.slice().sort((a, b) =>
+                this._name(a).localeCompare(this._name(b), this.lang));
+            sorted.forEach(c => frag.appendChild(this._buildOption(c, false)));
+
+            this.list.insertBefore(frag, this.emptyEl);
+            this._syncSelected();
+        }
+
+        _buildOption(c, isPriority) {
+            const li = document.createElement("li");
+            li.className = "glint-phone-option";
+            li.id = this.listId + "-opt-" + this._items.length;
+            li.setAttribute("role", "option");
+            li.setAttribute("aria-selected", "false");
+
+            const flagBox = document.createElement("span");
+            flagBox.className = "glint-phone-option__flag";
+            flagBox.setAttribute("aria-hidden", "true");
+            const f = this._flagNode(c.iso2);
+            if (f) flagBox.appendChild(f);
+            li.appendChild(flagBox);
+
+            const name = document.createElement("span");
+            name.className = "glint-phone-option__name";
+            name.textContent = this._name(c);
+            li.appendChild(name);
+
+            const dial = document.createElement("span");
+            dial.className = "glint-phone-option__dial";
+            dial.textContent = "+" + c.dial;
+            li.appendChild(dial);
+
+            const check = document.createElement("span");
+            check.className = "glint-phone-option__check";
+            check.setAttribute("aria-hidden", "true");
+            check.innerHTML = ICON_CHECK;
+            li.appendChild(check);
+
+            const item = { c, el: li, isPriority };
+            li._phItem = item;
+            this._items.push(item);
+            return li;
+        }
+
+        /** Seçili ülkenin ✓ işaretini/aria-selected'ını senkronla. */
+        _syncSelected() {
+            if (!this._items) return;
+            for (const it of this._items) {
+                const sel = it.c === this._country;
+                it.el.classList.toggle("is-selected", sel);
+                it.el.setAttribute("aria-selected", sel ? "true" : "false");
+            }
+        }
+
+        // ── POPOVER: FİLTRE + KLAVYE ────────────────────────────────
+
+        /**
+         * Türkçe-duyarlı arama: TR ad + EN ad + ISO2 + dial rakamları
+         * ("90", "turkey", "tr" hepsi Türkiye'yi bulur). Arama sırasında
+         * öncelikli (sabit) bölüm gizlenir — mükerrer sonuç olmasın.
+         */
+        _filter(q) {
+            if (!this._items) return;
+            const nq = normalize((q || "").trim());
+            const qDigits = (q || "").replace(/\D/g, "").replace(/^00/, "");
+            const hasQ = !!nq;
+            this._visible = [];
+            let any = false;
+
+            for (const it of this._items) {
+                let show;
+                if (!hasQ) show = true;
+                else if (it.isPriority) show = false;
+                else {
+                    const c = it.c;
+                    show = c.normTr.indexOf(nq) !== -1 ||
+                        c.normEn.indexOf(nq) !== -1 ||
+                        c.iso2.toLowerCase().indexOf(nq) !== -1 ||
+                        (!!qDigits && c.dial.indexOf(qDigits) === 0);
+                }
+                it.el.classList.toggle("is-hidden", !show);
+                if (show) { this._visible.push(it); any = true; }
+            }
+
+            if (this._sepEl) this._sepEl.classList.toggle("is-hidden", hasQ);
+            this.emptyEl.style.display = any ? "none" : "block";
+
+            // Aktif satır: seçili ülke görünüyorsa o; değilse ilk satır
+            let idx = this._visible.findIndex(it => it.c === this._country);
+            if (idx < 0) idx = this._visible.length ? 0 : -1;
+            this._setActive(idx, false);
+        }
+
+        _setActive(visIndex, scroll) {
+            this.activeIndex = visIndex;
+            const active = this._visible[visIndex] || null;
+            for (const it of (this._items || [])) {
+                it.el.classList.toggle("is-active", it === active);
+            }
+            if (active) {
+                this.search.setAttribute("aria-activedescendant", active.el.id);
+                this.trigger.setAttribute("aria-activedescendant", active.el.id);
+                if (scroll) active.el.scrollIntoView({ block: "nearest" });
+            } else {
+                this.search.removeAttribute("aria-activedescendant");
+                this.trigger.removeAttribute("aria-activedescendant");
+            }
+        }
+
+        _move(delta) {
+            const n = this._visible.length;
+            if (!n) return;
+            let i = this.activeIndex;
+            i = (i + delta + n) % n;
+            this._setActive(i, true);
+        }
+
+        _onTriggerKey(e) {
+            switch (e.key) {
+                case "ArrowDown":
+                case "ArrowUp":
+                case "Enter":
+                case " ":
+                    e.preventDefault();
+                    if (!this.isOpen) this.open();
+                    break;
+                case "Escape":
+                    if (this.isOpen) { e.preventDefault(); this.close(); }
+                    break;
+            }
+        }
+
+        /** Popover açıkken (arama input'unda) klavye. */
+        _onListKey(e) {
+            switch (e.key) {
+                case "ArrowDown":
+                    e.preventDefault();
+                    this._move(+1);
+                    break;
+                case "ArrowUp":
+                    e.preventDefault();
+                    this._move(-1);
+                    break;
+                case "Home":
+                    if (this.search.value) break;   // caret hareketine izin ver
+                    e.preventDefault();
+                    if (this._visible.length) this._setActive(0, true);
+                    break;
+                case "End":
+                    if (this.search.value) break;
+                    e.preventDefault();
+                    if (this._visible.length) this._setActive(this._visible.length - 1, true);
+                    break;
+                case "Enter":
+                    e.preventDefault();
+                    this._choose(this._visible[this.activeIndex]);
+                    break;
+                case "Escape":
+                    e.preventDefault();
+                    this.close();
+                    this.trigger.focus();
+                    break;
+                case "Tab":
+                    this.close();
+                    break;
+            }
+        }
+
+        _choose(item) {
+            if (!item) return;
+            this.setCountry(item.c.iso2, "user");
+            this.close();
+            // Kullanıcı numara yazmaya hemen devam edebilsin
+            this.input.focus({ preventScroll: true });
+        }
+
+        // ── POPOVER: AÇ / KAPAT / KONUMLANDIR ───────────────────────
+
+        open() {
+            if (this.isOpen || this.trigger.disabled) return;
+            this._buildList();
+            this.isOpen = true;
+            this.group.classList.add("glint-phone-open");
+            this.trigger.setAttribute("aria-expanded", "true");
+
+            this.search.value = "";
+            this._filter("");
+            this._position();
+
+            requestAnimationFrame(() => {
+                if (!this.isOpen) return;
+                this.popover.classList.add("is-open");
+                const it = this._visible[this.activeIndex];
+                if (it) it.el.scrollIntoView({ block: "nearest" });
+                this.search.focus();
+            });
+        }
+
+        close() {
+            if (!this.isOpen) return;
+            this.isOpen = false;
+            this.popover.classList.remove("is-open");
+            this.group.classList.remove("glint-phone-open");
+            this.trigger.setAttribute("aria-expanded", "false");
+            this.trigger.removeAttribute("aria-activedescendant");
+            this.search.removeAttribute("aria-activedescendant");
+        }
+
+        toggle() { this.isOpen ? this.close() : this.open(); }
+
+        /**
+         * Genişlik = grup genişliği (min 260px); viewport kenarında clamp;
+         * alta sığmazsa yukarı aç; liste yüksekliği visualViewport'a göre
+         * kısıtlanır (mobil klavye açıkken taşma olmasın).
+         */
+        _position() {
+            const rect = this.group.getBoundingClientRect();
+            const vv = window.visualViewport;
+            const vpH = vv ? vv.height : window.innerHeight;
+            const vpW = window.innerWidth;
+
+            // Liste max yüksekliği ~320px; küçük viewport'ta kısıl
+            const searchH = 52;
+            this.list.style.maxHeight =
+                Math.max(140, Math.min(320, vpH - searchH - 60)) + "px";
+
+            this.popover.style.width =
+                Math.min(Math.max(260, rect.width), vpW - 24) + "px";
+
+            this.popover.classList.remove("glint-phone-popover--flip-up");
+            const popH = this.popover.offsetHeight || 320;
+            const margin = 6;
+
+            let top = rect.bottom + margin;
+            let flip = false;
+            if (top + popH > vpH - 12 && rect.top - margin - popH > 12) {
+                top = rect.top - popH - margin;
+                flip = true;
+            }
+            let left = rect.left;
+            const popW = this.popover.offsetWidth || rect.width;
+            if (left + popW > vpW - 12) left = Math.max(12, vpW - popW - 12);
+            if (left < 12) left = 12;
+
+            this.popover.style.top = (window.scrollY + top) + "px";
+            this.popover.style.left = (window.scrollX + left) + "px";
+            this.popover.classList.toggle("glint-phone-popover--flip-up", flip);
+        }
+
+        // ── PROGRAMATİK API ─────────────────────────────────────────
+
+        /** Seçili ülke ISO2 kodu ("TR"). */
+        get country() { return this._country ? this._country.iso2 : null; }
+
+        /** Ülkeyi kod ile değiştir; mevcut rakamlar yeni maskeyle yazılır. */
+        setCountry(iso2, reason) {
+            const c = byIso(iso2);
+            if (!c || c === this._country) return false;
+            this._country = c;
+            this._renderTrigger();
+            this._syncSelected();
+            this._emitCountryChange(reason || "api");
+
+            // Mevcut rakamları yeni ülkeye taşı (fazlası reddedilir)
+            const digits = this._truncate(this._digits || "", c);
+            const val = this._format(digits, c);
+            if (this.input.value !== val) {
+                this.input.value = val;
+                // Overlay + biçimleme zinciri senkronu (capture handler yakalar)
+                this.input.dispatchEvent(new Event("input", { bubbles: true }));
+            } else {
+                // Değer aynı olsa da dial değişti → e164/hidden/eventler tazelenir
+                this._afterChange(digits);
+            }
+            return true;
+        }
+
+        /** Görünen (ulusal biçimli) değer. */
+        get value() { return this.input.value; }
+        set value(v) {
+            this.input.value = String(v == null ? "" : v);
+            // "+49..." atanırsa ülke de otomatik çıkarılır (capture handler)
+            this.input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+
+        /** Ulusal anlamlı rakamlar ("5364010826"). */
+        get digits() { return this._digits || ""; }
+
+        /** E.164 ("+905364010826") — boşken "". */
+        get e164() {
+            return this._digits ? "+" + this._country.dial + this._digits : "";
+        }
+
+        /** Numara eksiksiz (ve strict'te desene uygun) mu? */
+        get isComplete() { return !!this._lastValidity.complete; }
+
+        /** Yaşam döngüsü teardown — DOM'u eski haline döndürür. */
+        destroy() {
+            if (this._ac) { this._ac.abort(); this._ac = null; }
+            if (this._ro) { this._ro.disconnect(); this._ro = null; }
+
+            if (this.popover) { this.popover.remove(); this.popover = null; }
+            if (this.trigger) { this.trigger.remove(); this.trigger = null; }
+            if (this.hidden) { this.hidden.remove(); this.hidden = null; }
+
+            // Input'u eski haline döndür
+            if (this.input) {
+                if (this._origPadLeft !== undefined) this.input.style.paddingLeft = this._origPadLeft;
+                if (this._ownInputmode) this.input.removeAttribute("inputmode");
+                if (this._ownAutocomplete) this.input.removeAttribute("autocomplete");
+                if (this._ownDir) this.input.removeAttribute("dir");
+            }
+            this.group.style.removeProperty("--glint-phone-pad-left");
+            this.group.classList.remove("glint-phone-open");
+
+            // GlintInput overlay'ini eski padding'e resync et
+            const inst = this.group._glintInstance;
+            if (inst && typeof inst.rebuildSVG === "function") {
+                try { inst.rebuildSVG(); } catch (_) { }
+            }
+
+            // Guard'lar + çekirdek kaydı
+            this.group._glintPhoneInit = false;
+            this.group._glintPhoneInstance = null;
+            window.Glint.unregister(this.input);
+            // mountOne WeakSet guard'ı GRUP elementinde tutulur (selector
+            // .glint-phone-group) ama kayıt input üzerindeydi — grubu da
+            // temizle ki aynı element yeniden mount edilebilsin.
+            if (window.Glint._components) {
+                for (const comp of window.Glint._components) {
+                    if (comp.name === "phone" && comp.seen) comp.seen.delete(this.group);
+                }
+            }
+        }
+
+        static get(el) {
+            const g = el?.closest?.(".glint-phone-group") || el;
+            return g?._glintPhoneInstance || null;
+        }
+    }
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  ÇEKİRDEĞE KAYIT (Glint.defineComponent) + API
+    // ══════════════════════════════════════════════════════════════
+
+    function register() {
+        const G = window.Glint;
+
+        G.defineComponent("phone", {
+            selector: ".glint-phone-group",
+            match: el => !el._glintPhoneInit,
+            mount: el => new GlintPhone(el)
+        });
+
+        // Programatik API
+        G.Phone = GlintPhone;
+    }
+
+    // Güvenli yükleme-sırası guard'ı: çekirdek (glint-input.js) önce
+    // yüklenmiş olmalı. Değilse DOMContentLoaded'da tekrar dene.
+    if (window.Glint && window.Glint.defineComponent) {
+        register();
+    } else {
+        document.addEventListener("DOMContentLoaded", function onReady() {
+            if (window.Glint && window.Glint.defineComponent) register();
+        });
+    }
+
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+ *  11) Combobox — Serbest metinli autocomplete
+ *     (v1.6'da ana dosyaya birleştirildi — kaynak paket: draft-combobox.js)
+ * ════════════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════════════
+ *  9) Combobox — serbest metinli autocomplete
+ *     (taslak modül: draft-combobox.js — glint-input.js sonuna YENİ BÖLÜM)
+ * ════════════════════════════════════════════════════════════════════════ */
+/**
+ * Glint Combobox v1.0 (taslak)
+ * Serbest metinli autocomplete: input DEĞERİ her zaman serbesttir (bu bir
+ * COMBOBOX, select değil) — liste yalnız öneridir, Enter/tık seçim yapar.
+ *
+ * API:       window.Glint.Combobox
+ *            instance: open() · close() · setOptions(arr) · destroy()
+ *            erişim: Glint.getInstance(input) veya group._glintComboInstance
+ * Selector:  .glint-input-group[data-glint-combobox]
+ * Event'ler: glint:combobox-open · glint:combobox-close
+ *            glint:combobox-select  → detail: { value, label }
+ *
+ * Veri kaynakları (öncelik sırası):
+ *   (c) data-source-fn   = "window.app.searchCities"  → fn(query) →
+ *       Promise<Array<string|{value,label}>>. KULLANICININ fonksiyonudur;
+ *       kütüphane ASLA ağ isteği yapmaz. Beklerken grup "loading" durumu
+ *       (Glint.setState), sonuçta clearState; hata/reject sessizce boş liste.
+ *       Debounce + istek sayacı: yalnız SON isteğin sonucu işlenir.
+ *   (a) data-options     = inline JSON dizi — öğe string YA DA {value,label}
+ *   (b) data-options-from= "#id" (<datalist>/<select>) VEYA window yolu
+ *       ("window.app.cities" gibi).
+ *
+ * Ayarlar: data-min-chars (1) · data-debounce (150 ms) · data-max-items (8)
+ *          data-empty-text ("Sonuç yok")
+ *
+ * Grup CLAIM EDİLMEZ — border/label/overlay sahibi GlintInput kalır;
+ * combobox yalnız DAVRANIŞ ekler (stepper/phone deseni). Seçimde
+ * input + change dispatch edildiği için GlintInput overlay'i ve form
+ * binding'i (asp-for) senkron kalır.
+ *
+ * Filtre: Türkçe-duyarlı normalize (İ→i, ı→i, ş→s, ç→c, ö→o, ü→u, ğ→g) +
+ * substring; eşleşme <mark class="glint-select-hl"> ile vurgulanır
+ * (düğüm tabanlı kurulum — innerHTML'e ham veri BASILMAZ, XSS'e kapalı).
+ *
+ * Çekirdek: kendi MutationObserver'ını KURMAZ; Glint.defineComponent ile
+ * kaydolur. Çekirdek henüz yoksa DOMContentLoaded guard'ı (yükleme sırası).
+ */
+
+/* ────────────────────────────────────────────────────────────────────────
+ * DEMO — temel kullanım (inline JSON kaynak):
+ *
+ *   <div class="glint-input-group" data-glint-combobox
+ *        data-options='["Adana","Ankara","İstanbul","İzmir"]'
+ *        data-min-chars="1" data-debounce="150" data-max-items="8"
+ *        data-empty-text="Sonuç yok">
+ *     <input class="glint-input" type="text" id="cb1" name="City" autocomplete="off">
+ *     <label class="glint-label" for="cb1">Şehir</label>
+ *   </div>
+ *
+ * RAZOR (asp-for) — <datalist> kaynağı + opsiyonel async adaptör:
+ *
+ *   <div class="glint-input-group" data-glint-combobox
+ *        data-options-from="#sehirler"
+ *        data-source-fn="window.app.searchCities">
+ *     <input asp-for="City" class="glint-input" autocomplete="off" />
+ *     <label asp-for="City" class="glint-label"></label>
+ *   </div>
+ *   <datalist id="sehirler">
+ *     <option value="Adana"></option>
+ *     <option value="Ankara"></option>
+ *   </datalist>
+ *
+ *   <script>
+ *     // fn(query) → Promise<Array<string|{value,label}>> — tamamen kullanıcıya ait
+ *     window.app = window.app || {};
+ *     window.app.searchCities = function (q) {
+ *       return myOwnLookup(q); // kütüphane fetch YAPMAZ; bunu siz sağlarsınız
+ *     };
+ *   </script>
+ * ──────────────────────────────────────────────────────────────────────── */
+
+(function () {
+    "use strict";
+
+    // ══════════════════════════════════════════════════════════════
+    //  Modül-yerel yardımcılar
+    // ══════════════════════════════════════════════════════════════
+
+    let _uid = 0;
+    /** Benzersiz id üretici (aria-controls / option id'leri için). */
+    function uid(prefix) { return (prefix || "glint") + "-" + (++_uid) + "-" + Date.now().toString(36); }
+
+    /**
+     * "Türkçe duyarlı" küçültme — filtre eşleştirmesi için.
+     * toLocaleLowerCase("tr") → İ→i doğru; açık ı→i; NFD ayrıştırması
+     * sonrası birleşen imler atılır → ş→s, ç→c, ö→o, ü→u, ğ→g.
+     * (GlintSelect/GlintTags ile birebir aynı yaklaşım.)
+     */
+    function normalize(s) {
+        return (s || "")
+            .toLocaleLowerCase("tr")
+            .replace(/ı/g, "i")
+            .normalize("NFD")
+            .replace(/[̀-ͯ]/g, "");
+    }
+
+    /**
+     * "window.app.cities" gibi nokta yolunu window üzerinde çöz.
+     * Bulunamazsa undefined (sessiz). AĞ İSTEĞİ YAPILMAZ.
+     */
+    function resolvePath(path) {
+        if (!path) return undefined;
+        const parts = String(path).trim().split(".");
+        if (parts[0] === "window") parts.shift();
+        let obj = window;
+        for (const p of parts) {
+            if (obj == null) return undefined;
+            obj = obj[p];
+        }
+        return obj;
+    }
+
+    /**
+     * Ham kaynak dizisini [{value, label, _norm}] biçimine indirger.
+     * Öğe string YA DA {value, label} olabilir; boşlar ve kopyalar ayıklanır.
+     */
+    function normalizeItems(arr) {
+        const out = [];
+        const seen = new Set();
+        (Array.isArray(arr) ? arr : []).forEach((it) => {
+            if (it == null) return;
+            let value, label;
+            if (typeof it === "object") {
+                value = it.value != null ? String(it.value) : (it.label != null ? String(it.label) : "");
+                label = it.label != null ? String(it.label) : value;
+            } else {
+                value = String(it);
+                label = value;
+            }
+            value = value.trim();
+            label = label.trim() || value;
+            if (!value) return;
+            const key = value + "\u0001" + label; // ayraç: value|label ikilisi benzersiz
+            if (seen.has(key)) return;
+            seen.add(key);
+            out.push({ value, label, _norm: normalize(label) });
+        });
+        return out;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  GlintCombobox — serbest metinli autocomplete
+    // ══════════════════════════════════════════════════════════════
+
+    class GlintCombobox {
+
+        /** @param {HTMLElement} group — .glint-input-group[data-glint-combobox] */
+        constructor(group) {
+            if (!group || group._glintComboInit) return;
+            const input = group.querySelector("input.glint-input");
+            if (!input) return; // grup içinde .glint-input yoksa sessizce vazgeç
+
+            group._glintComboInit = true;
+            group._glintComboInstance = this;
+            this.group = group;
+            this.input = input;
+
+            // ── Yapılandırma (data-*) ─────────────────────────────
+            const mc = parseInt(group.getAttribute("data-min-chars"), 10);
+            this.minChars = (!isNaN(mc) && mc >= 0) ? mc : 1;
+            const db = parseInt(group.getAttribute("data-debounce"), 10);
+            this.debounceMs = (!isNaN(db) && db >= 0) ? db : 150;
+            const mi = parseInt(group.getAttribute("data-max-items"), 10);
+            this.maxItems = (!isNaN(mi) && mi > 0) ? mi : 8;
+            this.emptyText = group.getAttribute("data-empty-text") || "Sonuç yok";
+
+            // (c) opsiyonel async adaptör — KULLANICI fonksiyonu.
+            // Kütüphane fetch/XHR YAPMAZ; async yalnız bu fonksiyonla olur.
+            const fnPath = group.getAttribute("data-source-fn");
+            const fn = fnPath ? resolvePath(fnPath) : null;
+            this.sourceFn = (typeof fn === "function") ? fn : null;
+
+            // ── Durum ─────────────────────────────────────────────
+            this.pop = null;         // popover (lazy, body'ye eklenir)
+            this.list = null;        // role=listbox UL
+            this.items = [];         // {value, label, el}
+            this._idx = -1;          // vurgulu satır (aria-activedescendant)
+            this._open = false;
+            this._deb = null;        // debounce zamanlayıcısı
+            this._reqSeq = 0;        // yarış guard'ı: yalnız SON isteğin sonucu işlenir
+            this._loading = false;   // Glint.setState(input, "loading") aktif mi
+            this._silent = false;    // kendi bastığımız input event'ini yutma bayrağı
+            this._ariaAdded = false; // destroy'da geri almak için
+            this._destroyed = false;
+            this._popId = uid("glint-combobox");
+
+            // Tarayıcının kendi autofill listesi popover'la çakışmasın
+            // (mevcut attribute ASLA ezilmez; biz eklediysek destroy geri alır)
+            this._autoOff = false;
+            if (!input.hasAttribute("autocomplete")) {
+                input.setAttribute("autocomplete", "off");
+                this._autoOff = true;
+            }
+
+            this._collectOptions();
+            this._bind();
+            // DİKKAT: grup WeakMap anahtarı GlintInput'a ait (register(group)).
+            // Çakışmamak için stepper deseniyle INPUT üzerinden kaydoluruz;
+            // paylaşılan teardown observer'ı input kaldırılınca destroy() çağırır.
+            window.Glint.register(input, this);
+        }
+
+        // ── Veri kaynağı ──────────────────────────────────────────
+
+        /** Yerel seçenekleri topla. Öncelik: data-options → data-options-from. */
+        _collectOptions() {
+            let raw = [];
+            const attr = this.group.getAttribute("data-options");
+            if (attr) {
+                // (a) inline JSON dizi — bozuk JSON sessizce boş liste
+                try {
+                    const arr = JSON.parse(attr);
+                    if (Array.isArray(arr)) raw = arr;
+                } catch (_) { raw = []; }
+            } else {
+                const from = this.group.getAttribute("data-options-from");
+                if (from && from.charAt(0) === "#") {
+                    // (b1) <datalist>/<select> id'si
+                    const el = document.getElementById(from.slice(1));
+                    if (el && (el.tagName === "DATALIST" || el.tagName === "SELECT")) {
+                        raw = Array.from(el.querySelectorAll("option")).map((o) => ({
+                            value: o.getAttribute("value") != null ? o.getAttribute("value") : o.textContent,
+                            label: (o.textContent || "").trim() || undefined
+                        }));
+                    }
+                } else if (from) {
+                    // (b2) window yolu (window.app.cities)
+                    const v = resolvePath(from);
+                    if (Array.isArray(v)) raw = v;
+                }
+            }
+            this.options = normalizeItems(raw);
+        }
+
+        /** Programatik: yerel seçenek listesini değiştir. */
+        setOptions(arr) {
+            this.options = normalizeItems(arr);
+            if (this._open) this._lookup();
+        }
+
+        // ── Listener'lar ──────────────────────────────────────────
+
+        _bind() {
+            this._ac = new AbortController();
+            const sig = { signal: this._ac.signal };
+
+            this.input.addEventListener("input", () => this._onInput(), sig);
+            this.input.addEventListener("keydown", (e) => this._onKey(e), sig);
+            // Odaklanınca mevcut metinle listeyi dene (tags suggest ile aynı his)
+            this.input.addEventListener("focus", () => this._lookup(), sig);
+            this.input.addEventListener("blur", () => this._close(), sig);
+
+            // Dışarı tıkla kapat — popover mousedown'ı preventDefault ettiği
+            // için blur her senaryoyu kapsamaz (ör. popover scrollbar'ı)
+            document.addEventListener("pointerdown", (e) => {
+                if (!this._open) return;
+                if (this.group.contains(e.target)) return;
+                if (this.pop && this.pop.contains(e.target)) return;
+                this._close();
+            }, sig);
+
+            // Açıkken kaydırma/yeniden boyutlandırmada yeniden konumla
+            this._repos = () => { if (this._open) this._position(); };
+            window.addEventListener("resize", this._repos, sig);
+            window.addEventListener("scroll", this._repos, { signal: this._ac.signal, capture: true, passive: true });
+        }
+
+        /** Yazdıkça: debounce ile sorgu (kendi bastığımız event yutulur). */
+        _onInput() {
+            if (this._silent) return;
+            if (this._deb) clearTimeout(this._deb);
+            this._deb = setTimeout(() => {
+                this._deb = null;
+                this._lookup();
+            }, this.debounceMs);
+        }
+
+        _onKey(e) {
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                if (!this._open) this._lookup();  // kapalıyken ↓ = listeyi aç
+                else this._move(1);
+                return;
+            }
+            if (e.key === "ArrowUp") {
+                if (this._open) { e.preventDefault(); this._move(-1); }
+                return;
+            }
+            if (e.key === "Enter") {
+                // Vurgulu satır varsa seç; yoksa SERBEST METİN olduğu gibi
+                // kalır (combobox sözleşmesi) — form submit engellenmez.
+                if (this._open && this._idx > -1) { e.preventDefault(); this._choose(this._idx); }
+                else if (this._open) this._close();
+                return;
+            }
+            if (e.key === "Escape") {
+                if (this._open) { e.preventDefault(); this._close(); }
+                return;
+            }
+            if (e.key === "Tab") this._close(); // odak akışı bozulmaz
+        }
+
+        // ── Sorgu akışı ───────────────────────────────────────────
+
+        /** Sorguyu değerlendir: eşik → kaynak seç (async adaptör / yerel). */
+        _lookup() {
+            if (this._destroyed) return;
+            const q = this.input.value.trim();
+            if (q.length < this.minChars) {
+                // Eşik altı: bekleyen async sonuç geçersiz + loading temiz + kapat
+                this._reqSeq++;
+                this._clearLoading();
+                this._close();
+                return;
+            }
+            if (this.sourceFn) this._lookupAsync(q);
+            else this._show(this._localFilter(q), normalize(q));
+        }
+
+        /** Yerel kaynak: Türkçe-duyarlı substring süzme (maxItems tavanlı). */
+        _localFilter(q) {
+            const nq = normalize(q);
+            const out = [];
+            for (const o of this.options) {
+                if (nq && o._norm.indexOf(nq) === -1) continue;
+                out.push(o);
+                if (out.length >= this.maxItems) break;
+            }
+            return out;
+        }
+
+        /**
+         * (c) Async adaptör yolu — KULLANICI fonksiyonu (ağ isteği bizde yok).
+         * Beklerken grup "loading"; yalnız SON isteğin sonucu işlenir
+         * (istek sayacı); hata/reject/senkron-throw sessizce boş liste.
+         */
+        _lookupAsync(q) {
+            const seq = ++this._reqSeq;
+            const G = window.Glint;
+            if (!this._loading && G && G.setState) {
+                this._loading = true;
+                G.setState(this.input, "loading"); // grup alt kenar parıltısı
+            }
+            let p;
+            try { p = Promise.resolve(this.sourceFn(q)); }
+            catch (_) { p = Promise.resolve([]); }   // senkron throw → boş liste
+            p.then(
+                (arr) => (Array.isArray(arr) ? arr : []),
+                () => []                              // reject → sessizce boş liste
+            ).then((arr) => {
+                if (this._destroyed || seq !== this._reqSeq) return; // bayat istek
+                this._clearLoading();
+                // Kullanıcı beklerken alandan ayrıldıysa liste açılmaz
+                if (document.activeElement !== this.input) return;
+                this._show(normalizeItems(arr).slice(0, this.maxItems), normalize(q));
+            });
+        }
+
+        _clearLoading() {
+            if (!this._loading) return;
+            this._loading = false;
+            const G = window.Glint;
+            if (G && G.clearState) G.clearState(this.input);
+        }
+
+        // ── Popover: kurulum · çizim · konum ──────────────────────
+
+        /** Popover'ı lazy kur (body'ye eklenir) + input ARIA bağla. */
+        _ensurePop() {
+            if (this.pop) return;
+            const pop = document.createElement("div");
+            pop.className = "glint-combobox-pop";
+            pop.id = this._popId;
+            const ul = document.createElement("ul");
+            ul.className = "glint-combobox__list";
+            ul.setAttribute("role", "listbox");
+            const labEl = this.group.querySelector(".glint-label");
+            ul.setAttribute("aria-label",
+                ((labEl && labEl.textContent.trim()) || this.input.name || "Öneriler"));
+            pop.appendChild(ul);
+            document.body.appendChild(pop);
+            this.pop = pop;
+            this.list = ul;
+
+            // a11y: combobox bağlama (destroy'da geri alınır)
+            this.input.setAttribute("role", "combobox");
+            this.input.setAttribute("aria-autocomplete", "list");
+            this.input.setAttribute("aria-expanded", "false");
+            this.input.setAttribute("aria-controls", this._popId);
+            this._ariaAdded = true;
+
+            // Seçim: mousedown (blur'dan ÖNCE yakala; odak inputta kalsın)
+            ul.addEventListener("mousedown", (e) => {
+                e.preventDefault();
+                const li = e.target.closest(".glint-combobox__item");
+                if (!li) return;
+                const idx = this.items.findIndex((it) => it.el === li);
+                if (idx > -1) this._choose(idx);
+            }, { signal: this._ac.signal });
+        }
+
+        /** Satırları çiz; boş sonuçta "Sonuç yok" satırı. */
+        _render(items, nq) {
+            this._ensurePop();
+            this.list.innerHTML = "";
+            this.items = [];
+            this._idx = -1;
+            this.input.removeAttribute("aria-activedescendant");
+
+            if (!items.length) {
+                const li = document.createElement("li");
+                li.className = "glint-combobox__empty";
+                li.setAttribute("role", "presentation");
+                li.textContent = this.emptyText;   // textContent → XSS'e kapalı
+                this.list.appendChild(li);
+                return;
+            }
+            items.forEach((o, i) => {
+                const li = document.createElement("li");
+                li.className = "glint-combobox__item";
+                li.id = this._popId + "-opt-" + i;
+                li.setAttribute("role", "option");
+                li.setAttribute("aria-selected", "false");
+                this._highlight(li, o.label, nq);
+                this.list.appendChild(li);
+                this.items.push({ value: o.value, label: o.label, el: li });
+            });
+        }
+
+        /**
+         * Eşleşen alt-dizgiyi <mark class="glint-select-hl"> ile vurgula.
+         * Düğüm tabanlı (textContent + split/append) — innerHTML'e ham veri
+         * BASILMAZ. NFD/ı dönüşümleri index kaydırabildiği için orijinal →
+         * normalize karakter haritası kurulur (GlintSelect ile aynı yöntem).
+         */
+        _highlight(labelEl, original, nq) {
+            if (!nq) { labelEl.textContent = original; return; }
+            let norm = "";
+            const map = [];
+            for (let oi = 0; oi < original.length; oi++) {
+                const n = normalize(original[oi]);
+                for (let k = 0; k < n.length; k++) { norm += n[k]; map.push(oi); }
+            }
+            const pos = norm.indexOf(nq);
+            if (pos < 0) { labelEl.textContent = original; return; }
+            const s = map[pos];
+            const e = (pos + nq.length < map.length) ? map[pos + nq.length] : original.length;
+            labelEl.textContent = "";
+            if (s > 0) labelEl.appendChild(document.createTextNode(original.slice(0, s)));
+            const mark = document.createElement("mark");
+            mark.className = "glint-select-hl";
+            mark.textContent = original.slice(s, e);
+            labelEl.appendChild(mark);
+            if (e < original.length) labelEl.appendChild(document.createTextNode(original.slice(e)));
+        }
+
+        /** Çiz + aç (açıksa yalnız güncelle/yeniden konumla). */
+        _show(items, nq) {
+            if (this._destroyed) return;
+            this._render(items, nq);
+            this._position();
+            if (!this._open) {
+                this._open = true;
+                this.pop.classList.add("is-open");
+                this.input.setAttribute("aria-expanded", "true");
+                this._emit("glint:combobox-open");
+            }
+        }
+
+        _close() {
+            if (this._deb) { clearTimeout(this._deb); this._deb = null; }
+            if (!this._open) return;
+            this._open = false;
+            this._idx = -1;
+            if (this.pop) this.pop.classList.remove("is-open");
+            this.input.setAttribute("aria-expanded", "false");
+            this.input.removeAttribute("aria-activedescendant");
+            this._emit("glint:combobox-close");
+        }
+
+        /**
+         * Grubun hemen altına konumla (getBoundingClientRect + scrollX/Y).
+         * Genişlik = grup genişliği; alta sığmıyorsa üste çevir (flip-up).
+         */
+        _position() {
+            if (!this.pop) return;
+            const rect = this.group.getBoundingClientRect();
+            this.pop.classList.remove("glint-combobox-pop--flip-up");
+            this.pop.style.width = rect.width + "px";
+            const popH = this.pop.offsetHeight || 200;
+            const margin = 6;
+            let top = rect.bottom + margin;
+            let flip = false;
+            if (top + popH > window.innerHeight - 12 && rect.top - margin - popH > 12) {
+                top = rect.top - popH - margin;
+                flip = true;
+            }
+            let left = rect.left;
+            const popW = this.pop.offsetWidth || rect.width;
+            if (left + popW > window.innerWidth - 12) left = Math.max(12, window.innerWidth - popW - 12);
+            if (left < 12) left = 12;
+            this.pop.style.top = (window.scrollY + top) + "px";
+            this.pop.style.left = (window.scrollX + left) + "px";
+            this.pop.classList.toggle("glint-combobox-pop--flip-up", flip);
+        }
+
+        // ── Klavye vurgusu & seçim ────────────────────────────────
+
+        /** Vurguyu dir kadar oynat (döngüsel; aria-activedescendant). */
+        _move(dir) {
+            const n = this.items.length;
+            if (!n) return;
+            if (this._idx > -1 && this.items[this._idx]) {
+                this.items[this._idx].el.classList.remove("is-active");
+                this.items[this._idx].el.setAttribute("aria-selected", "false");
+            }
+            this._idx = (this._idx + dir + n) % n;
+            const it = this.items[this._idx];
+            it.el.classList.add("is-active");
+            it.el.setAttribute("aria-selected", "true");
+            it.el.scrollIntoView({ block: "nearest" });
+            this.input.setAttribute("aria-activedescendant", it.el.id);
+        }
+
+        _choose(idx) {
+            const it = this.items[idx];
+            if (!it) return;
+            this._select(it.value, it.label);
+        }
+
+        /** Seçimi input'a yaz; input+change + glint:combobox-select yayınla. */
+        _select(value, label) {
+            this._silent = true;   // kendi input event'imiz filtreyi tetiklemesin
+            this.input.value = value;
+            // GlintInput overlay'i + form binding senkronize kalsın
+            this.input.dispatchEvent(new Event("input", { bubbles: true }));
+            this.input.dispatchEvent(new Event("change", { bubbles: true }));
+            this._silent = false;
+            this._emit("glint:combobox-select", { value, label });
+            this._close();
+            this.input.focus();
+        }
+
+        _emit(name, detail) {
+            this.input.dispatchEvent(new CustomEvent(name, {
+                bubbles: true,
+                detail: detail || null
+            }));
+        }
+
+        // ── Programatik API ───────────────────────────────────────
+
+        /** Listeyi mevcut input metniyle aç (eşik kuralları geçerli). */
+        open() { this._lookup(); }
+        /** Listeyi kapat. */
+        close() { this._close(); }
+
+        /** Yaşam döngüsü teardown — tam temizlik. */
+        destroy() {
+            this._destroyed = true;
+            this._reqSeq++;   // uçuştaki async sonuçlar yok sayılır
+            if (this._deb) { clearTimeout(this._deb); this._deb = null; }
+            if (this._ac) { this._ac.abort(); this._ac = null; }
+            this._clearLoading();
+            // body'ye taşınan popover'ı kaldır (tek inline stil ondaydı;
+            // gruba/inputa inline stil basılmadığı için geri alacak stil yok)
+            if (this.pop) { this.pop.remove(); this.pop = null; this.list = null; this.items = []; }
+            // Eklediğimiz ARIA bağlarını geri al
+            if (this._ariaAdded) {
+                ["role", "aria-autocomplete", "aria-expanded", "aria-controls", "aria-activedescendant"]
+                    .forEach((a) => this.input.removeAttribute(a));
+                this._ariaAdded = false;
+            }
+            // autocomplete'i biz eklediysek kaldır (kullanıcınınkine dokunma)
+            if (this._autoOff) { this.input.removeAttribute("autocomplete"); this._autoOff = false; }
+            // Guard reset → element yeniden mount olabilir (SPA/partial view)
+            this.group._glintComboInit = false;
+            this.group._glintComboInstance = null;
+            window.Glint.unregister(this.input);
+        }
+    }
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  ÇEKİRDEĞE KAYIT + GÜVENLİ YÜKLEME-SIRASI GUARD'I
+    // ══════════════════════════════════════════════════════════════
+    //
+    // Modül KENDİ MutationObserver'ını KURMAZ — paylaşılan çekirdek tarar.
+    // Grup CLAIM EDİLMEZ: "input-group" bileşeni (GlintInput) aynı grupta
+    // border/label/overlay sahibi olarak çalışmaya devam eder.
+
+    function register() {
+        const G = window.Glint;
+        G.Combobox = GlintCombobox;
+        G.defineComponent("combobox", {
+            selector: ".glint-input-group[data-glint-combobox]",
+            match: g => !g._glintComboInit,
+            mount: g => new GlintCombobox(g)
+        });
+    }
+
+    // Çekirdek hazırsa hemen kaydol; değilse API'yi yine de aç ve
+    // DOMContentLoaded'da çekirdek varsa kaydet.
+    if (window.Glint && window.Glint.defineComponent) {
+        register();
+    } else {
+        // En azından sınıfı erişilebilir kıl (çekirdek gelmese bile)
+        window.Glint = window.Glint || {};
+        window.Glint.Combobox = GlintCombobox;
+        document.addEventListener("DOMContentLoaded", () => {
+            if (window.Glint && window.Glint.defineComponent) register();
+        });
+    }
+
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+ *  12) Card — Kredi kartı girişi
+ *     (v1.6'da ana dosyaya birleştirildi — kaynak paket: draft-card.js)
+ * ════════════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════════════
+ *  9) Card — Kredi Kartı Girişi (TASLAK — glint-input.js sonuna YENİ BÖLÜM)
+ *     (kaynak modül: draft-card.js)
+ * ════════════════════════════════════════════════════════════════════════ */
+/**
+ * Glint Card v1.0 (taslak)
+ * ─────────────────────────────────────────────────────────────
+ * glint-input.js çekirdeğinin (Glint.defineComponent) uzantısı.
+ * Saf vanilla, sıfır bağımlılık, AĞ İSTEĞİ YOK.
+ *
+ * API:       window.Glint.Card
+ * Selector:  .glint-input-group[data-glint-card]
+ *            Grup CLAIM EDİLMEZ — border/label/overlay sahibi GlintInput
+ *            kalır; kart yalnız değeri/ikonu zenginleştirir (stepper deseni).
+ * Events:    glint:card-brand    {brand}          (grup üzerinde, bubbles)
+ *            glint:card-complete {valid, brand}   (grup üzerinde, bubbles)
+ * Örnek API: inst = Glint.getInstance(input)  →  .brand / .digits / .isValid / .destroy()
+ *
+ * Davranış özeti:
+ *   • Rakam-dışı ayıklanır, marka bazlı gruplanır (4-4-4-4 · Amex 4-6-5 ·
+ *     Diners 4-6-4). Fazla rakam beforeinput'ta reddedilir.
+ *   • Marka algılama prefix ile (visa/mastercard/amex/troy/discover/diners/
+ *     jcb); değişimde sağ yuvada ikon fade-swap (140ms, --glint-ease-out).
+ *   • Kapasiteye ulaşınca Luhn: geçerli → .glint-card-valid + event;
+ *     geçersiz → Glint.Input?.setError. Silmeye başlayınca hata temizlenir.
+ *   • Ham rakamlar data-glint-raw'a; data-raw-name verildiyse gizli input
+ *     üretilir ve senkron tutulur (asp-for / model binding).
+ *   • Opsiyonel kardeş alanlar: SKT (MM/YY, geçmiş tarih hatası, otomatik
+ *     akış) ve CVC (markaya göre 3/4 hane).
+ *
+ * ── DEMO (saf HTML) ─────────────────────────────────────────────
+ *   <link rel="stylesheet" href="glint-input.css">
+ *   <div class="glint-input-group" data-glint-card
+ *        data-raw-name="CardNumberRaw"
+ *        data-glint-card-expiry="#cc-exp"
+ *        data-glint-card-cvc="#cc-cvc">
+ *     <input class="glint-input" type="text" id="cc-num"
+ *            name="CardNumber" autocomplete="cc-number">
+ *     <label class="glint-label" for="cc-num">Kart numarası</label>
+ *   </div>
+ *   <div class="glint-input-group">
+ *     <input class="glint-input" type="text" id="cc-exp" name="CardExpiry">
+ *     <label class="glint-label" for="cc-exp">SKT (AA/YY)</label>
+ *   </div>
+ *   <div class="glint-input-group">
+ *     <input class="glint-input" type="password" id="cc-cvc" name="CardCvc">
+ *     <label class="glint-label" for="cc-cvc">CVC</label>
+ *   </div>
+ *   <script src="glint-input.js"></script>
+ *   <script>
+ *     document.addEventListener("glint:card-complete", (e) => {
+ *       console.log("kart:", e.detail.valid, e.detail.brand);
+ *     });
+ *   </script>
+ *
+ * ── Razor (ASP.NET Core MVC) ────────────────────────────────────
+ *   @* CardNumber görüntü değeri; CardNumberRaw yalın rakamlar (binding) *@
+ *   <div class="glint-input-group" data-glint-card
+ *        data-raw-name="CardNumberRaw"
+ *        data-glint-card-expiry="#CardExpiry"
+ *        data-glint-card-cvc="#CardCvc">
+ *     <input class="glint-input" asp-for="CardNumber" autocomplete="cc-number">
+ *     <label class="glint-label" asp-for="CardNumber">Kart numarası</label>
+ *   </div>
+ *   <div class="glint-input-group">
+ *     <input class="glint-input" asp-for="CardExpiry">
+ *     <label class="glint-label" asp-for="CardExpiry">SKT (AA/YY)</label>
+ *   </div>
+ *   <div class="glint-input-group">
+ *     <input class="glint-input" asp-for="CardCvc" type="password">
+ *     <label class="glint-label" asp-for="CardCvc">CVC</label>
+ *   </div>
+ */
+
+(function () {
+    "use strict";
+
+    const SVG_NS = "http://www.w3.org/2000/svg";
+
+    // ── YARDIMCILAR ──
+
+    /** Dizgideki rakam sayısı. */
+    function countDigits(s) {
+        let n = 0;
+        for (let i = 0; i < s.length; i++) {
+            if (s[i] >= "0" && s[i] <= "9") n++;
+        }
+        return n;
+    }
+
+    /** Luhn (mod-10) sağlaması — yalın rakam dizgisi üzerinde. */
+    function luhn(digits) {
+        let sum = 0, dbl = false;
+        for (let i = digits.length - 1; i >= 0; i--) {
+            let d = digits.charCodeAt(i) - 48;
+            if (dbl) { d *= 2; if (d > 9) d -= 9; }
+            sum += d;
+            dbl = !dbl;
+        }
+        return digits.length > 0 && sum % 10 === 0;
+    }
+
+    /**
+     * Caret koruma — çekirdek varsa Glint.format.restoreCaret kullanılır;
+     * yoksa aynı mantığın YEREL kopyası (bağımsız yüklenme emniyeti).
+     */
+    function restoreCaret(oldValue, oldCaret, newValue, valueRe) {
+        const f = window.Glint && window.Glint.format;
+        if (f && typeof f.restoreCaret === "function") {
+            return f.restoreCaret(oldValue, oldCaret, newValue, valueRe);
+        }
+        const re = valueRe || /\d/;
+        const before = String(oldValue).slice(0, oldCaret);
+        let significant = 0;
+        for (let k = 0; k < before.length; k++) if (re.test(before[k])) significant++;
+        let count = 0, pos = 0;
+        while (pos < newValue.length && count < significant) {
+            if (re.test(newValue[pos])) count++;
+            pos++;
+        }
+        return pos;
+    }
+
+    // ── MARKA TABLOSU ──
+    // Prefix'ler ayrık; kapasite = maks rakam, gaps = boşluk grupları.
+    const BRANDS = [
+        { name: "troy",       re: /^9792/,                                              length: 16, gaps: [4, 4, 4, 4] },
+        { name: "amex",       re: /^3[47]/,                                             length: 15, gaps: [4, 6, 5] },
+        { name: "diners",     re: /^3(0[0-5]|[68])/,                                    length: 14, gaps: [4, 6, 4] },
+        { name: "jcb",        re: /^35/,                                                length: 16, gaps: [4, 4, 4, 4] },
+        { name: "visa",       re: /^4/,                                                 length: 16, gaps: [4, 4, 4, 4] },
+        { name: "mastercard", re: /^(5[1-5]|2(22[1-9]|2[3-9]\d|[3-6]\d\d|7[01]\d|720))/, length: 16, gaps: [4, 4, 4, 4] },
+        { name: "discover",   re: /^(6011|65)/,                                         length: 16, gaps: [4, 4, 4, 4] }
+    ];
+    /** Marka bilinmiyorken kullanılan varsayılan kapasite/gruplama. */
+    const DEFAULT_DEF = { name: null, length: 16, gaps: [4, 4, 4, 4] };
+
+    /** Yalın rakamlardan marka tanımı (bulunamazsa null). */
+    function detectBrand(raw) {
+        if (!raw) return null;
+        for (const b of BRANDS) if (b.re.test(raw)) return b;
+        return null;
+    }
+
+    /** Rakamları gaps desenine göre boşlukla grupla: "4111..." → "4111 1111 …". */
+    function groupDigits(raw, gaps) {
+        const parts = [];
+        let i = 0;
+        for (const g of gaps) {
+            if (i >= raw.length) break;
+            parts.push(raw.slice(i, i + g));
+            i += g;
+        }
+        if (i < raw.length) parts.push(raw.slice(i)); // emniyet (kapasite keser, olmamalı)
+        return parts.join(" ");
+    }
+
+    // ── MARKA İKONLARI ──
+    // Kütüphanenin ikon dili: MİNİMAL monokrom, stroke tabanlı, 24x24,
+    // currentColor. Marka logolarının kopyası DEĞİL — sade harf/karakter
+    // temelli temsil (temiz ve telifsiz). Bilinmeyen marka → nötr kart.
+    const ICONS = {
+        visa:       { paths: ["M7.5 8l4.5 8 4.5-8"] },                                     // stilize V
+        mastercard: { circles: [[9.5, 12, 4.5], [14.5, 12, 4.5]] },                        // kesişen iki halka
+        amex:       { paths: ["M7.5 16l4.5-8 4.5 8", "M9.6 12.8h4.8"] },                   // stilize A
+        troy:       { paths: ["M7 8h10", "M12 8v8"] },                                     // stilize T
+        discover:   { paths: ["M9 8v8", "M9 8h2.5a4 4 0 0 1 0 8H9"] },                     // stilize D
+        diners:     { circles: [[12, 12, 5.5]], paths: ["M12 6.5v11"] },                   // bölünmüş halka
+        jcb:        { paths: ["M14.5 8v5.5a3.25 3.25 0 0 1-6.5 0"] },                      // stilize J
+        unknown:    { rects: [[3.5, 6.5, 17, 11, 2.5]], paths: ["M3.5 10.5h17"] }          // nötr kart
+    };
+
+    /** Marka adına karşılık gelen inline SVG'yi üretir. */
+    function buildIcon(name) {
+        const def = ICONS[name] || ICONS.unknown;
+        const svg = document.createElementNS(SVG_NS, "svg");
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.setAttribute("fill", "none");
+        svg.setAttribute("aria-hidden", "true");
+        const strokeIt = (el) => {
+            el.setAttribute("stroke", "currentColor");
+            el.setAttribute("stroke-width", "2");
+            el.setAttribute("stroke-linecap", "round");
+            el.setAttribute("stroke-linejoin", "round");
+            svg.appendChild(el);
+        };
+        for (const [x, y, w, h, rx] of def.rects || []) {
+            const r = document.createElementNS(SVG_NS, "rect");
+            r.setAttribute("x", x); r.setAttribute("y", y);
+            r.setAttribute("width", w); r.setAttribute("height", h);
+            r.setAttribute("rx", rx);
+            strokeIt(r);
+        }
+        for (const [cx, cy, cr] of def.circles || []) {
+            const c = document.createElementNS(SVG_NS, "circle");
+            c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", cr);
+            strokeIt(c);
+        }
+        for (const d of def.paths || []) {
+            const p = document.createElementNS(SVG_NS, "path");
+            p.setAttribute("d", d);
+            strokeIt(p);
+        }
+        return svg;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  GlintCard
+    // ══════════════════════════════════════════════════════════════
+    /**
+     * Kullanım:
+     *   <div class="glint-input-group" data-glint-card
+     *        data-raw-name="CardNumberRaw"          ← OPT-IN gizli input (yalın rakamlar)
+     *        data-glint-card-expiry="#cc-exp"       ← opsiyonel kardeş SKT seçicisi
+     *        data-glint-card-cvc="#cc-cvc">         ← opsiyonel kardeş CVC seçicisi
+     *     <input class="glint-input" type="text" autocomplete="cc-number">
+     *     <label class="glint-label">Kart numarası</label>
+     *   </div>
+     */
+    class GlintCard {
+
+        constructor(group) {
+            if (group._glintCardInit) return;
+            group._glintCardInit = true;
+            group._glintCardInstance = this;
+            this.group = group;
+            this.input = group.querySelector("input.glint-input");
+            if (!this.input) return;
+
+            // v1.6 çekirdeği bu bayrakla overlay'de RAKAM-DÜZEYİ animasyon
+            // diff'i uygular (ayraç kayınca rakamlar zıplamaz); eski
+            // çekirdekte zararsız — attribute atıl kalır.
+            this._hadDigitAnim = group.hasAttribute("data-glint-digit-anim");
+            if (!this._hadDigitAnim) group.setAttribute("data-glint-digit-anim", "");
+
+            // Sonradan eklediğimiz attribute'lar destroy'da geri alınır
+            // (mevcut olanlar ASLA ezilmez — stepper'ın inputmode deseni).
+            this._addedAttrs = [];
+            this._ensureAttr(this.input, "inputmode", "numeric");
+            this._ensureAttr(this.input, "autocomplete", "cc-number");
+            this._ensureAttr(this.input, "spellcheck", "false");
+            this._ensureAttr(this.input, "autocorrect", "off");
+
+            this._brandDef = null;        // aktif marka tanımı (BRANDS elemanı) | null
+            this._raw = "";               // yalın rakamlar
+            this._prevVal = this.input.value;
+            this._prevRaw = this.input.value.replace(/\D/g, "");
+            this._valid = false;
+            this._errored = false;        // kart numarası hatası bizde mi
+            this._expErrored = false;     // SKT hatası bizde mi
+            this._lastCompleteKey = "";   // aynı değer için event tekrarı guard'ı
+            this._iconName = null;
+
+            this._buildBrandSlot();
+            this._buildRawInput();
+            this._resolveSiblings();
+            this._bind();
+
+            // İlk (server-render) değer: biçim + marka + ham senkron.
+            this._applyFormat(null);
+            // padding değişti → GlintInput overlay/SVG'sini yeniden kilitle.
+            this._resyncOverlay();
+
+            // DİKKAT: grup anahtarı Glint.register'da GlintInput'a ait
+            // (grup claim edilmedi). Aynı WeakMap kaydını EZMEMEK için kart
+            // kendini INPUT üzerinden kaydeder — teardown ikisini de yıkar.
+            window.Glint.register(this.input, this);
+        }
+
+        // ── DOM KURULUM ──
+
+        /** attribute yoksa ekle ve destroy'da geri almak üzere kaydet. */
+        _ensureAttr(el, name, value) {
+            if (!el || el.hasAttribute(name)) return;
+            el.setAttribute(name, value);
+            this._addedAttrs.push([el, name]);
+        }
+
+        /** Sağ iç yuvaya marka ikonu span'i enjekte eder (buton DEĞİL). */
+        _buildBrandSlot() {
+            this.brandEl = document.createElement("span");
+            // .glint-field__action KULLANILMAZ (o buton içindir) — salt
+            // görsel gösterge; pointer-events CSS'te kapalı.
+            this.brandEl.className = "glint-card-brand";
+            this.brandEl.setAttribute("aria-hidden", "true");
+            this.group.appendChild(this.brandEl);
+            this._setBrandIcon("unknown");
+
+            // İkon metnin üzerine binmesin → input'a sağ padding (inline;
+            // destroy'da eski inline değere geri döner).
+            this._prevPadRight = this.input.style.paddingRight;
+            this.input.style.paddingRight =
+                "calc(var(--glint-action-size) + var(--glint-action-offset) + 8px)";
+        }
+
+        /** data-raw-name verildiyse yalın rakamları taşıyan gizli input. */
+        _buildRawInput() {
+            this.rawInput = null;
+            this._rawCreated = false;
+            const rawName = this.group.getAttribute("data-raw-name");
+            if (!rawName) return;
+            // Varsa yeniden kullan (MVC partial yenileme / yeniden mount).
+            const esc = (window.CSS && CSS.escape) ? CSS.escape(rawName) : rawName.replace(/"/g, '\\"');
+            this.rawInput = this.group.querySelector('input[type="hidden"][name="' + esc + '"]');
+            if (!this.rawInput) {
+                this.rawInput = document.createElement("input");
+                this.rawInput.type = "hidden";
+                this.rawInput.name = rawName;
+                this.group.appendChild(this.rawInput);
+                this._rawCreated = true;
+            }
+        }
+
+        /** Opsiyonel kardeş SKT/CVC alanlarını çöz ve hazırla. */
+        _resolveSiblings() {
+            const find = (sel) => {
+                if (!sel) return null;
+                let el = null;
+                try { el = document.querySelector(sel); } catch (_) { return null; }
+                if (!el) return null;
+                // Seçici grubu işaret ediyorsa içindeki input'a in.
+                if (!/^(input|textarea)$/i.test(el.tagName)) {
+                    el = el.querySelector("input.glint-input, input");
+                }
+                return el || null;
+            };
+            this.expiryInput = find(this.group.getAttribute("data-glint-card-expiry"));
+            this.cvcInput = find(this.group.getAttribute("data-glint-card-cvc"));
+
+            if (this.expiryInput) {
+                this._ensureAttr(this.expiryInput, "autocomplete", "cc-exp");
+                this._ensureAttr(this.expiryInput, "inputmode", "numeric");
+                this._ensureAttr(this.expiryInput, "spellcheck", "false");
+                this._ensureAttr(this.expiryInput, "autocorrect", "off");
+                this._ensureAttr(this.expiryInput, "maxlength", "5"); // "AA/YY"
+            }
+            if (this.cvcInput) {
+                this._ensureAttr(this.cvcInput, "autocomplete", "cc-csc");
+                this._ensureAttr(this.cvcInput, "inputmode", "numeric");
+                this._ensureAttr(this.cvcInput, "spellcheck", "false");
+                this._ensureAttr(this.cvcInput, "autocorrect", "off");
+                // maxlength dinamik (marka) — önceki değer destroy için saklanır.
+                this._cvcPrevMaxlength = this.cvcInput.hasAttribute("maxlength")
+                    ? this.cvcInput.getAttribute("maxlength") : null;
+                this._syncCvcMax();
+            }
+        }
+
+        /**
+         * Kart input padding'i değişti → GlintInput'un overlay clip/SVG'si
+         * eski ölçüde kalabilir. Stepper'daki desenle çift-rAF sonrası
+         * rebuildSVG çağrılır (layout oturunca kararlı okuma).
+         */
+        _resyncOverlay() {
+            const apply = () => {
+                const inst = (this.group && this.group._glintInstance) || null;
+                if (inst && typeof inst.rebuildSVG === "function") {
+                    try { inst.rebuildSVG(); } catch (_) { }
+                }
+            };
+            requestAnimationFrame(() => requestAnimationFrame(apply));
+        }
+
+        // ── EVENT BAĞLAMA ──
+
+        _bind() {
+            this._ac = new AbortController();
+            const sig = this._ac.signal;
+
+            // KRİTİK SIRALAMA: dinleyiciler GRUP üzerinde CAPTURE fazında.
+            // GlintInput kendi input dinleyicisini hedefte (input) tutar;
+            // capture'daki grup dinleyicisi ondan ÖNCE çalışır → değer aynı
+            // turda biçimlenir, GlintInput overlay'i biçimli değeri okur.
+            // EK input eventi DISPATCH EDİLMEZ.
+            this.group.addEventListener("beforeinput", (e) => {
+                if (e.target === this.input) this._onBeforeInput(e);
+            }, { signal: sig, capture: true });
+            this.group.addEventListener("input", (e) => {
+                if (e.target === this.input) this._applyFormat(e);
+            }, { signal: sig, capture: true });
+
+            // Kardeş alanlar kendi .glint-input-group'larında olabilir —
+            // GlintInput'ları BOZULMAZ: yalnız input eventine bağlanılır,
+            // değer kendi handler'ında biçimlenir (ek dispatch yok).
+            if (this.expiryInput) this._bindSibling(this.expiryInput, (e) => this._onExpiryInput(e), sig);
+            if (this.cvcInput) this._bindSibling(this.cvcInput, (e) => this._onCvcInput(e), sig);
+        }
+
+        /** Kardeş alan dinleyicisi — grubu varsa capture ile önden yakala. */
+        _bindSibling(inputEl, handler, sig) {
+            const host = (inputEl.closest && inputEl.closest(".glint-input-group")) || inputEl;
+            host.addEventListener("input", (e) => {
+                if (e.target === inputEl) handler(e);
+            }, { signal: sig, capture: true });
+        }
+
+        // ── KART NUMARASI ──
+
+        /** Kapasite üstü rakamı daha yazılırken reddet. */
+        _onBeforeInput(e) {
+            const t = e.inputType || "";
+            if (t.indexOf("insert") !== 0) return;
+            let data = e.data;
+            if (data == null && e.dataTransfer) {
+                try { data = e.dataTransfer.getData("text/plain"); } catch (_) { data = ""; }
+            }
+            if (!data) return;
+            const insDigits = countDigits(String(data));
+            if (!insDigits) return; // rakamsız girdi — biçimleyici zaten ayıklar
+
+            const val = this.input.value;
+            const s = this.input.selectionStart != null ? this.input.selectionStart : val.length;
+            const en = this.input.selectionEnd != null ? this.input.selectionEnd : s;
+            // Olası yeni ham değer → kapasite OLASI markaya göre hesaplanır
+            // (ör. Amex'te 15'inci rakamdan sonrası reddedilir).
+            const prospective = (val.slice(0, s) + String(data) + val.slice(en)).replace(/\D/g, "");
+            const def = detectBrand(prospective) || DEFAULT_DEF;
+            const keptDigits = countDigits(val) - countDigits(val.slice(s, en));
+            if (keptDigits >= def.length) {
+                // Alan zaten dolu → yazma tamamen reddedilir.
+                e.preventDefault();
+            }
+            // Kısmi yer varsa (uzun paste) event'e izin verilir; taşan kısım
+            // _applyFormat'ta kapasiteye KESİLİR (paste kırpma).
+        }
+
+        /**
+         * Tek biçimleme noktası. input handler İÇİNDE input.value güncellenir;
+         * ek input eventi dispatch edilmez.
+         */
+        _applyFormat(e) {
+            const input = this.input;
+            const oldVal = input.value;
+            const hasFocus = document.activeElement === input;
+            let caret = input.selectionStart != null ? input.selectionStart : oldVal.length;
+            const t = (e && e.inputType) || "";
+            let raw = oldVal.replace(/\D/g, "");
+
+            // — Ayraç silme köprüsü — yalnız boşluk silindiyse (ham değer
+            // değişmedi) bitişik RAKAM da silinir; yoksa biçimleyici boşluğu
+            // geri koyar ve kullanıcı kilitlenirdi.
+            if (raw === this._prevRaw && oldVal !== this._prevVal && raw.length) {
+                if (t === "deleteContentBackward") {
+                    const before = countDigits(oldVal.slice(0, caret));
+                    if (before > 0) {
+                        raw = raw.slice(0, before - 1) + raw.slice(before);
+                        caret = Math.max(0, caret - 1);
+                    }
+                } else if (t === "deleteContentForward") {
+                    const before = countDigits(oldVal.slice(0, caret));
+                    if (before < raw.length) raw = raw.slice(0, before) + raw.slice(before + 1);
+                }
+            }
+
+            // Marka + kapasite: fazla rakam kesilir (paste emniyeti).
+            const def = detectBrand(raw);
+            const cap = def ? def.length : DEFAULT_DEF.length;
+            raw = raw.slice(0, cap);
+            const formatted = groupDigits(raw, (def || DEFAULT_DEF).gaps);
+
+            if (formatted !== oldVal) {
+                input.value = formatted;
+                if (hasFocus) {
+                    const pos = restoreCaret(oldVal, caret, formatted, /\d/);
+                    try { input.setSelectionRange(pos, pos); } catch (_) { }
+                }
+            }
+            this._prevVal = input.value;
+            this._prevRaw = raw;
+            this._raw = raw;
+
+            // Ham değer senkronu: attribute + opsiyonel gizli input.
+            input.setAttribute("data-glint-raw", raw);
+            if (this.rawInput) this.rawInput.value = raw;
+
+            this._setBrand(def);
+            this._evaluate(raw, cap, !!e);
+        }
+
+        /** Marka değişimi: ikon fade-swap + CVC uzunluğu + glint:card-brand. */
+        _setBrand(def) {
+            const name = def ? def.name : null;
+            const prev = this._brandDef ? this._brandDef.name : null;
+            this._brandDef = def;
+            if (name === prev) return;
+            this._setBrandIcon(name || "unknown");
+            this._syncCvcMax();
+            this.group.dispatchEvent(new CustomEvent("glint:card-brand", {
+                bubbles: true,
+                detail: { brand: name }
+            }));
+        }
+
+        /** Sağ yuvada ikon değişimi — opacity+scale fade-swap (CSS 140ms). */
+        _setBrandIcon(name) {
+            if (this._iconName === name) return;
+            this._iconName = name;
+            const G = window.Glint;
+            const reduced = !!(G && typeof G.reducedMotion === "function" && G.reducedMotion());
+            const old = this.brandEl.querySelector("svg:not(.is-leaving)");
+            const next = buildIcon(name);
+
+            if (reduced || !old) {
+                // Hareket yok / ilk ikon → doğrudan değiştir.
+                this.brandEl.textContent = "";
+                this.brandEl.appendChild(next);
+                return;
+            }
+            // Giren ikon: .is-entering ile başlar, reflow sonrası sınıf
+            // kalkar → CSS transition (140ms var(--glint-ease-out)) çalışır.
+            next.classList.add("is-entering");
+            this.brandEl.appendChild(next);
+            void next.getBoundingClientRect();
+            next.classList.remove("is-entering");
+            // Çıkan ikon: absolute bindirilir, sönümlenince sökülür.
+            old.classList.add("is-leaving");
+            const drop = () => old.remove();
+            old.addEventListener("transitionend", drop, { once: true });
+            setTimeout(drop, 220); // emniyet (transition kesilirse)
+        }
+
+        /** Kapasiteye ulaşınca Luhn; eksilince durum/hata temizliği. */
+        _evaluate(raw, cap, fromUser) {
+            if (raw.length === cap) {
+                const ok = luhn(raw);
+                this._valid = ok;
+                if (raw !== this._lastCompleteKey) {
+                    this._lastCompleteKey = raw;
+                    if (ok) {
+                        this._clearCardError();
+                        this.group.classList.add("glint-card-valid");
+                    } else {
+                        this.group.classList.remove("glint-card-valid");
+                        this._setCardError("Kart numarası geçersiz");
+                    }
+                    this.group.dispatchEvent(new CustomEvent("glint:card-complete", {
+                        bubbles: true,
+                        detail: { valid: ok, brand: this.brand }
+                    }));
+                    // Otomatik akış: numara tamam + geçerli → SKT'ye odak
+                    // (yalnız kullanıcı yazarken; sayfa yüklenirken odak çalınmaz).
+                    if (ok && fromUser && this.expiryInput) this.expiryInput.focus();
+                }
+            } else {
+                this._valid = false;
+                this._lastCompleteKey = "";
+                this.group.classList.remove("glint-card-valid");
+                // Silmeye başlayınca hata temizlenir.
+                if (this._errored) this._clearCardError();
+            }
+        }
+
+        _setCardError(msg) {
+            this._errored = true;
+            this._setFieldError(this.input, msg);
+        }
+        _clearCardError() {
+            if (!this._errored) return;
+            this._errored = false;
+            this._clearFieldError(this.input);
+        }
+
+        /** GlintInput'un zengin setError'u varsa onu, yoksa asgari erişilebilir yedek. */
+        _setFieldError(inputEl, msg) {
+            if (!inputEl) return;
+            const group = (inputEl.closest && inputEl.closest(".glint-input-group")) || null;
+            if (window.Glint?.Input?.setError && group && group._glintInstance) {
+                window.Glint.Input.setError(inputEl, msg);
+                return;
+            }
+            inputEl.setAttribute("aria-invalid", "true");
+            (group || inputEl).classList.add("glint-error");
+        }
+        _clearFieldError(inputEl) {
+            if (!inputEl) return;
+            const group = (inputEl.closest && inputEl.closest(".glint-input-group")) || null;
+            if (window.Glint?.Input?.clearError && group && group._glintInstance) {
+                window.Glint.Input.clearError(inputEl);
+                return;
+            }
+            inputEl.removeAttribute("aria-invalid");
+            (group || inputEl).classList.remove("glint-error");
+        }
+
+        // ── KARDEŞ ALANLAR: SKT & CVC ──
+
+        /** SKT "AA/YY": otomatik '/', 01-12 clamp, geçmiş tarih hatası, akış. */
+        _onExpiryInput(e) {
+            const el = this.expiryInput;
+            const oldVal = el.value;
+            const caret = el.selectionStart != null ? el.selectionStart : oldVal.length;
+            const t = (e && e.inputType) || "";
+            const deleting = t.indexOf("delete") === 0;
+
+            let d = oldVal.replace(/\D/g, "").slice(0, 4);
+            // Pragmatik ay düzeltmesi: ilk rakam 2-9 ise başına 0 ("3" → "03").
+            if (d.length >= 1 && d.charAt(0) > "1") d = "0" + d;
+            d = d.slice(0, 4);
+            // 01-12 clamp ("00" → "01", "13" → "12").
+            if (d.length >= 2) {
+                const mm = parseInt(d.slice(0, 2), 10);
+                if (mm === 0) d = "01" + d.slice(2);
+                else if (mm > 12) d = "12" + d.slice(2);
+            }
+            // Biçim: 2 rakamdan sonra otomatik '/' (silerken eklenmez —
+            // yoksa backspace kilitlenir).
+            let formatted;
+            if (d.length > 2) formatted = d.slice(0, 2) + "/" + d.slice(2);
+            else if (d.length === 2 && !deleting) formatted = d + "/";
+            else formatted = d;
+
+            if (formatted !== oldVal) {
+                el.value = formatted;
+                if (document.activeElement === el) {
+                    let pos = restoreCaret(oldVal, caret, formatted, /\d/);
+                    // Yazarken otomatik '/' imlecin arkasında kalmasın.
+                    while (!deleting && pos < formatted.length && formatted.charAt(pos) === "/") pos++;
+                    try { el.setSelectionRange(pos, pos); } catch (_) { }
+                }
+            }
+
+            // Geçerlilik: 4 rakam tamamlandığında geçmiş tarih kontrolü.
+            if (d.length === 4) {
+                const mm = parseInt(d.slice(0, 2), 10);
+                const yy = 2000 + parseInt(d.slice(2), 10);
+                const now = new Date();
+                const past = yy < now.getFullYear() ||
+                    (yy === now.getFullYear() && mm < now.getMonth() + 1);
+                if (past) {
+                    this._expErrored = true;
+                    this._setFieldError(el, "Son kullanma tarihi geçmiş");
+                } else {
+                    if (this._expErrored) { this._expErrored = false; this._clearFieldError(el); }
+                    // Tamamlandı → CVC'ye odak (yalnız kullanıcı yazarken).
+                    if (e && this.cvcInput) this.cvcInput.focus();
+                }
+            } else if (this._expErrored) {
+                // Silmeye başlandı → hata temizlenir.
+                this._expErrored = false;
+                this._clearFieldError(el);
+            }
+        }
+
+        /** CVC: yalnız rakam, markaya göre 3/4 hane. */
+        _onCvcInput() {
+            const el = this.cvcInput;
+            const oldVal = el.value;
+            const clean = oldVal.replace(/\D/g, "").slice(0, this._cvcLen());
+            if (clean === oldVal) return;
+            const caret = el.selectionStart != null ? el.selectionStart : oldVal.length;
+            el.value = clean;
+            if (document.activeElement === el) {
+                const pos = restoreCaret(oldVal, caret, clean, /\d/);
+                try { el.setSelectionRange(pos, pos); } catch (_) { }
+            }
+        }
+
+        _cvcLen() {
+            return (this._brandDef && this._brandDef.name === "amex") ? 4 : 3;
+        }
+
+        /** Marka değişince CVC maxlength'i (3↔4) güncelle, taşanı kırp. */
+        _syncCvcMax() {
+            if (!this.cvcInput) return;
+            const len = this._cvcLen();
+            this.cvcInput.setAttribute("maxlength", String(len));
+            if (this.cvcInput.value.length > len) {
+                this.cvcInput.value = this.cvcInput.value.slice(0, len); // ek dispatch yok
+            }
+        }
+
+        // ── PROGRAMATİK API ──
+
+        /** Algılanan marka adı ("visa" | "mastercard" | … | null). */
+        get brand() { return this._brandDef ? this._brandDef.name : null; }
+        /** Yalın rakamlar (biçim boşlukları hariç). */
+        get digits() { return this._raw; }
+        /** Numara tam kapasitede ve Luhn geçerli mi. */
+        get isValid() { return !!this._valid; }
+
+        /** Yaşam döngüsü teardown — DOM'dan kalkınca çekirdek otomatik çağırır. */
+        destroy() {
+            if (this._ac) { this._ac.abort(); this._ac = null; }
+
+            // Enjekte ikon yuvası sökülür.
+            this.brandEl?.remove();
+            this.brandEl = null;
+
+            // Hata/durum temizliği (bizim bastıklarımız).
+            this._clearCardError();
+            if (this._expErrored) { this._expErrored = false; this._clearFieldError(this.expiryInput); }
+            this.group?.classList.remove("glint-card-valid");
+
+            // Inline stiller geri (padding birikmesin — GlintInput destroy deseni).
+            if (this.input) {
+                this.input.style.paddingRight = this._prevPadRight || "";
+                this.input.removeAttribute("data-glint-raw");
+            }
+
+            // Yalnız BİZİM eklediğimiz attribute'lar geri alınır.
+            for (const [el, name] of this._addedAttrs) el.removeAttribute(name);
+            this._addedAttrs = [];
+
+            // CVC maxlength: önceki değere dön / tamamen kaldır.
+            if (this.cvcInput) {
+                if (this._cvcPrevMaxlength != null) this.cvcInput.setAttribute("maxlength", this._cvcPrevMaxlength);
+                else this.cvcInput.removeAttribute("maxlength");
+            }
+
+            // Gizli input yalnız BİZ ürettiysek sökülür (hazır geleni koru).
+            if (this._rawCreated) this.rawInput?.remove();
+            this.rawInput = null;
+
+            // Guard reset + çekirdek kayıt sızıntısı önlenir.
+            if (this.group) {
+                if (!this._hadDigitAnim) this.group.removeAttribute("data-glint-digit-anim");
+                this.group._glintCardInit = false;
+                this.group._glintCardInstance = null;
+            }
+            if (this.input) window.Glint.unregister(this.input);
+        }
+    }
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  ÇEKİRDEĞE KAYIT (Glint.defineComponent) + güvenli yükleme guard'ı
+    // ══════════════════════════════════════════════════════════════
+
+    function register() {
+        const G = window.Glint;
+
+        // Grup CLAIM EDİLMEZ — GlintInput border/label/overlay sahibi kalır;
+        // kart alanı yalnız zenginleştirir (stepper ile aynı desen).
+        G.defineComponent("card", {
+            selector: ".glint-input-group[data-glint-card]",
+            match: g => !g._glintCardInit,
+            mount: g => new GlintCard(g)
+        });
+
+        // Programatik API
+        G.Card = GlintCard;
+    }
+
+    // Güvenli yükleme-sırası guard'ı: çekirdek (glint-input.js) önce
+    // yüklenmiş olmalı. Değilse DOMContentLoaded'da tekrar dene.
+    if (window.Glint && window.Glint.defineComponent) {
+        register();
+    } else {
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.Glint && window.Glint.defineComponent) register();
         });
     }
 

@@ -7,14 +7,15 @@
 
 | Paket | Ne işe yarar | Klasör |
 | --- | --- | --- |
-| **glint-input** | Input, checkbox, radio, switch, segmented, rating, select, tags, OTP, stepper, slider, range, upload, color, **tarih/saat picker** | [`glint-input-library/`](glint-input-library/) |
+| **glint-input** | Input, checkbox, radio, switch, segmented, rating, select, tags, OTP, stepper, slider, range, upload, color, **tarih/saat/ay picker**, **telefon (242 ülke)**, **combobox**, **kredi kartı**, **form orkestratörü**, **e-posta yardımcıları** | [`glint-input-library/`](glint-input-library/) |
 | **glint-toast** | Bildirim motoru (success/error/warning/info), sunucu köprüsü, akıllı alan-hata köprüsü | [`glint-toast-library/`](glint-toast-library/) |
 
-- 🎯 **Sıfır bağımlılık** — saf JavaScript + CSS, build adımı gerektirmez.
+- 🎯 **Sıfır bağımlılık** — saf JavaScript + CSS, build adımı gerektirmez; **hiçbir bileşen ağ isteği gerektirmez**.
 - ⚡ **Tembel (lazy) işleme** — bir bileşen yalnızca sayfada karşılığı varsa çalışır.
-- 🌗 **Koyu mod** (`data-bs-theme="dark"`), `prefers-reduced-motion`, tam klavye & ARIA.
+- 🌗 **Koyu mod** (`data-bs-theme="dark"`), `prefers-reduced-motion` + runtime `reducedMotion`, tam klavye & ARIA.
 - 🧩 **MVC dostu** — native elemanlar DOM'da kalır; `asp-for` ve model binding korunur.
-- 📱 **Mobil** — picker'lar bottom-sheet'e döner; dokunmatik uyumlu.
+- 📱 **Mobil** — picker'lar bottom-sheet'e döner; dokunmatik hedefler `pointer: coarse`'ta büyür.
+- ✨ **Birleşik hareket dili** — imza easing/süre token'ları, FLIP yardımcısı, çizilen kenarlıklar.
 
 ---
 
@@ -98,8 +99,8 @@ sürümlü minify üretir:
 
 ```
 build/dist/
-  glint-input-1.5.0.min.js   glint-input-1.5.0.min.css
-  glint-toast-1.5.0.min.js   glint-toast-1.5.0.min.css
+  glint-input-1.6.0.min.js   glint-input-1.6.0.min.css
+  glint-toast-1.6.0.min.js   glint-toast-1.6.0.min.css
 ```
 
 Minify için [esbuild](https://esbuild.github.io/) kullanılır (`npx` ile otomatik çekilir
@@ -117,7 +118,7 @@ tek yerde toplanmıştır — dosyayı kazımadan özelleştir.
 
 ## Sürüm geçmişi
 
-Bkz. [CHANGELOG.md](CHANGELOG.md). Güncel: **v1.5.0**.
+Bkz. [CHANGELOG.md](CHANGELOG.md). Güncel: **v1.6.0**.
 
 ## Lisans
 

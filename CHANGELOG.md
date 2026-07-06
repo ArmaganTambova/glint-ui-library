@@ -8,6 +8,126 @@ Sürüm, iki paket için **ortak** tek numaradır (`build/version.js` → `Glint
 
 ---
 
+## [1.6.0] — 2026-07-06
+
+Büyük özellik sürümü: iki tam yeni bileşen ailesi (telefon, combobox, kart),
+form orkestratörü, e-posta yardımcıları, stepper ve picker'ın görsel yeniden
+tasarımı, birleşik hareket dili ve tek tasarım kabuğuna kavuşan rehberler.
+Tek-dosya felsefesi korunur: her şey glint-input.js / glint-input.css içinde.
+Hiçbir bileşen ağ isteği GEREKTIRMEZ (Ajax zorunluluğu yok — kullanıcı kuralı).
+
+### Eklenenler
+
+**GlintPhone — uluslararası telefon girişi** (`.glint-phone-group`)
+- 242 ülke/bölge gömülü veri: TR+EN ad, alan kodu, ulusal maske (93 ülkede
+  gerçek format; kalanında uzunluk aralığı), paylaşılan kodlarda öncelik.
+- Ülke seçici: aranabilir popover (TR/EN ad + ISO2 + kod), öncelikli ülkeler
+  (`data-priority-countries`), klavye navigasyonu, ARIA listbox.
+- Bayrak stratejisi `data-flags="auto|badge|none|url:<şablon>"` — auto:
+  destekleyen platformda emoji, Windows'ta şık ISO-2 rozeti; `url:` şablonu
+  salt OPT-IN (varsayılan tamamen çevrimdışı).
+- Maske canlı uygulanır (TR: `536 401 08 26`), caret rakam-sayımıyla korunur;
+  `+90` / `0090` / E.164 yapıştırınca ülke otomatik algılanır; trunk `0`
+  sessizce atılır; `data-raw-name` ile opt-in gizli E.164 input.
+- Events: `glint:phone-countrychange/-input/-validity`; API: `Glint.Phone`.
+
+**GlintCombobox — serbest metinli autocomplete** (`data-glint-combobox`)
+- Kaynaklar: inline JSON (`data-options`), `<datalist>`/window yolu
+  (`data-options-from`), opsiyonel KULLANICI async fonksiyonu
+  (`data-source-fn` — kütüphane asla fetch yapmaz).
+- TR-duyarlı filtre + `<mark>` vurgusu, debounce, yarış guard'ı, loading
+  durumu, boş-sonuç metni, tam ARIA combobox deseni.
+- Events: `glint:combobox-select/-open/-close`; API: `Glint.Combobox`.
+
+**GlintCard — kredi kartı girişi** (`data-glint-card`)
+- Marka algılama (Visa/Mastercard/Amex/Troy/Discover/Diners/JCB) + sağda
+  monokrom ikon fade-swap; 4-4-4-4 / Amex 4-6-5 / Diners 4-6-4 gruplama.
+- Luhn doğrulama (geçerli → yeşil kenar + `glint:card-complete`); kardeş SKT
+  (MM/YY, geçmiş tarih reddi) ve CVC (markaya göre 3/4) alanları arası
+  otomatik odak akışı; ham rakamlar `data-glint-raw` + opsiyonel gizli input.
+
+**GlintForm — form orkestratörü** (`<form data-glint-form>`)
+- Submit'te istemci tarafı toplu doğrulama (native validity + gizli
+  zorunlular); geçersizse submit engellenir, hatalar toast köprüsünden
+  (fieldErrors politikası) ya da doğrudan inline akar; ilk hatalı alana
+  kaydır + odakla; `glint:form-invalid` eventi; `Glint.Form.get(f).validate()`.
+
+**E-posta yardımcıları** (GlintInput, `type=email`, opt-in)
+- `data-glint-email-assist`: soluk ghost `@` ve alan adı tamamlama
+  (`gmail.com`… — `data-glint-email-domains` ile özelleştirilir); Tab/→
+  kabul eder; kabul "mürekkep katılaşması" animasyonuyla (ghost, input
+  DEĞERİNE girmez — form asla yanlış değer görmez).
+- `data-glint-email-memory`: e-posta YALNIZ başarılı submit'te localStorage'a
+  yazılır (maks 5); dönüşte alanın sol altından chip süzülür (alt çizgiden
+  doğma + border parıltısı); tıklamada glifler alana FLIP ile uçar; ↓ ile
+  chip'e odak, kayıtlar arasında gezinme, Esc oturumluk kapatma;
+  `Glint.email.clearMemory(key?)`.
+
+**Picker**
+- **Ay modu**: `<input type="month">` — panel doğrudan ay ızgarasıyla açılır,
+  ay seçimi commit eder (native `YYYY-MM`, görüntü "Temmuz 2026").
+- **Saat snap'i** (v1.5.1'den): yazılan saat commit'te `data-minute-step`'e
+  yuvarlanır (13:33→13:35, 13:48→14:00).
+
+**OTP**
+- `data-resend="60"`: geri sayımlı "Tekrar gönder" + `glint:otp-resend`.
+- `setSuccess()`: hücre hücre yeşil başarı dalgası (shake'in mutlu simetriği).
+
+**Toast (glint-toast) — v1.6 özellik katmanı**
+- `Glint.Toast.promise(p, {loading, success, error})`: dönen halka spinner'lı
+  yükleme toast'ı, promise çözülünce AYNI kutu sonuca MORF olur (ikon pop +
+  renk geçişi; ağ işini kullanıcı yapar — kütüphane fetch etmez).
+- Aksiyon butonu: `success(msg, {action:{label:"Geri Al", onClick}})` —
+  tıklamada varsayılan kapanır (`keepOpen` ile kalır).
+- `opts.duration` / `opts.sticky` — çağrı başına süre; `opts.title`.
+- ×N tekrar rozeti (dedupe): aynı tür+metin görünürken yeni istek mevcut
+  toast'ın rozetini artırır ve süresini tazeler (bildirim spam'i biter).
+- Kaydırarak kapatma (swipe): yatay sürükle → eşikte savrulur; dikey sayfa
+  kaydırması bozulmaz (`touch-action: pan-y`).
+- Konum sistemi: `Glint.Toast.configure({position: "top-right|top-left|
+  top-center|bottom-right|bottom-left"})`; alttakiler aşağıdan süzülür;
+  ofset token'ları `--glint-toast-offset-top/-side/-bottom`.
+- `configure({maxVisible, staggerDelay, dedupe, swipeToDismiss, autoDismiss})`.
+- Entegrasyon eventleri: `glint:toast-open` / `glint:toast-close` (document).
+- Hata dışı toast'lar `role="status"` (daha doğru SR semantiği); giriş yayı
+  `--glint-ease-pop` ortak token'ında.
+
+**Çekirdek / hareket dili**
+- Easing token seti (`--glint-ease-out/in/move/pop/snap/shake`) + 6 kademeli
+  süre skalası (`--glint-dur-1..6`) — 40+ kaçak bezier token'a göçtü; toast'ın
+  yay girişi `--glint-ease-pop` ile ORTAK dile alındı.
+- `Glint.flip(container, mutate, opts)` — genel FLIP yardımcısı.
+- `Glint.configure({reducedMotion:true})` artık runtime'da çalışır
+  (`.glint-motion-off` kök sınıfı + `--glint-motion-scale`).
+- `data-glint-digit-anim`: dış biçimleyiciler için rakam-düzeyi animasyon.
+- `data-glint-diagonal`: herhangi bir alanda çapraz border çizimi.
+
+### Değişenler (görsel yeniden tasarım)
+
+- **Stepper REDESIGN:** kapsül + statik odak halkası kaldırıldı — stepper
+  artık İMZA çizilen SVG kenarlığı kullanıyor (çizim grubu sarar), −/+
+  butonları alan içinde ghost butonlar (hover aksan tint'i, basışta scale),
+  rakam değişimi ODOMETER (eski rakam yukarı süzülür, yeni alttan; azalışta
+  ters) — "kütüphanenin değilmiş gibi" hissi giderildi.
+- **Picker REDESIGN:** border çizimi picker alanlarında SOL ÜSTTEN SAĞ ALTA
+  çapraz akar; panel input'un hemen altında (4px), SOL KÖŞELER HİZALI ve
+  GENİŞLİK INPUT İLE AYNI (yalnız çoklu-ay ≥520px / preset'li ≥420px tabanı);
+  panel çapraz clip-path perdesiyle açılır ve kenarında aynı köşeden akan
+  aksan çizgisi bir kez parlayıp söner; mobil bottom-sheet korunur.
+- **Mikro-etkileşim paketi:** checkbox snap + 60ms gecikmeli imza çizimi,
+  switch varışta squash-stretch, rating seçim pop'u, select değer odometer'ı,
+  upload ilerleme shimmer'ı, picker gün seçim halkası.
+- **Rehberler:** glint-input ve glint-toast index.html'leri TEK ortak tasarım
+  kabuğuna taşındı (kullanıcı direktifi); v1.6 bölümleri eklendi; "ara" ve
+  numeric demoları kaldırıldı; mobile-demo'lardan Google Fonts CDN'i çıktı.
+
+### Kaldırılanlar
+- glint-phone-library ayrı klasörü (üretim sonrası ana dosyalara birleşti —
+  tek-dosya felsefesi, kullanıcı direktifi).
+- Stepper kapsül token'ları (`--glint-stepper-surface*`, `-focus-ring`).
+
+---
+
 ## [1.5.1] — 2026-07-06
 
 Saf hata-düzeltme sürümü (yalnız kütüphane dosyaları; demo/index.html v1.6'da

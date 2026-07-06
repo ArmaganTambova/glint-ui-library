@@ -10,10 +10,6 @@
 <!-- Köprü/toast demosu (opsiyonel ikinci paket) -->
 <link rel="stylesheet" href="../glint-toast-library/glint-toast.css">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-
 <style>
 /* ── Mobil demo kabuğu (hem iframe içinde hem gerçek telefonda) ── */
 :root {
@@ -26,8 +22,9 @@
     --ink-3: #616d7a;
     --line: #1f262e;
     --bs-primary: #059669;
-    --font-display: "Bricolage Grotesque", system-ui, sans-serif;
-    --font-body: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+    /* Sistem font yığını — sıfır bağımlılık vitrini, CDN yok */
+    --font-display: system-ui, -apple-system, "Segoe UI Variable Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-body: system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
