@@ -219,8 +219,4 @@ yeniden tasarlanan rehberler, mobil önizleme ve optimizasyon.
 - Toplu silme (Ctrl+A → Delete) sağdan sola animasyonlu.
 - Karakter giriş animasyonu (translateY + scale + blur; paste ripple stagger).
 
-### Picker (eski "pdks") v2.0
-- min/max, devre dışı günler/hafta günleri, tarih aralığı (range), grid içi tam
-  ok-tuşu navigasyonu, mobil bottom-sheet.
-
 [1.5.0]: https://github.com/ArmaganTambova/glint-ui-library/releases/tag/v1.5.0
