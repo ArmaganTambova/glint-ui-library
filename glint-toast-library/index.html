@@ -601,6 +601,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
                 <a href="#davranis">Davranış</a>
                 <a href="#v16">Promise &amp; aksiyon</a>
                 <a href="#konum">Konum &amp; yapılandırma</a>
+                <a href="#v17">v1.7 yenilikleri</a>
             </div>
             <div class="nav-group">
                 <span>Sunucu & form</span>
@@ -1107,7 +1108,7 @@ Glint.Toast.warning("Oturumunuz birazdan sona erecek."); // 6 sn
 
   <!-- ══════════════ 2) Yığınlama + maxVisible ══════════════ -->
   <h3 class="h3" id="t-stack">Yığınlama ve görünür sınırı (maxVisible 5)</h3>
-  <p class="muted">Yeni bildirim her zaman <strong>en üste</strong> eklenir. Aynı anda en çok <code>maxVisible</code> (kaynakta <strong>5</strong>) bildirim görünür; bu sınır aşıldığında <strong>en eski</strong> bildirim animasyonsuz atılır, yeni gelen yerini alır. Sınır gerçek liste uzunluğuna göre ekleme anında uygulanır, sunucu yığın (burst) gönderiminde de doğru çalışır.</p>
+  <p class="muted">Yeni bildirim her zaman <strong>en üste</strong> eklenir. Aynı anda en çok <code>maxVisible</code> (kaynakta <strong>5</strong>) bildirim görünür; sınır aşıldığında <strong>en eski</strong> bildirim v1.7'den itibaren kısa bir <b>mini-çıkış animasyonuyla</b> uğurlanır (eskiden animasyonsuz kaybolurdu), yeni gelen yerini alır. Sınır gerçek liste uzunluğuna göre ekleme anında uygulanır, sunucu yığın (burst) gönderiminde de doğru çalışır. Tahliye yerine <b>sıraya almak</b> için v1.7 <code>overflow: "queue"</code> moduna bak: <a href="#v17-queue">kuyruk demosu</a>.</p>
   <div class="example">
     <div class="preview">
       <div class="preview__tag"><b></b> Canlı önizleme</div>
@@ -1270,7 +1271,7 @@ Glint.Toast.promise(
 
   <!-- 2) Aksiyon -->
   <h3 class="h3" id="v16-action-h">Aksiyon butonu ("Geri Al")</h3>
-  <p class="muted"><code>opts.action = { label, onClick, keepOpen }</code> bildirime bir eylem düğmesi ekler. Tıklamada <code>onClick</code> çalışır ve toast <b>varsayılan olarak kapanır</b>; açık kalması gereken akışlarda <code>keepOpen: true</code> ver.</p>
+  <p class="muted"><code>opts.action = { label, onClick, keepOpen }</code> bildirime bir eylem düğmesi ekler. Tıklamada <code>onClick</code> çalışır ve toast <b>varsayılan olarak kapanır</b>; açık kalması gereken akışlarda <code>keepOpen: true</code> ver. v1.7: aksiyonlu toast <kbd>Tab</kbd> ile <b>odaklanabilir</b> (klavyeden erişilir), buton <kbd>Enter</kbd>/<kbd>Space</kbd> ile çalışır; <code>action.countdown: true</code> ile butona kalan süreyi çizen <b>geri sayım</b> eklenir — bkz. <a href="#v17-undo">undo demosu</a>.</p>
   <div class="example">
     <div class="preview">
       <div class="preview__tag"><b></b> Canlı önizleme</div>
@@ -1314,7 +1315,7 @@ Glint.Toast.info("Bakım penceresi: 02:00 – 04:00", { sticky: true });</code><
 
   <!-- 4) Dedupe ×N -->
   <h3 class="h3" id="v16-dedupe-h">×N tekrar rozeti (dedupe)</h3>
-  <p class="muted">Aynı <b>tür + metin</b> zaten ekrandayken tekrar istenirse yeni bir kutu açılmaz: mevcut bildirime <b>×2, ×3…</b> rozeti işlenir, rozet "pop" animasyonuyla vurgulanır ve <b>otomatik kapanma süresi tazelenir</b>. Bildirim spam'i (örn. arka arkaya tıklanan kaydet butonu) tek zarif kutuya iner. Alan-bağlı hatalar (<code>fieldId</code>) ve çoklu-mesaj toast'ları birleştirilmez.</p>
+  <p class="muted">Aynı <b>tür + metin</b> zaten ekrandayken tekrar istenirse yeni bir kutu açılmaz: mevcut bildirime <b>×2, ×3…</b> rozeti işlenir, rozet "pop" animasyonuyla vurgulanır ve <b>otomatik kapanma süresi tazelenir</b> — v1.7: imleç üzerindeyken (duraklatılmışken) gelen tekrar da süreyi tazeler, ayrılınca tam süreyle devam eder. Bildirim spam'i (örn. arka arkaya tıklanan kaydet butonu) tek zarif kutuya iner. Alan-bağlı hatalar (<code>fieldId</code>) ve çoklu-mesaj toast'ları birleştirilmez; v1.7'den itibaren <b>farklı <code>title</code> ya da <code>action</code> taşıyan</b> aynı metin de ayrı kutu açar (yanlış birleşme bitti).</p>
   <div class="example">
     <div class="preview">
       <div class="preview__tag"><b></b> Canlı önizleme · rozet ×3'e çıkar</div>
@@ -1337,7 +1338,7 @@ Glint.Toast.configure({ dedupe: false });</code></pre>
 
   <!-- 5) Swipe -->
   <h3 class="h3" id="v16-swipe-h">Kaydırarak kapatma (mobil)</h3>
-  <p class="muted">Dokunmatik ekranda (ya da fareyle) bir bildirimi <b>yatay sürükleyip bırak</b>: eşiği geçince kutu süzülerek kapanır, geçmezse yerine yaylanır. Dikey kaydırma sayfaya bırakılır (<code>touch-action: pan-y</code>); kapat düğmesi ve aksiyon butonu sürüklemeden etkilenmez.</p>
+  <p class="muted">Dokunmatik ekranda (ya da fareyle) bir bildirimi <b>yatay sürükleyip bırak</b>: v1.7'de eşik <b>hıza duyarlıdır</b> — yavaşça ~72px sürükle <b>ya da</b> kısa-hızlı bir hareketle savur; ikisi de kutuyu süzülerek kapatır, eşik altı kalırsa yerine yaylanır. Dikey kaydırma sayfaya bırakılır (<code>touch-action: pan-y</code>); kapat düğmesi ve aksiyon butonu sürüklemeden etkilenmez.</p>
   <div class="example">
     <div class="preview">
       <div class="preview__tag"><b></b> Canlı önizleme · toast'ı yana sürükle</div>
@@ -1400,14 +1401,20 @@ Glint.Toast.info("Artık sol altta.");
         <tr><td><code>maxVisible</code></td><td>5</td><td>Aynı anda görünür bildirim üst sınırı; aşılınca en eski atılır.</td></tr>
         <tr><td><code>staggerDelay</code></td><td>140 ms</td><td>Yığın (burst) gönderiminde sıralı giriş aralığı.</td></tr>
         <tr><td><code>dedupe</code></td><td>true</td><td>Aynı tür+metin görünürken ×N rozeti (yeni kutu yerine).</td></tr>
-        <tr><td><code>swipeToDismiss</code></td><td>true</td><td>Yatay sürükleyerek kapatma.</td></tr>
+        <tr><td><code>swipeToDismiss</code></td><td>true</td><td>Yatay sürükleyerek kapatma (v1.7: hıza duyarlı eşik).</td></tr>
         <tr><td><code>autoDismiss</code></td><td>{success:3500, error:8000, warning:6000, info:5000}</td><td>Tür başına otomatik kapanma (ms); <code>0</code> = kapanmaz. Kısmi verilebilir: <code>{ error: 10000 }</code>.</td></tr>
+        <tr><td><code>stacking</code> <span class="muted">v1.7</span></td><td>"list"</td><td><code>"stack"</code> = Sonner tarzı iskambil yığını: toast'lar üst üste biner, hover'da açılır. Bkz. <a href="#v17-stack">yığın modu</a>.</td></tr>
+        <tr><td><code>overflow</code> <span class="muted">v1.7</span></td><td>"evict"</td><td><code>maxVisible</code> aşımında davranış: <code>"evict"</code> en eskiyi mini-çıkışla atar, <code>"queue"</code> sıraya alır (yer açıldıkça gösterir).</td></tr>
+        <tr><td><code>pauseAllOnHover</code> <span class="muted">v1.7</span></td><td>false</td><td>İmleç herhangi bir toast'a gelince <b>tüm</b> sayaçları duraklatır (stack modunda otomatik açık).</td></tr>
+        <tr><td><code>density</code> <span class="muted">v1.7</span></td><td>"comfortable"</td><td><code>"compact"</code> = sıkışık paneller için küçük ölçüler (ikon/punto/progress).</td></tr>
+        <tr><td><code>group</code> <span class="muted">v1.7</span></td><td>false</td><td>Benzer bildirimleri tek kutuda satır listesi + "+N daha" özetiyle toplar; çağrı başına <code>opts.group: "anahtar"</code> ile özel gruplama. Bkz. <a href="#v17-group">grup demosu</a>.</td></tr>
       </tbody>
     </table>
   </div>
+  <p class="muted" style="font-size:.92rem">v1.7 ayrıca <code>Glint.Toast.update(el, opts)</code> API'sini ekler: açık bir toast'ın türünü/metnini/süresini yerinde değiştirir (promise morf'uyla aynı geçiş dili) — bkz. <a href="#v17-update">update demosu</a>.</p>
 
   <h3 class="h3" id="konum-events">Eventler — <code>glint:toast-open</code> / <code>glint:toast-close</code></h3>
-  <p class="muted">Her bildirim açılış ve kapanışta <code>document</code> üzerinde CustomEvent yayar — analitik, ses, log gibi entegrasyonlar için. <code>detail.element</code> toast DOM'unu, açılışta <code>detail.type</code> tür sabitini taşır.</p>
+  <p class="muted">Her bildirim açılış ve kapanışta <code>document</code> üzerinde CustomEvent yayar — analitik, ses, log gibi entegrasyonlar için. <code>detail.element</code> toast DOM'unu, açılışta <code>detail.type</code> tür sabitini taşır. <b>v1.7:</b> kapanış eventi <code>detail.reason</code> ile <b>nedenini</b> de söyler: <code>timeout</code> · <code>user</code> · <code>swipe</code> · <code>evict</code> · <code>api</code> — canlı günlük için <a href="#v17-reason">v1.7 bölümüne</a> bak.</p>
   <div class="example">
     <div class="preview">
       <div class="preview__tag"><b></b> Canlı önizleme · sayaç eventlerle artar</div>
@@ -1428,8 +1435,230 @@ document.addEventListener("glint:toast-close", (e) =&gt; {
   </div>
 </section>
 
+            <!-- ══════════════ v1.7 YENİLİKLERİ ══════════════ -->
+            <section class="sec reveal" id="v17">
+  <div class="sec-head"><span class="sec-kicker">08 · v1.7</span><h2>v1.7 yenilikleri</h2></div>
+  <p class="intro">v1.7 bildirim motoruna sekiz katman ekler: <b>yığın (stack) modu</b> (Sonner tarzı iskambil dizilimi), açık toast'ı yerinde değiştiren <b>update()</b>, kapanışın <b>nedenini söyleyen</b> event, taşan bildirimleri sıraya alan <b>kuyruk modu</b>, butonda kalan süreyi çizen <b>undo geri sayımı</b>, benzerleri tek kutuda toplayan <b>grup/özet</b>, <b>global klavye kısayolları</b> ve sıkışık paneller için <b>compact yoğunluk</b>. Hepsi opsiyoneldir; v1.6 çağrıları aynen çalışır.</p>
+
+  <!-- 1) Yığın modu -->
+  <h3 class="h3" id="v17-stack">Yığın modu — <code>stacking: "stack"</code></h3>
+  <p class="muted">Liste yerine <b>iskambil yığını</b>: toast'lar hafif ölçek/ofsetle üst üste biner, imleç gelince yelpaze gibi açılır (bu sırada tüm sayaçlar otomatik duraklar), ayrılınca toparlanır. Girişteki sol şerit çizimi (marka imzası) ve FLIP yerleşimi korunur; <code>prefers-reduced-motion</code>'da yığın anlık açılır.</p>
+  <div class="example">
+    <div class="preview">
+      <div class="preview__tag"><b></b> Canlı önizleme · 4 toast bas, üzerine gel</div>
+      <div class="preview-form">
+        <div class="row">
+          <button class="dbtn" id="v17-stack-burst" type="button">4 bildirim gönder</button>
+          <button class="dbtn dbtn--ghost" id="v17-stack-toggle" type="button">stack ↔ list</button>
+          <span class="muted" style="font-family:var(--font-mono);font-size:.85rem" id="v17-stack-mode">mod: list</span>
+        </div>
+      </div>
+    </div>
+    <div class="code">
+      <div class="code__bar"><button class="tab active" data-l="js">JS API</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+      <pre class="pane active" data-l="js"><code>// Sonner tarzı yığın: üst üste biner, hover'da açılır
+Glint.Toast.configure({ stacking: "stack" });
+
+// Hover'da açılırken TÜM sayaçlar otomatik duraklar
+// (pauseAllOnHover stack modunda kendiliğinden devrededir).
+
+// Listeye dönüş:
+Glint.Toast.configure({ stacking: "list" });</code></pre>
+    </div>
+  </div>
+
+  <!-- 2) update() -->
+  <h3 class="h3" id="v17-update">Açık toast'ı güncelle — <code>Glint.Toast.update()</code></h3>
+  <p class="muted">Açık bir bildirimi <b>yerinde</b> değiştirir: tür, başlık, metin, süre — promise morf'uyla aynı geçiş diliyle (ikon takası + renk + başlık yumuşak döner). Sticky bir "yükleniyor" bildirimini sonuca çevirmek için idealdir (promise API'si kullanmadığın akışlarda).</p>
+  <div class="example">
+    <div class="preview">
+      <div class="preview__tag"><b></b> Canlı önizleme · 1,5 sn sonra success'e morf olur</div>
+      <div class="row">
+        <button class="dbtn" id="v17-update-run" type="button">Yükleniyor → Bitti</button>
+      </div>
+    </div>
+    <div class="code">
+      <div class="code__bar"><button class="tab active" data-l="js">JS API</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+      <pre class="pane active" data-l="js"><code>const el = Glint.Toast.info("Rapor hazırlanıyor…", { sticky: true });
+
+// İş bitince aynı kutuyu sonuca çevir:
+Glint.Toast.update(el, {
+  type: "success",
+  message: "Rapor hazır — indirebilirsin.",
+  duration: 4000
+});</code></pre>
+    </div>
+  </div>
+
+  <!-- 3) Kapanış nedeni -->
+  <h3 class="h3" id="v17-reason">Kapanış nedeni — <code>detail.reason</code></h3>
+  <p class="muted"><code>glint:toast-close</code> artık bildirimin <b>neden</b> kapandığını söyler: <code>timeout</code> (süre doldu) · <code>user</code> (X / Esc / aksiyon) · <code>swipe</code> (sürükleme) · <code>evict</code> (maxVisible tahliyesi) · <code>api</code> (<code>dismiss</code>/<code>dismissAll</code>). Aşağıdaki günlük canlı dolar — bir toast aç, farklı yollarla kapat.</p>
+  <div class="example">
+    <div class="preview">
+      <div class="preview__tag"><b></b> Canlı önizleme · kapat ve nedeni izle</div>
+      <div class="preview-form">
+        <div class="row">
+          <button class="dbtn" id="v17-reason-fire" type="button">Bildirim aç (5 sn)</button>
+          <button class="dbtn dbtn--ghost" id="v17-reason-api" type="button">dismissAll()</button>
+        </div>
+        <div id="v17-reason-log" style="font-family:var(--font-mono);font-size:12px;opacity:.75;margin-top:12px;min-height:18px">(henüz kapanış yok)</div>
+      </div>
+    </div>
+    <div class="code">
+      <div class="code__bar"><button class="tab active" data-l="js">JS API</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+      <pre class="pane active" data-l="js"><code>document.addEventListener("glint:toast-close", (e) =&gt; {
+  console.log("kapandı:", e.detail.reason);
+  // "timeout" | "user" | "swipe" | "evict" | "api"
+});</code></pre>
+    </div>
+  </div>
+
+  <!-- 4) Kuyruk modu -->
+  <h3 class="h3" id="v17-queue">Kuyruk modu — <code>overflow: "queue"</code></h3>
+  <p class="muted">Varsayılan davranış <code>"evict"</code>tir: <code>maxVisible</code> aşılınca en eski toast mini-çıkışla atılır. <code>"queue"</code> ise hiçbir bildirimi kaybetmez — taşanlar <b>sıraya alınır</b>, ekranda yer açıldıkça sırayla gösterilir. <code>dismissAll()</code> kuyruğu da boşaltır.</p>
+  <div class="example">
+    <div class="preview">
+      <div class="preview__tag"><b></b> Canlı önizleme · maxVisible 3 iken 6 bildirim</div>
+      <div class="preview-form">
+        <div class="row">
+          <button class="dbtn" id="v17-queue-burst" type="button">6 bildirim gönder</button>
+          <button class="dbtn dbtn--ghost" id="v17-queue-toggle" type="button">queue ↔ evict</button>
+          <span class="muted" style="font-family:var(--font-mono);font-size:.85rem" id="v17-queue-mode">mod: evict</span>
+        </div>
+        <p class="muted" style="margin:12px 0 0;font-size:.85rem">queue modunda ilk 3'ü kapandıkça 4-5-6 sırayla gelir; evict modunda en eskiler mini-çıkışla atılır.</p>
+      </div>
+    </div>
+    <div class="code">
+      <div class="code__bar"><button class="tab active" data-l="js">JS API</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+      <pre class="pane active" data-l="js"><code>Glint.Toast.configure({ overflow: "queue", maxVisible: 3 });
+
+for (let i = 1; i &lt;= 6; i++) Glint.Toast.info("Bildirim #" + i);
+// İlk 3 görünür; 4-5-6 sıradan, yer açıldıkça gelir.
+
+Glint.Toast.dismissAll();   // görünenler + kuyruk birlikte temizlenir</code></pre>
+    </div>
+  </div>
+
+  <!-- 5) Undo geri sayımı -->
+  <h3 class="h3" id="v17-undo">Undo geri sayımı — <code>action.countdown</code></h3>
+  <p class="muted"><code>action: { label, onClick, countdown: true }</code> aksiyon butonunun altına kalan süreyi çizen ince bir <b>geri sayım çizgisi</b> ekler — "Geri Al" penceresinin ne kadar kaldığı görünür. İmleç toast'ın üzerindeyken sayaçla birlikte çizgi de durur.</p>
+  <div class="example">
+    <div class="preview">
+      <div class="preview__tag"><b></b> Canlı önizleme · çizgi butonda geri sayar</div>
+      <div class="row">
+        <button class="dbtn" id="v17-undo" type="button">Öğe silindi → Geri Al (5 sn)</button>
+      </div>
+    </div>
+    <div class="code">
+      <div class="code__bar"><button class="tab active" data-l="js">JS API</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+      <pre class="pane active" data-l="js"><code>Glint.Toast.warning("Öğe silindi", {
+  duration: 5000,
+  action: {
+    label: "Geri Al",
+    countdown: true,                       // butonda kalan süre çizgisi
+    onClick: () =&gt; Glint.Toast.success("Geri alındı")
+  }
+});</code></pre>
+    </div>
+  </div>
+
+  <!-- 6) Grup / özet -->
+  <h3 class="h3" id="v17-group">Grup / özet — <code>group</code></h3>
+  <p class="muted"><code>configure({ group: true })</code> benzer bildirimleri tek kutuda <b>satır listesi</b> olarak toplar; sığmayanlar <b>"+N daha"</b> özetiyle belirtilir ve rozet ×N ile güncellenir. Çağrı başına <code>opts.group: "anahtar"</code> türden bağımsız özel gruplama yapar (örn. tüm yükleme bildirimleri tek kutuda).</p>
+  <div class="example">
+    <div class="preview">
+      <div class="preview__tag"><b></b> Canlı önizleme · 7 dosya bildirimi tek kutuda</div>
+      <div class="preview-form">
+        <div class="row">
+          <button class="dbtn" id="v17-group-burst" type="button">7 "dosya yüklendi" gönder</button>
+          <button class="dbtn dbtn--ghost" id="v17-group-toggle" type="button">group aç/kapat</button>
+          <span class="muted" style="font-family:var(--font-mono);font-size:.85rem" id="v17-group-mode">group: kapalı</span>
+        </div>
+      </div>
+    </div>
+    <div class="code">
+      <div class="code__bar"><button class="tab active" data-l="js">JS API</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+      <pre class="pane active" data-l="js"><code>Glint.Toast.configure({ group: true });
+
+for (let i = 1; i &lt;= 7; i++)
+  Glint.Toast.success("Dosya " + i + " yüklendi");
+// → tek kutu: ilk satırlar listelenir + "+N daha" özeti
+
+// Türden bağımsız özel anahtar:
+Glint.Toast.info("api.glint.dev yanıt vermiyor", { group: "sunucu" });
+Glint.Toast.error("Bağlantı zaman aşımı",        { group: "sunucu" });</code></pre>
+    </div>
+  </div>
+
+  <!-- 7) Klavye -->
+  <h3 class="h3" id="v17-keyboard">Klavye kısayolları</h3>
+  <p class="muted">Bildirimler artık tamamen klavyeyle yönetilir — kısayollar yalnız ekranda toast varken dinlenir, sayfanın kendi kısayollarıyla çakışmaz.</p>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>Kısayol</th><th>Davranış</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>Esc</kbd></td><td>En yeni bildirimi kapatır (<code>reason: "user"</code>).</td></tr>
+        <tr><td><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td><td>İlk bildirime odaklanır (ekran okuyucu/klavye gezintisi başlangıcı).</td></tr>
+        <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Odak toast'lar arasında gezer.</td></tr>
+        <tr><td><kbd>Enter</kbd> / <kbd>Space</kbd></td><td>Aksiyonlu toast'ta aksiyonu çalıştırır; alan-köprüsü toast'ında hatalı alana gider.</td></tr>
+        <tr><td><kbd>Tab</kbd></td><td>Toast içi odak: aksiyon butonu → kapat ×.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="example">
+    <div class="preview">
+      <div class="preview__tag"><b></b> Canlı deneme · aç, sonra Alt+Shift+T → ↑/↓ → Esc</div>
+      <div class="row">
+        <button class="dbtn" id="v17-kb-open" type="button">3 sticky bildirim aç</button>
+        <button class="dbtn dbtn--ghost" id="v17-kb-clear" type="button">Tümünü kapat</button>
+      </div>
+    </div>
+    <div class="code">
+      <div class="code__bar"><button class="tab active" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+      <pre class="pane active" data-l="js"><code>// Kısayollar otomatiktir — kod gerekmez.
+// Deneme için birkaç sticky bildirim:
+Glint.Toast.info("Birinci",  { sticky: true });
+Glint.Toast.warning("İkinci", { sticky: true });
+Glint.Toast.success("Üçüncü", { sticky: true });</code></pre>
+    </div>
+  </div>
+
+  <!-- 8) Yoğunluk + pauseAllOnHover -->
+  <h3 class="h3" id="v17-density">Yoğunluk — <code>density: "compact"</code> &amp; <code>pauseAllOnHover</code></h3>
+  <p class="muted"><code>compact</code> sıkışık paneller (admin bar, dashboard köşesi) için küçük ölçülere geçer: dar ikon, küçük punto, ince progress, 11px köşe. <code>pauseAllOnHover: true</code> ise imleç <b>herhangi bir</b> toast'a gelince tüm sayaçları duraklatır (stack modunda zaten otomatiktir).</p>
+  <div class="example">
+    <div class="preview">
+      <div class="preview__tag"><b></b> Canlı önizleme · yoğunluğu çevir, yeni toast'la karşılaştır</div>
+      <div class="preview-form">
+        <div class="row">
+          <button class="dbtn" id="v17-density-toggle" type="button">compact ↔ comfortable</button>
+          <button class="dbtn dbtn--ghost" id="v17-density-fire" type="button">Bu yoğunlukta göster</button>
+          <span class="muted" style="font-family:var(--font-mono);font-size:.85rem" id="v17-density-mode">density: comfortable</span>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="dbtn dbtn--ghost" id="v17-pause-toggle" type="button">pauseAllOnHover aç/kapat</button>
+          <span class="muted" style="font-family:var(--font-mono);font-size:.85rem" id="v17-pause-mode">pauseAllOnHover: false</span>
+        </div>
+      </div>
+    </div>
+    <div class="code">
+      <div class="code__bar"><button class="tab active" data-l="js">JS API</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+      <pre class="pane active" data-l="js"><code>Glint.Toast.configure({ density: "compact" });     // sıkışık görünüm
+Glint.Toast.configure({ density: "comfortable" }); // varsayılan
+
+// İmleç bir toast'a gelince TÜM sayaçlar dursun:
+Glint.Toast.configure({ pauseAllOnHover: true });</code></pre>
+    </div>
+  </div>
+
+  <div class="note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+    <div>Bu bölümdeki tüm anahtarların referans satırları <a href="#konum-configure">configure() tablosunda</a>; görsel token'lar <a href="#ozellestirme">Tema Kapağı</a>'nda. Bölümdeki toggle'lar sayfa genelini etkiler — başka bölümlerin demolarına geçmeden "varsayılana dönmek" için sayfayı yenileyebilirsin.</div>
+  </div>
+</section>
+
             <section class="sec reveal" id="mvc">
-  <div class="sec-head"><span class="sec-kicker">08</span><h2>Sunucudan bildirim (MVC)</h2></div>
+  <div class="sec-head"><span class="sec-kicker">09</span><h2>Sunucudan bildirim (MVC)</h2></div>
   <p class="intro">Sunucuda biriken bildirimleri sayfa açılır açılmaz göstermek için motor tek bir köprü kullanır: <code>window.__glintToasts = [...]</code>. Bu diziyi motor <b>başlangıçta</b> (<code>processServerToasts</code>) okur, önem sırasına dizer ve sırayla gösterir. ASP.NET Core MVC için ideal: DTO'larını JSON'a serileştir, <code>&lt;script&gt;</code> içine bas, gerisini motor halleder. Aşağıdaki düğmeler bu köprünün ürettiği sonucu canlı taklit eder.</p>
 
   <h3 class="h3">Köprünün şekli</h3>
@@ -1579,7 +1808,7 @@ window.__glintToasts = [
 </section>
 
             <section class="sec reveal" id="kopru">
-    <div class="sec-head"><span class="sec-kicker">09</span><h2>Alan köprüsü (akıllı)</h2></div>
+    <div class="sec-head"><span class="sec-kicker">10</span><h2>Alan köprüsü (akıllı)</h2></div>
     <p class="intro">Bir <code>error</code> bildirimi <code>fieldId</code> taşıyorsa motor onu körü körüne toast'a basmaz: <b>akıllı yönlendirir</b>. Politika <code>Glint.config.fieldErrors</code> ile seçilir &mdash; <code>"smart"</code> (varsayılan), <code>"inline"</code> ya da <code>"toast"</code>. Köprü <b>gevşek-bağlıdır</b>: iki paket bağımsız kalır, ikisi de yüklüyse işbirliği yapar. Yapılandırma (<code>Glint.configure</code>, <code>Glint.config</code>) ve alan içi hata çizimi <b>input kütüphanesinden</b> gelir; toast paketi onu yalnızca varsa kullanır, yoksa hiçbir şey kırılmaz.</p>
 
     <!-- ── Politika nasıl çalışır ── -->
@@ -1713,7 +1942,7 @@ Glint.Toast.error("Bu kullanıcı adı alınmış.", "Username");</code></pre>
 
             <section class="sec reveal" id="a11y">
   <div class="sec-head">
-    <span class="sec-kicker">10</span>
+    <span class="sec-kicker">11</span>
     <h2>Erişilebilirlik</h2>
   </div>
   <p class="intro">Her bildirim ekran okuyuculara duyurulur, klavyeyle kapatılabilir ve hareket tercihine saygı gösterir. Bunların hiçbiri için ekstra kod yazmana gerek yok — <code>Glint.Toast</code> doğru ARIA niteliklerini ve davranışı kendiliğinden üretir.</p>
@@ -1747,7 +1976,7 @@ Glint.Toast.info("Profilin güncellendi.");
   </div>
 
   <h3 class="h3" id="t-a11y-keyboard">Klavye ve kapatma</h3>
-  <p class="muted">Her bildirimin kapat düğmesi gerçek bir <code>&lt;button type="button"&gt;</code> olup <code>aria-label="Bildirimi kapat"</code> taşır — yani <kbd>Tab</kbd> ile odaklanır, <kbd>Enter</kbd> / <kbd>Space</kbd> ile çalışır ve ekran okuyucuda anlamlı okunur. Programatik kapatma için <code>dismiss(el)</code> ve <code>dismissAll()</code> vardır.</p>
+  <p class="muted">Her bildirimin kapat düğmesi gerçek bir <code>&lt;button type="button"&gt;</code> olup <code>aria-label="Bildirimi kapat"</code> taşır — yani <kbd>Tab</kbd> ile odaklanır, <kbd>Enter</kbd> / <kbd>Space</kbd> ile çalışır ve ekran okuyucuda anlamlı okunur. Programatik kapatma için <code>dismiss(el)</code> ve <code>dismissAll()</code> vardır (v1.7: <code>dismissAll</code> yığını <b>kademeli</b> kapatır ve kuyruğu da boşaltır). v1.7 ayrıca <b>global kısayollar</b> ekler: <kbd>Esc</kbd> en yeni toast'ı kapatır, <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> ilk toast'a odaklanır, <kbd>↑</kbd>/<kbd>↓</kbd> toast'lar arasında gezer — tam tablo ve canlı deneme: <a href="#v17-keyboard">v1.7 klavye bölümü</a>.</p>
   <div class="example">
     <div class="preview">
       <div class="preview__tag"><b></b> Canlı önizleme · klavye</div>
@@ -1772,7 +2001,7 @@ Glint.Toast.dismiss(el);         // tek bir bildirim (animasyonlu)</code></pre>
   </div>
 
   <h3 class="h3" id="t-a11y-motion">Azaltılmış hareket</h3>
-  <p class="muted">Kullanıcı işletim sisteminde <code>prefers-reduced-motion: reduce</code> seçtiyse, <code>glint-toast.css</code> tüm giriş/çıkış animasyonlarını, ilerleme hüzmesini ve çift halka dalgalarını <code>0.01ms</code>'ye indirir — bildirim hareketsiz belirip kaybolur. Toast'a tıklayıp hatalı alana kaydırma da bu durumda yumuşak kaydırma yerine anlık atlamaya geçer (<code>reducedMotion()</code> köprüsü).</p>
+  <p class="muted">Kullanıcı işletim sisteminde <code>prefers-reduced-motion: reduce</code> seçtiyse, <code>glint-toast.css</code> tüm giriş/çıkış animasyonlarını, girişte sol şeridin çizilişini (marka imzası), ilerleme hüzmesini ve çift halka dalgalarını <code>0.01ms</code>'ye indirir — bildirim hareketsiz belirip kaybolur; v1.7 <b>yığın modu</b> da bu durumda anlık açılır (kayma yok). Toast'a tıklayıp hatalı alana kaydırma yumuşak kaydırma yerine anlık atlamaya geçer (<code>reducedMotion()</code> köprüsü). Input paketi de yüklüyse <code>Glint.configure({reducedMotion:true})</code> siteden, <b>canlı</b> olarak aynı etkiyi verir.</p>
   <div class="note note--warn">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18" opacity=".4"/><circle cx="12" cy="12" r="9"/></svg>
     <div>Hareketi sayfada test etmek için işletim sistemi ayarından "hareketi azalt" seçeneğini aç; üstteki bildirim düğmeleri artık kayma/halka efekti olmadan, anında görünür. Renk tek başına anlam taşımaz: her tür ayrıca ikon ve başlık (Başarılı / Hata / Uyarı / Bilgi) ile ayrışır.</div>
@@ -1795,12 +2024,12 @@ Glint.Toast.dismiss(el);         // tek bir bildirim (animasyonlu)</code></pre>
 </section>
 
             <section class="sec reveal" id="ozellestirme">
-  <div class="sec-head"><span class="sec-kicker">11</span><h2>Özelleştirme (CSS değişkenleri)</h2></div>
-  <p class="intro">Toast görünümü iki CSS değişkeni etrafında döner: <code>--_toast-accent</code> (sol şerit + ikon halkası rengi) ve <code>--_glow-rgb</code> (ilerleme hüzmesi ve nabız halkalarının RGB parıltısı). Her tür bu ikisini kendi rengiyle tanımlar; sen sadece üzerine yazarsın. Konum v1.6'da <code>configure({ position })</code> ile, kenar boşlukları <code>--glint-toast-offset-*</code> token'larıyla; koyu mod ise Bootstrap'in <code>data-bs-theme</code> jetonuyla sürülür. Süreler <code>configure({ autoDismiss })</code> ya da çağrı başına <code>{ duration }</code> ile değiştirilebilir.</p>
+  <div class="sec-head"><span class="sec-kicker">12</span><h2>Özelleştirme (CSS değişkenleri)</h2></div>
+  <p class="intro"><b>v1.7 — Tema Kapağı:</b> tüm görsel özelleştirme artık <code>glint-toast.css</code> dosyasının <b>tepesindeki tek <code>:root</code> bloğunda</b> (✎ DÜZENLEYİNİZ) toplu durur: <b>44 public token</b>, 5 bölüm halinde (Renk · Tipografi · Hareket · Yerleşim · Bileşen-özel), her satırda kısa açıklama + varsayılan değer. Dosyayı açıp ilk ekranda düzenlersin; kapağın en üstündeki "hızlı başlangıç" üç senaryoyu örnekler. Davranış/süre anahtarları CSS değil — <code>glint-toast.js</code> tepesindeki <code>CONFIG</code> Tema Kapağı + <code>configure()</code> ile yönetilir. Koyu mod Bootstrap'in <code>data-bs-theme</code> jetonuyla sürülür; koyu tema karşılıkları <code>-dark</code> ekli token'lardadır.</p>
 
   <!-- Tür rengini değiştir -->
   <h3 class="h3">Tür rengini değiştir</h3>
-  <p class="muted">Her tür iki değişken kullanır: <code>--_toast-accent</code> şeridi ve ikon halkasını boyar, <code>--_glow-rgb</code> ise <code>rgba()</code> içine girip hüzme parıltısını üretir (bu yüzden <b>RGB üçlüsü</b>, hex değil). Tetik düğmeleri gerçek toast çağırır.</p>
+  <p class="muted">v1.7'de her türün rengi <b>Tema Kapağı token çiftinden</b> gelir: <code>--glint-toast-accent-*</code> şeridi/halkayı/aksiyon vurgusunu boyar, <code>--glint-toast-glow-*</code> ise <code>rgba()</code> içine girip hüzme parıltısını üretir (bu yüzden <b>RGB üçlüsü</b>, hex değil — ikisini birlikte değiştir). Türsüz (base) toast <code>info</code> token'larını devralır: tek çifti değiştirmek tüm mavi tonları çevirir. Aşağıdaki playground token'ı <b>canlı</b> ezer:</p>
   <div class="example">
     <div class="preview">
       <div class="preview__tag"><b></b> Canlı önizleme</div>
@@ -1815,28 +2044,38 @@ Glint.Toast.dismiss(el);         // tek bir bildirim (animasyonlu)</code></pre>
           <button class="dbtn" type="button" id="t-fire-success">success'i göster</button>
           <button class="dbtn" type="button" id="t-fire-error">error'ı göster</button>
         </div>
+        <div class="t-btn-row" style="margin-top:10px">
+          <button class="dbtn" type="button" id="t-brand-purple">Marka moru uygula + info göster</button>
+          <button class="dbtn dbtn--ghost" type="button" id="t-brand-reset">Varsayılana dön</button>
+        </div>
+        <p class="muted" style="margin:10px 0 0;font-size:.85rem">"Marka moru" düğmesi <code>--glint-toast-accent-info</code> + <code>--glint-toast-glow-info</code> token'larını <code>:root</code>'ta canlı ezer: şerit, halka, progress hüzmesi ve türsüz toast'ın tamamı tek çiftle mora döner.</p>
       </div>
     </div>
     <div class="code">
-      <div class="code__bar"><button class="tab active" data-l="css">CSS</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
-      <pre class="pane active" data-l="css"><code>/* Tek bir türü markanıza uydurun */
-.glint-toast--success {
-  --_toast-accent: #10b981;     /* şerit + ikon halkası */
-  --_glow-rgb: 16, 185, 129;    /* hüzme + nabız parıltısı (RGB!) */
+      <div class="code__bar"><button class="tab active" data-l="css">CSS (Tema Kapağı)</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+      <pre class="pane active" data-l="css"><code>/* v1.7 — Tema Kapağı token'ları (glint-toast.css tepesinde) */
+:root {
+  --glint-toast-accent-success: #10b981;   /* şerit + halka + aksiyon  */
+  --glint-toast-glow-success: 16, 185, 129;/* hüzme parıltısı (RGB!)   */
+
+  /* Marka moru örneği — info çifti türsüz toast'ı da boyar */
+  --glint-toast-accent-info: #7c3aed;
+  --glint-toast-glow-info: 124, 58, 237;
 }
 
-/* Tüm türlere ortak bir taban da verebilirsiniz */
-.glint-toast {
-  --_toast-accent: #3b82f6;
-  --_glow-rgb: 59, 130, 246;
-}</code></pre>
+/* Açık temada ikon/başlık tonları + koyu tema karşılığı ayrı token'larda: */
+/* --glint-toast-icon-info · --glint-toast-title-info · --glint-toast-ink-dark-info */</code></pre>
       <pre class="pane" data-l="js"><code>Glint.Toast.success("Değişiklikleriniz kaydedildi.");
-Glint.Toast.error("Sunucuya ulaşılamadı. Lütfen tekrar deneyin.");</code></pre>
+Glint.Toast.error("Sunucuya ulaşılamadı. Lütfen tekrar deneyin.");
+
+// Playground'un yaptığı canlı override:
+document.documentElement.style.setProperty('--glint-toast-accent-info', '#7c3aed');
+document.documentElement.style.setProperty('--glint-toast-glow-info', '124, 58, 237');</code></pre>
     </div>
   </div>
   <div class="note">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-    <div><code>--_glow-rgb</code> mutlaka virgülle ayrılmış üç sayı olmalı (ör. <code>16, 185, 129</code>), çünkü stil dosyası bunu <code>rgba(var(--_glow-rgb), 0.20)</code> biçiminde sarar. Hex verirseniz parıltı çalışmaz.</div>
+    <div><code>--glint-toast-glow-*</code> mutlaka virgülle ayrılmış üç sayı olmalı (ör. <code>16, 185, 129</code>), çünkü stil dosyası bunu <code>rgba(var(...), 0.20)</code> biçiminde sarar; hex verirsen parıltı çalışmaz. Eski özel değişkenler (<code>--_toast-accent</code>/<code>--_glow-rgb</code>) hâlâ tür sınıfı bazında çalışır ama kanonik yol Tema Kapağı token'larıdır.</div>
   </div>
 
   <!-- Konumu taşı -->
@@ -1858,7 +2097,9 @@ Glint.Toast.error("Sunucuya ulaşılamadı. Lütfen tekrar deneyin.");</code></p
       <pre class="pane active" data-l="js"><code>// v1.6 — köşeyi çalışma zamanında değiştir
 Glint.Toast.configure({ position: "bottom-left" });
 // "top-right" | "top-left" | "top-center" | "bottom-right" | "bottom-left"</code></pre>
-      <pre class="pane" data-l="css"><code>/* Kenar boşlukları token'lardan; global ya da tema bazında ez */
+      <pre class="pane" data-l="css"><code>/* Kenar boşlukları token'lardan; global ya da tema bazında ez.
+   v1.7: değerlere env(safe-area-inset-*) eklendi — çentikli/yuvarlak
+   köşeli telefonlarda toast güvenli alanın içinde kalır. */
 :root {
   --glint-toast-offset-top:    88px;   /* üst konumlarda tavandan */
   --glint-toast-offset-side:   20px;   /* sağ/sol kenardan        */
@@ -1911,17 +2152,27 @@ localStorage.setItem("theme", isDark ? "light" : "dark");</code></pre>
     <div>Yığın davranışı da aynı yapılandırmadan yönetilir: <code>maxVisible</code> ve <code>staggerDelay</code> artık <code>configure()</code> ile çalışma zamanında değiştirilebilir; yalnız <code>collapseDelay</code> gibi ince zamanlama sabitleri kaynakta kalır. Tam liste: <a href="#konum">configure() referansı</a>.</div>
   </div>
 
-  <!-- Değişken referansı -->
-  <h3 class="h3">Değişken referansı</h3>
+  <!-- Değişken referansı — v1.7 Tema Kapağı (44 token) -->
+  <h3 class="h3" id="t-token-ref">Tema Kapağı token referansı (44 token)</h3>
+  <p class="muted">Tek doğruluk kaynağı <code>glint-toast.css</code> tepesindeki <code>:root</code> bloğudur — her satırda açıklama zaten var. Aşağıdaki tablo aynı listenin rehber kopyasıdır; token'lar simetrik aileler halinde gruplanmıştır.</p>
   <div class="tbl-wrap">
     <table class="tbl">
-      <thead><tr><th>CSS değişkeni</th><th>Kapsam</th><th>Görev</th></tr></thead>
+      <thead><tr><th>Token ailesi</th><th>Varsayılan</th><th>Görev</th></tr></thead>
       <tbody>
-        <tr><td><code>--_toast-accent</code></td><td><code>.glint-toast</code> + tür sınıfları</td><td>Sol şerit, ikon halkası kenarlığı, aksiyon vurgusu rengi (hex).</td></tr>
-        <tr><td><code>--_glow-rgb</code></td><td><code>.glint-toast</code> + tür sınıfları</td><td>İlerleme hüzmesi ve nabız halkalarının parıltı rengi; <code>rgba()</code> içinde kullanılır (RGB üçlüsü).</td></tr>
-        <tr><td><code>--glint-toast-offset-top</code></td><td><code>:root</code></td><td>v1.6 — üst konumlarda tavandan uzaklık (varsayılan 88px).</td></tr>
-        <tr><td><code>--glint-toast-offset-side</code></td><td><code>:root</code></td><td>v1.6 — sağ/sol kenardan uzaklık (varsayılan 20px).</td></tr>
-        <tr><td><code>--glint-toast-offset-bottom</code></td><td><code>:root</code></td><td>v1.6 — alt konumlarda tabandan uzaklık (varsayılan 20px).</td></tr>
+        <tr><td><code>--glint-toast-accent-success/-error/-warning/-info/-loading</code></td><td>#22c55e · #ef4444 · #f59e0b · #3b82f6 · #6b7280</td><td>Tür aksanı: sol şerit + pulse halkası + aksiyon butonu + ×N rozeti + odak halkası. <code>info</code> türsüz toast'ın da varsayılanıdır.</td></tr>
+        <tr><td><code>--glint-toast-glow-success/-error/-warning/-info/-loading</code></td><td>34,197,94 · 239,68,68 · 245,158,11 · 59,130,246 · 107,114,128</td><td>Glow RGB üçlüsü: progress hüzmesi + halka parıltısı (<code>rgba()</code> içinde; aksanla eş tutun).</td></tr>
+        <tr><td><code>--glint-toast-icon-success/-error/-warning/-info</code></td><td>#16a34a · #dc2626 · #d97706 · #2563eb</td><td>Tür ikonu mürekkebi (açık tema).</td></tr>
+        <tr><td><code>--glint-toast-title-success/-error/-warning/-info</code></td><td>#15803d · #b91c1c · #b45309 · #1d4ed8</td><td>Tür başlığı mürekkebi (açık tema).</td></tr>
+        <tr><td><code>--glint-toast-ink-dark-success/-error/-warning/-info</code></td><td>#4ade80 · #f87171 · #fbbf24 · #60a5fa</td><td>Karanlık temada ikon + başlık ortak tonu.</td></tr>
+        <tr><td><code>--glint-toast-bg</code> / <code>-bg-dark</code></td><td>rgba(255,255,255,.78) / rgba(30,41,59,.75)</td><td>Kutu zemini (glassmorphism).</td></tr>
+        <tr><td><code>--glint-toast-border</code> / <code>-border-dark</code></td><td>rgba(255,255,255,.45) / rgba(255,255,255,.08)</td><td>Kutu kenarlığı.</td></tr>
+        <tr><td><code>--glint-toast-text</code> / <code>-text-dark</code></td><td>#4b5563 / #94a3b8</td><td>Gövde metni.</td></tr>
+        <tr><td><code>--glint-toast-muted</code> / <code>-muted-dark</code></td><td>#9ca3af / #64748b</td><td>Soluk gri: kapat × + "+N daha" satırı.</td></tr>
+        <tr><td><code>--glint-toast-font-title</code> · <code>-weight-title</code> · <code>-font-body</code></td><td>0.8rem · 650 · 0.775rem</td><td>Tipografi (compact yoğunluk kendi küçültmelerini bölüm-içi yapar).</td></tr>
+        <tr><td><code>--glint-toast-dur-in</code> / <code>-dur-out</code></td><td>0.52s / 0.32s</td><td>Giriş/çıkış animasyon süreleri. Easing'ler marka token'larından (<code>--glint-ease-*</code>, input paketi kapağı) gelir; toast tek başınayken aynı değerli fallback'ler geçerlidir.</td></tr>
+        <tr><td><code>--glint-toast-offset-top/-side/-bottom</code></td><td>88px · 20px · 20px</td><td>Konum ofsetleri (v1.7: <code>env(safe-area-inset-*)</code> eklenir — çentikli telefonlarda güvenli alan).</td></tr>
+        <tr><td><code>--glint-toast-width</code> / <code>-z</code></td><td>360px / 9000</td><td>Container genişliği (mobilde otomatik tam genişlik) ve katman sırası.</td></tr>
+        <tr><td><code>--glint-toast-radius</code> · <code>-blur</code> · <code>-stripe-w</code> · <code>-progress-h</code></td><td>14px · 16px · 3px · 6px</td><td>Köşe yarıçapı · glassmorphism bulanıklığı · sol şerit kalınlığı · progress yüksekliği.</td></tr>
       </tbody>
     </table>
   </div>
@@ -2091,6 +2342,130 @@ localStorage.setItem("theme", isDark ? "light" : "dark");</code></pre>
         document.addEventListener('glint:toast-open', function () { opened++; paint(); });
         document.addEventListener('glint:toast-close', function () { closed++; paint(); });
         wire('v16-evt-fire', function (T) { T.info('Event sayacı bu bildirimle artar.'); });
+    })();
+
+    // ── Demo: v1.7 yenilikleri (#v17) ──
+    (function () {
+        function T() { return window.Glint && Glint.Toast; }
+        function wire(id, fn) {
+            var b = document.getElementById(id);
+            if (b) b.addEventListener('click', function () { if (T()) fn(Glint.Toast); });
+        }
+        function setLabel(id, text) { var el = document.getElementById(id); if (el) el.textContent = text; }
+
+        // 1) Yığın modu
+        var stackMode = 'list';
+        wire('v17-stack-toggle', function (t) {
+            stackMode = stackMode === 'list' ? 'stack' : 'list';
+            t.configure({ stacking: stackMode });
+            setLabel('v17-stack-mode', 'mod: ' + stackMode);
+        });
+        wire('v17-stack-burst', function (t) {
+            t.success('Yükleme tamamlandı.');
+            t.info('Yeni yorum var.');
+            t.warning('Disk alanı %85 dolu.');
+            t.info('Rapor hazırlanıyor…');
+        });
+
+        // 2) update()
+        wire('v17-update-run', function (t) {
+            var el = t.info('Rapor hazırlanıyor…', { sticky: true });
+            setTimeout(function () {
+                t.update(el, { type: 'success', message: 'Rapor hazır — indirebilirsin.', duration: 4000 });
+            }, 1500);
+        });
+
+        // 3) Kapanış nedeni günlüğü
+        var reasonLog = document.getElementById('v17-reason-log');
+        if (reasonLog) {
+            var reasons = [];
+            document.addEventListener('glint:toast-close', function (e) {
+                var r = e.detail && e.detail.reason ? e.detail.reason : '?';
+                reasons.push(r);
+                if (reasons.length > 6) reasons.shift();
+                reasonLog.textContent = 'close → ' + reasons.join(' · ');
+            });
+        }
+        wire('v17-reason-fire', function (t) { t.info('Beni farklı yollarla kapat: bekle, X\'e bas, sürükle…'); });
+        wire('v17-reason-api', function (t) { t.dismissAll(); });
+
+        // 4) Kuyruk modu
+        var overflowMode = 'evict';
+        wire('v17-queue-toggle', function (t) {
+            overflowMode = overflowMode === 'evict' ? 'queue' : 'evict';
+            t.configure({ overflow: overflowMode });
+            setLabel('v17-queue-mode', 'mod: ' + overflowMode);
+        });
+        wire('v17-queue-burst', function (t) {
+            t.configure({ maxVisible: 3 });
+            for (var i = 1; i <= 6; i++) t.info('Bildirim #' + i);
+        });
+
+        // 5) Undo geri sayımı
+        wire('v17-undo', function (t) {
+            t.warning('Öğe silindi', {
+                duration: 5000,
+                action: {
+                    label: 'Geri Al',
+                    countdown: true,
+                    onClick: function () { t.success('Geri alındı'); }
+                }
+            });
+        });
+
+        // 6) Grup / özet
+        var groupOn = false;
+        wire('v17-group-toggle', function (t) {
+            groupOn = !groupOn;
+            t.configure({ group: groupOn });
+            setLabel('v17-group-mode', 'group: ' + (groupOn ? 'açık' : 'kapalı'));
+        });
+        wire('v17-group-burst', function (t) {
+            if (!groupOn) { groupOn = true; t.configure({ group: true }); setLabel('v17-group-mode', 'group: açık'); }
+            for (var i = 1; i <= 7; i++) t.success('Dosya ' + i + ' yüklendi');
+        });
+
+        // 7) Klavye denemesi
+        wire('v17-kb-open', function (t) {
+            t.info('Birinci', { sticky: true });
+            t.warning('İkinci', { sticky: true });
+            t.success('Üçüncü', { sticky: true });
+        });
+        wire('v17-kb-clear', function (t) { t.dismissAll(); });
+
+        // 8) Yoğunluk + pauseAllOnHover
+        var density = 'comfortable';
+        wire('v17-density-toggle', function (t) {
+            density = density === 'comfortable' ? 'compact' : 'comfortable';
+            t.configure({ density: density });
+            setLabel('v17-density-mode', 'density: ' + density);
+        });
+        wire('v17-density-fire', function (t) { t.info('Bu yoğunlukta bir bildirim (' + density + ').'); });
+        var pauseAll = false;
+        wire('v17-pause-toggle', function (t) {
+            pauseAll = !pauseAll;
+            t.configure({ pauseAllOnHover: pauseAll });
+            setLabel('v17-pause-mode', 'pauseAllOnHover: ' + pauseAll);
+        });
+    })();
+
+    // ── Demo: Tema Kapağı marka playground (#ozellestirme) ──
+    (function () {
+        var root = document.documentElement;
+        var purple = document.getElementById('t-brand-purple');
+        if (purple) purple.addEventListener('click', function () {
+            root.style.setProperty('--glint-toast-accent-info', '#7c3aed');
+            root.style.setProperty('--glint-toast-glow-info', '124, 58, 237');
+            root.style.setProperty('--glint-toast-icon-info', '#7c3aed');
+            root.style.setProperty('--glint-toast-title-info', '#6d28d9');
+            root.style.setProperty('--glint-toast-ink-dark-info', '#a78bfa');
+            if (window.Glint && Glint.Toast) Glint.Toast.info('Marka moru aktif — şerit, halka ve hüzme tek çiftle döndü.');
+        });
+        var reset = document.getElementById('t-brand-reset');
+        if (reset) reset.addEventListener('click', function () {
+            ['--glint-toast-accent-info', '--glint-toast-glow-info', '--glint-toast-icon-info', '--glint-toast-title-info', '--glint-toast-ink-dark-info'].forEach(function (p) { root.style.removeProperty(p); });
+            if (window.Glint && Glint.Toast) Glint.Toast.info('Varsayılan mavi tonlara dönüldü.');
+        });
     })();
 })();
 </script>

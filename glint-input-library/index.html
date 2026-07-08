@@ -613,6 +613,11 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
                 <a href="#slider">Slider</a>
                 <a href="#upload">Dosya Yükleme</a>
                 <a href="#color">Color Picker</a>
+                <a href="#iban">IBAN</a>
+                <a href="#pwgen">Parola üretici</a>
+                <a href="#duration">Süre girişi</a>
+                <a href="#tree">TreeSelect</a>
+                <a href="#qr">QR kod</a>
             </div>
             <div class="nav-group">
                 <span>Köprü</span>
@@ -824,7 +829,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 
                 <!-- Şifre -->
                 <h3 class="h3">Şifre alanı, göster / gizle</h3>
-                <p class="muted"><code>type="password"</code> alanlarında karakterler nokta olarak maskelenir. Sağdaki aksiyon butonu için <code>.glint-field__action</code> kullan; Glint butonu konumlandırır, sağ boşluğu açar ve tıklamada odağın alandan kaymasını engeller (animasyon flaşlamaz).</p>
+                <p class="muted"><code>type="password"</code> alanlarında karakterler nokta olarak maskelenir. Grupta elle bir <code>.glint-field__action</code> butonu varsa Glint <b>ikinci bir göz enjekte etmez</b> — v1.7'den itibaren butonu kendi toggle'ına <b>kendisi bağlar</b> (caret restore + <code>aria-pressed</code> + ikon senkronu dahil; boş butona marka göz ikonu çifti de otomatik verilir). Yani aşağıdaki örnekte <b>hiç JS yok</b>. Elle buton koymazsan kütüphane kendi göz butonunu ekler (bkz. <a href="#ix-password">Otomatik şifre göster / gizle</a>); tamamen kapatmak için <code>data-glint-no-toggle</code>. Güçlü parola <b>üretmek</b> için ayrıca bkz. <a href="#pwgen">Parola üretici</a>.</p>
                 <div class="example">
                     <div class="preview">
                         <div class="preview__tag"><b></b> Canlı önizleme</div>
@@ -848,14 +853,12 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
     &lt;svg&gt;...göz ikonu...&lt;/svg&gt;
   &lt;/button&gt;
 &lt;/div&gt;</code></pre>
-                        <pre class="pane" data-l="js"><code>const pw = document.getElementById('pw');
-document.getElementById('pwTg').addEventListener('click', () =&gt; {
-  pw.type = pw.type === 'password' ? 'text' : 'password';
-
-  // Overlay maskesini güncelle (isPassword örnekte cache'lenir)
-  const inst = Glint.Input._getInstance(pw);
-  if (inst) { inst.isPassword = pw.type === 'password'; inst.syncOverlay(false); }
-});</code></pre>
+                        <pre class="pane" data-l="js"><code>// v1.7: JS YAZMA — kütüphane gruptaki elle .glint-field__action
+// butonunu otomatik adopte eder: type toggle + caret restore +
+// aria-pressed + ikon senkronu hepsi kütüphanede.
+//
+// Elle listener EKLEME (iki kez toggle = net no-op olur).
+// Kapatmak istersen: &lt;div class="glint-input-group" data-glint-no-toggle&gt;</code></pre>
                     </div>
                 </div>
 
@@ -888,7 +891,7 @@ document.getElementById('pwTg').addEventListener('click', () =&gt; {
 
                 <!-- Çok satırlı -->
                 <h3 class="h3">Çok satırlı (textarea)</h3>
-                <p class="muted">Bir <code>&lt;textarea&gt;</code> kullan; Glint otomatik algılayıp <code>.glint-input-group--multiline</code> ekler. Varsayılan <b>auto-grow</b>'dur (içerik büyüdükçe uzar, tavana kadar). Sabit yükseklik için gruba <code>.glint-input-group--fixed</code> ekle.</p>
+                <p class="muted">Bir <code>&lt;textarea&gt;</code> kullan; Glint otomatik algılayıp <code>.glint-input-group--multiline</code> ekler. Varsayılan <b>auto-grow</b>'dur (içerik büyüdükçe uzar, tavana kadar). Sabit yükseklik için gruba <code>.glint-input-group--fixed</code> ekle. <b>v1.7.1:</b> çok hızlı yazımda bile animasyonlar tek sürekli harekettir — kesilen kelime-düşme/giriş animasyonları kaldığı pikselden devralınır (ghost hasadı), çifte görüntü oluşmaz; wrap anındaki kare maliyeti de ~%90 düştü.</p>
                 <div class="example">
                     <div class="preview">
                         <div class="preview__tag"><b></b> Canlı önizleme · auto-grow</div>
@@ -1041,7 +1044,7 @@ Glint.Input.clearError(el);</code></pre>
 
 <!-- ══════════════ 2) Parola güç göstergesi ══════════════ -->
 <h3 class="h3" id="ix-strength">Parola güç göstergesi</h3>
-<p class="muted">Gruba <code>data-glint-strength</code> ekle; alanın altına 4 segmentli bir güç çubuğu gelir (zayıf → güçlü). Skor, uzunluk + büyük/küçük harf karışımı + rakam &amp; sembol kriterleriyle hesaplanır ve ekran okuyuculara <code>aria-live</code> ile duyurulur. Yalnızca <code>type="password"</code> alanlarında çalışır.</p>
+<p class="muted">Gruba <code>data-glint-strength</code> ekle; alanın altına 4 segmentli bir güç çubuğu gelir (zayıf → güçlü). Skor, uzunluk + büyük/küçük harf karışımı + rakam &amp; sembol kriterleriyle hesaplanır ve ekran okuyuculara <code>aria-live</code> ile duyurulur. Yalnızca <code>type="password"</code> alanlarında çalışır. <b>v1.7.1:</b> dolgu artık <b>tek parça</b> akar — 4 segment tek animasyonlu değerden (<code>@property --glint-strength-fill</code>) türediği için ani silmede bile bar kopuk parçalara bölünmez; <code>@property</code> desteklemeyen eski tarayıcıda (FF&lt;128, Safari&lt;16.4) dolgu animasyonsuz ama doğru durur.</p>
 <div class="example">
   <div class="preview">
     <div class="preview__tag"><b></b> Canlı önizleme</div>
@@ -1520,7 +1523,7 @@ grp.addEventListener('glint:phone-validity', e =&gt; e.detail); // {complete, to
                 </div>
 
                 <h3 class="h3" id="email-memory">Memory — hatırlanan e-postalar</h3>
-                <p class="muted"><code>data-glint-email-memory</code> ile e-posta, <b>yalnızca başarılı form submit'inde</b> <code>localStorage</code>'a yazılır (en çok 5 kayıt). Sayfaya dönüşte alanın sol altından bir <b>chip süzülür</b>; tıklayınca glifler alana uçar (FLIP). <kbd>↓</kbd> chip'e odaklanır, <kbd>↓↓</kbd> diğer kayıtları gezer, <kbd>Esc</kbd> oturum boyunca kapatır. Yazdığın metin bir kayıtla eşleşiyorsa inline ghost tamamlama da devreye girer. <code>data-glint-memory-key</code> ile form başına ayrı geçmiş tutulur.</p>
+                <p class="muted"><code>data-glint-email-memory</code> ile e-posta, <b>yalnızca başarılı form submit'inde</b> <code>localStorage</code>'a yazılır (en çok 5 kayıt). Sayfaya dönüşte alanın altından, sola dayalı bir <b>"sekme eki"</b> doğar (v1.7.1): inputun border'ına <b>binmez, bitişik durur</b> — sol üst köşe düz, alt köşeler yuvarlak, sağ üstte dışa içbükey kavis inputun alt border hizasında biter. Çerçeve <b>statiktir</b> (çizim animasyonu/kıvılcım yok) ve beklemede nötr renktedir; <b>hover'da</b> çizgi aksan rengine döner ve üst kenar hariç yumuşakça parlar (üst kenarı zaten yoktur). Açılış, inputun altından süzülen clip perdesiyle olur. Tıklayınca glifler alana uçar (tek sürekli FLIP). <kbd>↓</kbd> sekmeye odaklanır, <kbd>↓↓</kbd> diğer kayıtları gezer, <kbd>Esc</kbd> oturum boyunca kapatır. Yazdığın metin bir kayıtla eşleşiyorsa inline ghost tamamlama da devreye girer. <code>data-glint-memory-key</code> ile form başına ayrı geçmiş tutulur.</p>
                 <div class="example">
                     <div class="preview">
                         <div class="preview__tag"><b></b> Canlı önizleme · gönder, sayfayı yenile, chip'i gör</div>
@@ -2066,7 +2069,7 @@ kids.forEach(k =&gt; k.addEventListener('change', () =&gt; {
 &lt;/div&gt;</code></pre>
     </div>
 </div>
-<div class="note">2 veya 3 değeri kabul edilir; daha büyük değerler 3'e kelepçelenir, 1/0/eksik tek aya döner. Çoklu-ayda yalnız ilk panelin başlığı tıklanır (ay/yıl atlama oradan yapılır); ileri/geri okları tüm pencereyi kaydırır. <code>data-week-numbers</code> ile birlikte kullanılabilir.</div>
+<div class="note">2 veya 3 değeri kabul edilir; daha büyük değerler 3'e kelepçelenir, 1/0/eksik tek aya döner. Çoklu-ayda yalnız ilk panelin başlığı tıklanır (ay/yıl atlama oradan yapılır); ileri/geri okları tüm pencereyi kaydırır. <code>data-week-numbers</code> ile birlikte kullanılabilir. <b>v1.7:</b> popover genişliği artık <b>içerikten ölçülür</b> (preset paneli / ay sayısı / hafta numaraları otomatik toplanır; kural: panel = max(input, içerik), tavan viewport−32). Viewport'a sığmayan ay sayısında takvim <b>sarmaz</b> — ay-hizalı yatay kaydırılır (scroll-snap). Dene: pencereyi ~800px altına daraltıp "Çeyrek Planı"nı aç.</div>
             
 <h3 class="h3" id="pkxv-rangeend-external">Glint Picker — Bağlı İki Alan (Harici range-end)</h3>
 <p class="muted"><code>data-range-end</code> bir <b>CSS seçici</b> (<code>#id</code>) ise, aralık bitişi <b>ayrı bir native input'a</b> yazılır. Başlangıç ana input'ta "YYYY-MM-DD/YYYY-MM-DD" saklanırken, bitiş ayrıca hedef input'a aynalanır — iki ayrı model alanına (<code>StartDate</code> / <code>EndDate</code>) bağlamak için idealdir. Hedef input'u gizli tutabilir ya da görünür bırakabilirsiniz.</p>
@@ -4298,7 +4301,7 @@ s.value = 5;</code></pre>
                     </div>
                 </div>
 
-                <h3 class="h3" id="cb-async">Async adaptör (<code>data-source-fn</code>) — Ajax zorunlu değil</h3>
+                <h3 class="h3" id="cb-async-adaptor">Async adaptör (<code>data-source-fn</code>) — Ajax zorunlu değil</h3>
                 <p class="muted"><code>data-source-fn="window.app.searchCities"</code> <b>senin fonksiyonunu</b> gösterir: <code>fn(query) → Promise&lt;Array&lt;string | {value,label}&gt;&gt;</code>. İçinde ister <code>fetch</code> kullan, ister bellekten filtrele — kütüphane hiçbir ağ isteği yapmaz. Async beklenirken alan <b>loading</b> durumuna geçer; yalnız son isteğin sonucu işlenir (yarış guard'ı).</p>
                 <div class="example">
                     <div class="preview">
@@ -4338,6 +4341,57 @@ document.querySelector('[data-glint-combobox]')
                 <div class="note">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                     <div>Filtre <b>TR-duyarlıdır</b> (İ/ı doğru katlanır) ve eşleşen bölüm <code>&lt;mark&gt;</code> ile vurgulanır. Serbest metin her zaman geçerlidir: kullanıcı listeden seçmek zorunda değildir, yazdığı değer forma aynen gider. Events: <code>glint:combobox-open</code> · <code>glint:combobox-close</code> · <code>glint:combobox-select</code>.</div>
+                </div>
+
+                <!-- ─────────────── v1.7.1: Çoklu seçim (data-multiple) ─────────────── -->
+                <h3 class="h3" id="cb-multi">Çoklu seçim (<code>data-multiple</code>) — v1.7.1</h3>
+                <p class="muted">Gruba <code>data-multiple</code> eklendiğinde seçimler alanın <b>hemen altındaki chip tepsisinde</b> birikir; input her zaman serbest <b>arama metni</b> olarak kalır. Boş alanda <kbd>↓</kbd> tam listeyi açar, seçim listeden yapılır (liste açık kalır, seçili satır tikli görünür — tekrar tıklamak seçimi kaldırır). Vurgusuz <kbd>Enter</kbd> yazdığın serbest metni chip yapar; boş inputta <kbd>Backspace</kbd> son chip'i siler. Form binding gizli inputlarla yapılır: <code>data-hidden-name="Cities"</code> verirsen o adla, vermezsen inputun <code>name</code>'i chip'lere devredilir (arama metni asla submit edilmez) — MVC'de <code>List&lt;string&gt;</code> otomatik bağlanır. <code>data-value="a,b"</code> başlangıç seçimlerini kurar.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · boş alanda ↓ bas, birkaç şehir seç</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group" data-glint-combobox data-multiple
+                                 data-options='["Adana","Ankara","Antalya","Bursa","İstanbul","İzmir","Konya","Trabzon"]'
+                                 data-value="Ankara,İzmir">
+                                <input class="glint-input" type="text" id="cb-multi-demo" name="cbDemoCities" autocomplete="off">
+                                <label class="glint-label" for="cb-multi-demo">Şehirler (çoklu)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="js">JS</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;!-- name ("Cities") chip'lerin gizli inputlarına devredilir --&gt;
+&lt;div class="glint-input-group" data-glint-combobox data-multiple
+     data-options='["Adana","Ankara","İstanbul","İzmir"]'
+     data-value="Ankara"&gt;
+  &lt;input class="glint-input" type="text" id="cities" name="Cities" autocomplete="off"&gt;
+  &lt;label class="glint-label" for="cities"&gt;Şehirler&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="js"><code>// Toplu değişiklikleri dinle
+document.querySelector('[data-glint-combobox][data-multiple]')
+  .addEventListener('glint:combobox-change', e =&gt; {
+    console.log(e.detail.values);        // ["Ankara", "İzmir", ...]
+  });
+
+// Programatik erişim
+const inst = Glint.getInstance(document.getElementById('cities'));
+inst.values;                             // seçili değerler (kopya dizi)
+inst.setValues(['Bursa', 'Konya']);      // seçimleri kur (event yayınlar)</code></pre>
+                        <pre class="pane" data-l="razor"><code>@* List&lt;string&gt; Cities alanına otomatik bağlanır *@
+&lt;div class="glint-input-group" data-glint-combobox data-multiple
+     data-options-from="#sehirler" data-hidden-name="Cities"&gt;
+  &lt;input class="glint-input" type="text" id="cities" autocomplete="off" /&gt;
+  &lt;label class="glint-label" for="cities"&gt;Şehirler&lt;/label&gt;
+&lt;/div&gt;
+&lt;datalist id="sehirler"&gt;
+  &lt;option value="Adana"&gt;&lt;/option&gt;
+  &lt;option value="Ankara"&gt;&lt;/option&gt;
+&lt;/datalist&gt;</code></pre>
+                    </div>
+                </div>
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                    <div><b>Davranış detayları.</b> Liste açıkken popover chip tepsisinin <b>altına</b> demirlenir (seçimlerin görünür kalır); async kaynakta (<code>data-source-fn</code>) seçim sonrası liste kapanır, yeni sorgu beklenir. Chip'ler Tags/Select ile aynı görsel dili paylaşır (<code>--glint-chip-*</code> token'ları). <code>destroy()</code> tepsiyi kaldırır ve devralınan <code>name</code>'i inputa iade eder.</div>
                 </div>
             </section>
 
@@ -4945,7 +4999,7 @@ up.reorder(2, 0);   // 3. dosyayı en başa taşı</code></pre>
             <!-- ══════════════ COLOR PICKER ══════════════ -->
             <section class="sec reveal" id="color">
                 <div class="sec-head"><span class="sec-kicker">16 · Bileşen</span><h2>Color Picker</h2></div>
-                <p class="intro">Animasyonlu renk seçici: doygunluk/parlaklık alanı, hue slider, HEX girişi ve hazır palet. Native <code>color</code> input ile senkron.</p>
+                <p class="intro">Animasyonlu renk seçici: doygunluk/parlaklık alanı, hue slider, HEX girişi ve hazır palet. Native <code>color</code> input ile senkron. <b>v1.7.1 kuralı:</b> çekirdek yalnız <b>seçici + HEX + RGB</b>'dir — pipet, kopyala, kontrast rozeti gibi araçlar istenirse açılan <b>opt-in eklentilerdir</b> (<code>data-eyedropper</code> · <code>data-copy</code> · <code>data-contrast</code>).</p>
 
                 <h3 class="h3" id="color-picker">Glint Color Picker</h3>
                 <p class="muted">Native renk input'unu sarmalayan, popover'lı tam renk seçici: SV kare alanı (pointer drag), hue slider, HEX/RGB girişi, hazır palet ve son kullanılanlar. Seçim native input.value (#rrggbb) ile senkron; input/change yayar. ASP.NET asp-for dostu.</p>
@@ -4996,24 +5050,25 @@ window.Glint.Color.config = {
      ana "Glint Color Picker" bloğundan SONRA.
      ════════════════════════════════════════════════════════════════ -->
 
-<!-- ─────────────── 1) EyeDropper + HEX kopyala (otomatik araçlar) ─────────────── -->
-<h3 class="h3" id="cx-tools">Pipet (EyeDropper) ve HEX kopyala</h3>
-<p class="muted">Popover açıldığında HEX alanının yanına iki araç butonu <b>otomatik</b> enjekte edilir; markup'a hiçbir şey eklemezsin. Destekleyen tarayıcılarda (<code>window.EyeDropper</code>) ekrandan renk almak için <b>pipet</b> butonu (<code>.glint-color-eyedrop</code>) çıkar; her tarayıcıda görünen <b>kopyala</b> butonu (<code>.glint-color-copy</code>) güncel HEX'i panoya yazar ve kısa süre <code>.is-copied</code> onayı gösterir. Her iki buton <code>.glint-color-tool</code> sınıfını paylaşır.</p>
+<!-- ─────────────── 1) EyeDropper + HEX kopyala (v1.7.1: opt-in araçlar) ─────────────── -->
+<h3 class="h3" id="cx-tools">Pipet (EyeDropper) ve HEX kopyala — opt-in</h3>
+<p class="muted"><b>v1.7.1 — çekirdek/eklenti ayrımı:</b> color picker'ın çekirdeği yalnız <b>renk seçici + HEX + R/G/B</b>'dir; geri kalan her araç istenirse açılan eklentidir. <b>Pipet</b> için <code>data-eyedropper</code> (yalnız destekleyen tarayıcıda render edilir), <b>kopyala</b> butonu için <code>data-copy</code> eklersin (IBAN'daki ile aynı adlandırma) — ya da global <code>Glint.Color.config = { eyedropper: true, copyButton: true }</code>. Kopyala, güncel HEX'i panoya yazar ve kısa süre <code>.is-copied</code> onayı gösterir; iki buton da <code>.glint-color-tool</code> sınıfını paylaşır.</p>
 <div class="example">
   <div class="preview">
-    <div class="preview__tag"><b></b> Canlı önizleme</div>
-    <input type="color" class="glint-color" id="cx-tools-input" value="#0ea5e9" aria-label="Tema rengi">
+    <div class="preview__tag"><b></b> Canlı önizleme · pipet + kopyala bu alanda AÇIK</div>
+    <input type="color" class="glint-color" id="cx-tools-input" value="#0ea5e9" data-eyedropper data-copy aria-label="Tema rengi">
   </div>
   <div class="code">
     <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
-    <pre class="pane active" data-l="html"><code>&lt;!-- Ekstra markup YOK: pipet + kopyala otomatik gelir.
-     Pipet yalnız destekleyen tarayıcıda görünür (Chrome/Edge). --&gt;
-&lt;input type="color" class="glint-color" value="#0ea5e9" aria-label="Tema rengi"&gt;</code></pre>
+    <pre class="pane active" data-l="html"><code>&lt;!-- v1.7.1: araçlar OPT-IN — istemediğin alan sade kalır --&gt;
+&lt;input type="color" class="glint-color" value="#0ea5e9"
+       data-eyedropper data-copy aria-label="Tema rengi"&gt;</code></pre>
     <pre class="pane" data-l="razor"><code>&lt;!-- ASP.NET Core MVC: native input DOM'da kalır, model binding sürer --&gt;
-&lt;input type="color" class="glint-color" asp-for="ThemeColor" /&gt;</code></pre>
+&lt;input type="color" class="glint-color" asp-for="ThemeColor"
+       data-eyedropper data-copy /&gt;</code></pre>
   </div>
 </div>
-<div class="note">Pipet, tarayıcı EyeDropper API'sini desteklemiyorsa <b>hiç</b> render edilmez (graceful degrade) — bu yüzden önizlemede butonu görmüyorsan tarayıcın desteklemiyordur. Kopyala butonu ise her yerde vardır.</div>
+<div class="note"><b>v1.7.1 değişikliği:</b> kopyala butonu artık her yerde OTOMATİK gelmez — <code>data-copy</code> (ya da <code>copyButton: true</code>) ister. Pipet, öznitelik verilse bile tarayıcı EyeDropper API'sini desteklemiyorsa <b>hiç</b> render edilmez (graceful degrade).</div>
 
 <!-- ─────────────── 2) Kalıcı son-kullanılanlar (localStorage) ─────────────── -->
 <h3 class="h3" id="cx-recents">Kalıcı son kullanılanlar</h3>
@@ -5037,7 +5092,7 @@ window.Glint.Color.config = {
 
 <!-- ─────────────── 3) İsimli/gruplu palet + HEX/RGB/HSL mod + WCAG kontrast ─────────────── -->
 <h3 class="h3" id="cx-config">İsimli palet · HEX/RGB/HSL mod · WCAG kontrast rozeti</h3>
-<p class="muted">Bu üç özellik <b>init'ten önce</b> verilen global <code>Glint.Color.config</code> ile açılır. <code>presets</code> dizisine düz HEX yerine <code>{ name, colors[] }</code> nesneleri koyarsan <b>başlıklı/gruplu</b> palet üretilir. <code>showRgb</code> + <code>showHsl</code> birlikte açıkken HEX'in altında <b>RGB/HSL mod geçişi</b> (<code>.glint-color-modes</code>) çıkar; başlangıç modu <code>defaultMode</code>. <code>showContrast</code> ile seçili renge karşı beyaz/siyah için <b>WCAG kontrast oranı + AA/AAA rozeti</b> (<code>.glint-color-contrast</code>) gösterilir.</p>
+<p class="muted">Bu üç özellik <b>init'ten önce</b> verilen global <code>Glint.Color.config</code> ile açılır. <code>presets</code> dizisine düz HEX yerine <code>{ name, colors[] }</code> nesneleri koyarsan <b>başlıklı/gruplu</b> palet üretilir. <code>showRgb</code> + <code>showHsl</code> birlikte açıkken HEX'in altında <b>RGB/HSL mod geçişi</b> (<code>.glint-color-modes</code>) çıkar; başlangıç modu <code>defaultMode</code>. <b>WCAG kontrast rozeti</b> (<code>.glint-color-contrast</code>) <b>v1.7.1'de opt-in'dir</b>: alan bazında <code>data-contrast</code> özniteliğiyle ya da global <code>showContrast: true</code> ile açılır (çekirdek = seçici + HEX + RGB kuralı).</p>
 <div class="example">
   <div class="preview">
     <div class="preview__tag"><b></b> Canlı önizleme</div>
@@ -5084,7 +5139,7 @@ window.Glint.Color.config = {
 &lt;/script&gt; *@</code></pre>
   </div>
 </div>
-<div class="note">Kontrast rozeti seviyeleri: oran ≥ 7 → <b>AAA</b>, ≥ 4.5 → <b>AA</b>, ≥ 3 → <b>AA+</b> (büyük metin), aksi halde <b>FAIL</b>. Rozet sınıfları sırasıyla <code>--aaa</code>, <code>--aa</code>, <code>--aalarge</code>, <code>--fail</code>. Mod toggle yalnız <code>showRgb</code> <b>ve</b> <code>showHsl</code> birlikte açıkken görünür.</div>
+<div class="note">Kontrast rozeti seviyeleri: oran ≥ 7 → <b>AAA</b>, ≥ 4.5 → <b>AA</b>, ≥ 3 → <b>AA+</b> (büyük metin), aksi halde <b>FAIL</b>. Rozet sınıfları sırasıyla <code>--aaa</code>, <code>--aa</code>, <code>--aalarge</code>, <code>--fail</code>. Mod toggle yalnız <code>showRgb</code> <b>ve</b> <code>showHsl</code> birlikte açıkken görünür. <b>v1.7.1:</b> rozet varsayılan KAPALI — tek alana <code>data-contrast</code>, tüm sayfaya <code>showContrast: true</code>.</div>
             
 <h3 class="h3" id="cxv-text">Metin input varyantı (<code>type=text</code>)</h3>
 <p class="muted">Glint, <code>input.glint-color</code> seçicisini <b>type'tan bağımsız</b> sarmalar: native <code>type="color"</code> yerine sıradan bir <code>type="text"</code> alanına da uygulayabilirsin. Native renk diyaloğunun <code>#rrggbb</code> kısıtı yerine, modelinde <b>serbest HEX string</b> tutmak istediğinde (örn. <code>"#3b82f6"</code> bir <code>string</code> property'ye) bunu kullan. Aynı popover, aynı senkron: değer <code>.value</code> üzerinden okunur/yazılır, <code>input</code>/<code>change</code> yayılır.</p>
@@ -5151,9 +5206,636 @@ Glint.Color.setValue(el, '#10b981'); // değeri programatik ata (input/change ya
 </div>
             </section>
 
+            <!-- ══════════════ IBAN (v1.7) ══════════════ -->
+            <section class="sec reveal" id="iban">
+                <div class="sec-head"><span class="sec-kicker">17 · Bileşen</span><h2>IBAN (GlintIban)</h2></div>
+                <p class="intro">Banka hesap numarası girişi: otomatik <b>BÜYÜK HARF</b> + canlı 4'lü gruplama (<code>TR12 3456 …</code>), yapıştırma normalizasyonu (boşluk/tire/nokta ayıklanır), caret koruması ve <b>ISO 7064 mod-97</b> doğrulaması — BigInt'siz, ~60 ülkelik resmî uzunluk tablosu gömülü (TR=26 öncelikli). Tam uzunlukta geçerliyse <b>yeşil kenar</b> + <code>glint:iban-complete</code>; geçersizse alan hatası. Boşluksuz elektronik biçim <code>data-glint-raw</code>'da; <code>data-raw-name</code> ile gizli input'a da yazılır.</p>
+
+                <h3 class="h3" id="ibx-temel">Temel — kopyalama aksiyonu + ham değer</h3>
+                <p class="muted"><code>data-copy</code> sağa bir kopyalama butonu ekler (biçimli değeri kopyalar; onayda ikon fade-swap + <code>aria-live</code> duyurusu; alan boşken devre dışı). Dene: <code>tr33 0006-1005 1978 6457 8413 26</code> yapıştır — küçük harf/tire normalize edilir.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · TR33 0006 1005 1978 6457 8413 26 dene</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group" data-raw-name="IbanRaw">
+                                <input class="glint-input" type="text" id="ibx-1" name="Iban" data-glint-iban data-copy>
+                                <label class="glint-label" for="ibx-1">IBAN</label>
+                            </div>
+                            <ul id="ibx-log" aria-live="polite" style="list-style:none;margin:2px 0 0;padding:0;font-family:var(--font-mono);font-size:12px"></ul>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;!-- Gizli ham input için data-raw-name; kopyalama için data-copy --&gt;
+&lt;div class="glint-input-group" data-raw-name="IbanRaw"&gt;
+  &lt;input class="glint-input" type="text" id="iban" name="Iban"
+         data-glint-iban data-copy&gt;
+  &lt;label class="glint-label" for="iban"&gt;IBAN&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group" data-raw-name="IbanRaw"&gt;
+  &lt;input asp-for="Iban" class="glint-input" data-glint-iban data-copy /&gt;
+  &lt;label asp-for="Iban" class="glint-label"&gt;IBAN&lt;/label&gt;
+&lt;/div&gt;
+@* IbanRaw gizli input'u kütüphane üretir (boşluksuz elektronik biçim) *@</code></pre>
+                        <pre class="pane" data-l="js"><code>const iban = Glint.Iban.get(document.getElementById('iban'));
+iban.iban;       // "TR330006100519786457841326" (boşluksuz)
+iban.formatted;  // "TR33 0006 1005 1978 6457 8413 26"
+iban.country;    // "TR"
+iban.isValid;    // mod-97 + uzunluk
+
+// Olay (grup üzerinde, bubbles)
+grp.addEventListener('glint:iban-complete', e =&gt; e.detail);
+// { valid, country, iban, formatted }
+
+// Saf yardımcılar — sunucu-öncesi ön-doğrulama için DOM'suz da çalışır
+Glint.Iban.isValid('tr33 0006 1005 1978 6457 8413 26'); // true
+Glint.Iban.normalize('tr12-34 56');  // "TR123456"
+Glint.Iban.format('TR330006');       // "TR33 0006"
+Glint.Iban.mod97('TR33…');           // 1 = geçerli
+Glint.Iban.LENGTHS.TR;               // 26</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="ibx-ulke">Ülke kısıtı — <code>data-countries</code></h3>
+                <p class="muted">Yalnız listedeki ülke kodlarıyla başlayan IBAN girilebilir (<code>"TR"</code> ya da <code>"TR,DE"</code>): başka ülke kodu daha yazılırken <b>mikro-sarsıntıyla</b> reddedilir. İlk 2 karakter harf, 3–4. karakter rakam olmak zorundadır — yapısal ret de aynı dille anlatılır.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · "de" yazmayı dene, sonra "tr63"</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group">
+                                <input class="glint-input" type="text" id="ibx-2" name="IbanTr" data-glint-iban data-countries="TR" data-copy>
+                                <label class="glint-label" for="ibx-2">TR IBAN</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;!-- Yalnız TR ile başlayan IBAN kabul edilir --&gt;
+&lt;div class="glint-input-group"&gt;
+  &lt;input class="glint-input" type="text" id="iban-tr"
+         data-glint-iban data-countries="TR" data-copy&gt;
+  &lt;label class="glint-label" for="iban-tr"&gt;TR IBAN&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group"&gt;
+  &lt;input asp-for="IbanTr" class="glint-input"
+         data-glint-iban data-countries="TR" /&gt;
+  &lt;label asp-for="IbanTr" class="glint-label"&gt;&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="ibx-prefill">Sunucu değeri — mount'ta biçim + doğrulama</h3>
+                <p class="muted">Input <code>value</code> ile geldiyse (Razor'da <code>asp-for</code> doldurur) mount anında gruplanır ve doğrulanır: geçerliyse yeşil kenar + event yayınlanır — kullanıcı hiçbir şey yazmadan.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · sayfa yüklenirken biçimlendi</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group">
+                                <input class="glint-input" type="text" id="ibx-3" name="IbanDe" data-glint-iban value="DE89370400440532013000">
+                                <label class="glint-label" for="ibx-3">Alıcı IBAN</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="razor"><code>@* Model.RecipientIban dolu geldi → mount'ta gruplama + doğrulama *@
+&lt;div class="glint-input-group"&gt;
+  &lt;input asp-for="RecipientIban" class="glint-input" data-glint-iban /&gt;
+  &lt;label asp-for="RecipientIban" class="glint-label"&gt;Alıcı IBAN&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                    </div>
+                </div>
+
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
+                    <div><b>Bilinmeyen ülke davranışı.</b> Uzunluk tablosunda olmayan ülke kodlarında beklenen uzunluk bilinmez: mod-97 tuttuğu an (≥15 karakter) canlı "geçerli" gösterilir, geçersizlik hükmü <b>blur</b> anında verilir; 34 karakter mutlak tavandır (IBAN standardı). Silmeye başlayınca durum/hata temizlenir. Tek dosyada yükleme sırası derdi yoktur — yine de script'i <b>gövde sonunda</b> yüklemek önerilir (ön-claim pası DOM'u görür, alan ilk boyadan biçimli doğar). <b>Kesişim:</b> kopyalama butonu gruptaki mevcut aksiyonları sayarak dizilir — <code>data-glint-generate</code> ile aynı grupta buton sırası DOM ekleme sırasına göre soldan dizilir.</div>
+                </div>
+            </section>
+
+            <!-- ══════════════ PAROLA ÜRETİCİ (v1.7) ══════════════ -->
+            <section class="sec reveal" id="pwgen">
+                <div class="sec-head"><span class="sec-kicker">18 · Bileşen</span><h2>Parola üretici (GlintPwgen)</h2></div>
+                <p class="intro"><code>data-glint-generate</code> ile şifre alanına bir <b>zar butonu</b> gelir (göz butonunun solunda): tıklamada <code>crypto.getRandomValues</code> + <b>rejection sampling</b> ile önyargısız güçlü parola üretilir — varsayılan 16 karakter, seçili her sınıftan (büyük/küçük/rakam/sembol) <b>≥1 garanti</b>, muğlak karakterler (<code>O 0 I l 1</code>) tüm havuzlardan hariç. Üretimde parola <b>2 sn görünür</b> kalıp otomatik gizlenir (göz butonuyla tam senkron; kullanıcı göze dokunursa kontrol ona devrolur) ve <code>aria-live</code> "Güçlü parola oluşturuldu" duyurulur.</p>
+
+                <h3 class="h3" id="pwx-temel">Varsayılan üretim — güç çubuğuyla</h3>
+                <p class="muted"><code>data-glint-strength</code> ile birlikte her üretim güç çubuğunda <b>4/4</b> skor üretir — canlı izle.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · zar butonuna bas</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group" data-glint-strength>
+                                <input class="glint-input" type="password" id="pwx-1" name="PwgenDemo1" autocomplete="new-password" data-glint-generate>
+                                <label class="glint-label" for="pwx-1">Parola</label>
+                            </div>
+                            <div id="pwx-out" style="font-family:var(--font-mono);font-size:12px;opacity:.72;overflow-wrap:anywhere;min-height:16px"></div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;!-- Zar butonu otomatik enjekte edilir (gözün soluna) --&gt;
+&lt;div class="glint-input-group" data-glint-strength&gt;
+  &lt;input class="glint-input" type="password" id="pw"
+         autocomplete="new-password" data-glint-generate&gt;
+  &lt;label class="glint-label" for="pw"&gt;Parola&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group" data-glint-strength&gt;
+  &lt;input asp-for="Password" type="password" class="glint-input"
+         autocomplete="new-password" data-glint-generate /&gt;
+  &lt;label asp-for="Password" class="glint-label"&gt;&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="js"><code>// Olay (input üzerinde, bubbles)
+input.addEventListener('glint:pwgen-generate', e =&gt; e.detail);
+// { value, length }
+
+// Programatik API
+const gen = Glint.Pwgen.get(input);
+gen.generate();   // buton tıklamasıyla birebir aynı akış
+gen.destroy();    // buton/duyuru söker, padding'i geri alır
+
+// SAF üretici — DOM'suz, form dışı senaryolar için de
+Glint.Pwgen.generatePassword({ length: 20, charset: 'upper,lower,digit' });</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="pwx-konfig">Uzunluk + karakter kümesi + aksiyon dizilimi</h3>
+                <p class="muted"><code>data-generate-length="24"</code> · <code>data-generate-charset="upper,lower,digit"</code> (sembol yok; TR takma adlar da geçerli: <code>büyük,küçük,rakam,sembol</code>). Öznitelikler input'ta veya grupta durabilir — input öncelikli; <code>maxlength</code> varsa uzunluk kırpılır. <code>data-glint-clearable</code> ile üç aksiyon otomatik dizilir: <b>göz → temizle → zar</b>.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · üç aksiyon yan yana</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group" data-glint-clearable>
+                                <input class="glint-input" type="password" id="pwx-2" name="PwgenDemo2" autocomplete="new-password" data-glint-generate data-generate-length="24" data-generate-charset="upper,lower,digit">
+                                <label class="glint-label" for="pwx-2">Parola (24, sembolsüz)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-input-group" data-glint-clearable&gt;
+  &lt;input class="glint-input" type="password"
+         autocomplete="new-password" data-glint-generate
+         data-generate-length="24"
+         data-generate-charset="upper,lower,digit"&gt;
+  &lt;label class="glint-label"&gt;Parola (24, sembolsüz)&lt;/label&gt;
+&lt;/div&gt;
+&lt;!-- TR takma adlarla aynı şey: data-generate-charset="büyük,küçük,rakam" --&gt;</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="pwx-boy">İstediğin uzunlukta üret — canlı deneme (v1.7.1)</h3>
+                <p class="muted">Uzunluk bir kere yazılan bir sabit değil: <code>data-generate-length</code> her <b>üretim anında</b> okunur. Kaydırıcıyla uzunluğu seç, <b>Üret</b>'e bas (ya da alandaki zar butonunu kullan) — 8'den 64'e kadar her uzunlukta, her sınıftan ≥1 karakter garantisiyle üretir.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · kaydır ve üret</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group">
+                                <input class="glint-input" type="password" id="pwx-4" name="PwgenDemo4" autocomplete="new-password" data-glint-generate data-generate-length="16">
+                                <label class="glint-label" for="pwx-4">Parola (uzunluğu sen seç)</label>
+                            </div>
+                            <div class="row" style="margin-top:22px;align-items:center;gap:12px">
+                                <input type="range" id="pwx-len" min="8" max="64" step="1" value="16" style="flex:1" aria-label="Parola uzunluğu">
+                                <span id="pwx-len-out" style="font-family:var(--font-mono);font-size:13px;min-width:5.5ch;text-align:right">16</span>
+                                <button class="dbtn" id="pwx-len-gen" type="button">Üret</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="js"><code>// Uzunluk üretim ANINDA okunur — canlı değiştirebilirsin
+const input = document.getElementById('pw');
+input.setAttribute('data-generate-length', '32');
+Glint.Pwgen.get(input).generate();          // 32 karakter üretir
+
+// Bileşensiz saf üretim de mümkün:
+const pw = Glint.Pwgen.generatePassword({ length: 40, charset: 'upper,lower,digit,symbol' });</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="pwx-notoggle">Göz butonu olmadan</h3>
+                <p class="muted"><code>data-glint-no-toggle</code> ile çekirdeğin göz butonu yoktur; pwgen 2 sn'lik gösterimi kendi yedek yolundan (caret-restore desenli tip değişimi) yürütür. Zar tek aksiyon olduğundan varsayılan sağ konumdadır.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · gözsüz gösterim</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group" data-glint-no-toggle>
+                                <input class="glint-input" type="password" id="pwx-3" name="PwgenDemo3" autocomplete="new-password" data-glint-generate data-generate-length="12">
+                                <label class="glint-label" for="pwx-3">PIN benzeri parola</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-input-group" data-glint-no-toggle&gt;
+  &lt;input class="glint-input" type="password"
+         data-glint-generate data-generate-length="12"&gt;
+  &lt;label class="glint-label"&gt;PIN benzeri parola&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                    </div>
+                </div>
+
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <div><b>Davranış notları.</b> Sembol havuzunda <code>_</code> bilinçli olarak yoktur (güç çubuğunun sembol testi <code>/[^\w\s]/</code> ile uyum). Üretim <code>insertFromPaste</code> benzeri tek harekette yazılır — undo yığını temiz kalır, odak/caret sonda. <code>inst.destroy()</code> + <code>Glint.refresh()</code> ile yaşam döngüsü tam geri alınabilir. Parola hiçbir yere gönderilmez — üretim tamamen istemci tarafındadır.</div>
+                </div>
+            </section>
+
+            <!-- ══════════════ SÜRE GİRİŞİ (v1.7) ══════════════ -->
+            <section class="sec reveal" id="duration">
+                <div class="sec-head"><span class="sec-kicker">19 · Bileşen</span><h2>Süre girişi (GlintDuration)</h2></div>
+                <p class="intro">Serbest metinle süre yaz, saniyeye çevrilsin: <code>"1sa 30dk"</code> → <b>5400</b>. Blur/Enter'da Türkçe ayrıştırma + normalize görüntü (<code>"1 sa 30 dk"</code>); görünür birimler <code>data-units</code> ile seçilir (varsayılan <code>sa,dk</code>) ve commit değeri en küçük görünür birime yuvarlanır — <b>görüntü ile saniye asla ayrışmaz</b>. <code>role="spinbutton"</code> ARIA deseni: ↑/↓ adımlar, <code>aria-valuetext</code> uzun adlarla okunur ("1 saat 30 dakika"). Toplam saniye <code>data-glint-seconds</code>'a ve <code>data-raw-name</code> gizli input'una yazılır.</p>
+
+                <h3 class="h3" id="dux-temel">Toplantı süresi — min/max + gizli saniye</h3>
+                <p class="muted"><code>data-min="15dk"</code> · <code>data-max="8sa"</code> (yalın sayı = saniye, ya da <code>"15dk"</code>/<code>"8sa"</code>/<code>"1:30"</code> biçimi). Taşan giriş sınıra <b>clamp</b> edilir + alan hatası; geçersiz metin <b>shake</b> ile son geçerli değere döner. Dene: <code>90dk</code> yaz ve alandan çık.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · "90dk" · "1:30" · "20sa" (clamp) dene</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group">
+                                <input class="glint-input" type="text" id="dux-1" data-glint-duration data-min="15dk" data-max="8sa" data-raw-name="MeetingSeconds">
+                                <label class="glint-label" for="dux-1">Toplantı süresi</label>
+                            </div>
+                            <div id="dux-out" style="font-family:var(--font-mono);font-size:12px;opacity:.72;overflow-wrap:anywhere;min-height:16px">MeetingSeconds = —</div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-input-group"&gt;
+  &lt;input class="glint-input" id="sure" data-glint-duration
+         data-min="15dk" data-max="8sa"
+         data-raw-name="MeetingSeconds"&gt;
+  &lt;label class="glint-label" for="sure"&gt;Toplantı süresi&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>@* MeetingDuration görüntü değeri; MeetingSeconds toplam saniye *@
+&lt;div class="glint-input-group"&gt;
+  &lt;input class="glint-input" asp-for="MeetingDuration"
+         data-glint-duration data-min="15dk" data-max="8sa"
+         data-raw-name="MeetingSeconds" /&gt;
+  &lt;label class="glint-label" asp-for="MeetingDuration"&gt;Toplantı süresi&lt;/label&gt;
+&lt;/div&gt;
+@* Zorunlu alan istiyorsan required'ı GÖRÜNÜR input'a ver —
+   gizli MeetingSeconds required olmadıkça form katmanı karışmaz *@</code></pre>
+                        <pre class="pane" data-l="js"><code>// Olay (grup üzerinde, bubbles; grup yoksa input'ta)
+document.addEventListener('glint:duration-change', e =&gt; e.detail);
+// { seconds, text }   örn. { seconds: 5400, text: "1 sa 30 dk" }
+
+// Programatik API
+const d = Glint.Duration.get(input);   // veya Glint.getInstance(input)
+d.seconds;            // 5400 (boşsa null)
+d.text;               // "1 sa 30 dk"
+d.setSeconds(7200);   // → "2 sa" (event fırlatır)
+
+// SAF yardımcılar — kendi doğrulamanda kullan
+Glint.Duration.parse('1sa 30dk');      // 5400
+Glint.Duration.parse('1:30', 'dk,sn'); // 90
+Glint.Duration.format(5400);           // "1 sa 30 dk"</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="dux-birim">Birim kümesi — <code>data-units</code></h3>
+                <p class="muted"><code>data-units="dk,sn"</code>: <code>":"</code> biçimi görünür <b>en büyük iki birime</b> eşlenir (burada <code>1:30</code> = 1 dk 30 sn; varsayılan <code>sa,dk</code>'da 1 sa 30 dk olurdu). Çıplak sayı en küçük görünür birimdir (<code>"90"</code> → 90 sn). Enter da commit eder.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · "1:30" ve "90" dene</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group">
+                                <input class="glint-input" type="text" id="dux-2" data-glint-duration data-units="dk,sn">
+                                <label class="glint-label" for="dux-2">Tur süresi</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;!-- Görünür birimler: dakika + saniye --&gt;
+&lt;div class="glint-input-group"&gt;
+  &lt;input class="glint-input" data-glint-duration data-units="dk,sn"&gt;
+  &lt;label class="glint-label"&gt;Tur süresi&lt;/label&gt;
+&lt;/div&gt;
+&lt;!-- Üç birim: data-units="sa,dk,sn" (2:15:30 = sa:dk:sn) --&gt;</code></pre>
+                    </div>
+                </div>
+
+                <div class="tbl-wrap">
+                    <table class="tbl">
+                        <thead><tr><th>Girdi</th><th>Sonuç (<code>sa,dk</code> varsayılanında)</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>1sa 30dk</code> · <code>90dk</code> · <code>1:30</code> · <code>1,5sa</code></td><td>5400 sn → "1 sa 30 dk"</td></tr>
+                            <tr><td><code>2 saat</code></td><td>7200 sn → "2 sa"</td></tr>
+                            <tr><td><code>1sa 30</code> <span class="muted">(birimsiz kuyruk = bir küçük birim)</span></td><td>5400 sn → "1 sa 30 dk"</td></tr>
+                            <tr><td><code>90</code> <span class="muted">(çıplak sayı = en küçük görünür birim)</span></td><td>90 dk → "1 sa 30 dk"</td></tr>
+                            <tr><td><code>2:15:30</code> <span class="muted">(üç parça her zaman sa:dk:sn)</span></td><td>8130 sn → "2 sa 16 dk" <span class="muted">(dk'ya yuvarlanır)</span></td></tr>
+                            <tr><td><code>45sn</code> <span class="muted">(açık birim görünürlükten bağımsız kabul)</span></td><td>45 sn → "1 dk" <span class="muted">(en küçük görünür birime yuvarlanır)</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="muted" style="font-size:.92rem"><b>Klavye:</b> ↑/↓ en küçük görünür birimi artırır/azaltır · <b>Shift</b> ya da <b>PageUp/PageDown</b> ×10 · <b>Enter</b> commit (form akışını bozmaz — preventDefault yok). Sınırlarda sessizce durur, hata basmaz. Sayfa yüküyle gelen sunucu değeri <b>sessizce</b> normalize edilir (event/shake yok); geçersiz sunucu değeri olduğu gibi bırakılır.</p>
+
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <div><b>Başarılı commit'te</b> alt kenarda kısa bir onay kıvılcımı yanar ("Glint = parıltı" hareket dili; reduced-motion'da otomatik kapalı). ↑/↓ adımlarında rakam genişliği zıplamasın diye alan <b>tabular rakam</b> kullanır — karakter overlay'i bunu çekirdeğin font aynasıyla birebir izler (v1.7 çekirdek düzeltmesi).</div>
+                </div>
+            </section>
+
+            <!-- ══════════════ TREESELECT (v1.7) ══════════════ -->
+            <section class="sec reveal" id="tree">
+                <div class="sec-head"><span class="sec-kicker">20 · Bileşen</span><h2>TreeSelect (GlintTree)</h2></div>
+                <p class="intro">Hiyerarşik ağaç seçimi: <b>tekli</b> ya da <b>çoklu (tri-state)</b> mod, aranabilir popover, tam klavye desteği ve ≤768px'te <b>bottom-sheet</b>. Veri <code>data-options</code> (satır içi JSON) ya da <code>data-options-from="window.X"</code> ile tamamen yereldir — ağ isteği yok. Çoklu modda ebeveyn tıklaması alt ağacı topluca işaretler; kısmi seçimde ebeveyn <i>indeterminate</i> görünür. <b>v1.7.1:</b> panel, Select/Etiketler ile <b>aynı ortak açılış diliyle</b> açılır (yumuşak pop scale-in) — picker'ın border-draw çizimi bu panelde kullanılmaz.</p>
+
+                <h3 class="h3" id="twx-tekli">Tekli seçim</h3>
+                <p class="muted">Satıra tıkla → seç + kapan; chevron alt ağacı açar. <code>data-expand="1"</code> ilk seviyeyi açık başlatır. Devre dışı düğüm (<code>"disabled":true</code>) seçilemez.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · aç, gez, seç</div>
+                        <div class="preview-form">
+                            <div class="glint-tree-group" data-expand="1"
+                                 data-options='[
+                                   {"label":"Elektronik","value":"elektronik","children":[
+                                     {"label":"Telefon","value":"telefon","children":[
+                                       {"label":"Android","value":"android"},
+                                       {"label":"iPhone","value":"iphone"}
+                                     ]},
+                                     {"label":"Bilgisayar","value":"bilgisayar","children":[
+                                       {"label":"Dizüstü","value":"dizustu"},
+                                       {"label":"Masaüstü","value":"masaustu"},
+                                       {"label":"Tablet","value":"tablet","disabled":true}
+                                     ]}
+                                   ]},
+                                   {"label":"Giyim","value":"giyim","children":[
+                                     {"label":"Kadın","value":"kadin"},
+                                     {"label":"Erkek","value":"erkek"},
+                                     {"label":"Çocuk","value":"cocuk"}
+                                   ]},
+                                   {"label":"Süpermarket","value":"supermarket"}
+                                 ]'>
+                                <input data-glint-tree id="twx-1" name="Kategori">
+                                <label class="glint-label" for="twx-1">Kategori</label>
+                            </div>
+                            <div id="twx-out-1" style="font-family:var(--font-mono);font-size:12px;opacity:.72;overflow-wrap:anywhere;min-height:16px"></div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-tree-group" data-expand="1"
+     data-options='[
+       {"label":"Elektronik","value":"elektronik","children":[
+         {"label":"Telefon","value":"telefon"},
+         {"label":"Tablet","value":"tablet","disabled":true}
+       ]},
+       {"label":"Süpermarket","value":"supermarket"}
+     ]'&gt;
+  &lt;input data-glint-tree id="kategori" name="Kategori"&gt;
+  &lt;label class="glint-label" for="kategori"&gt;Kategori&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-tree-group" data-options-from="window.kategoriler"&gt;
+  &lt;input data-glint-tree asp-for="KategoriId" /&gt;
+  &lt;label class="glint-label" asp-for="KategoriId"&gt;&lt;/label&gt;
+&lt;/div&gt;
+@* window.kategoriler'i sayfada JSON serialize ile üret;
+   değer input.value'ya yazılır — normal model binding *@</code></pre>
+                        <pre class="pane" data-l="js"><code>const tree = Glint.Tree.get(document.getElementById('kategori'));
+
+input.addEventListener('glint:tree-change', e =&gt; e.detail);
+// tekli:  { value: "supermarket", label: "Süpermarket" }
+// çoklu:  { values: ["ist","izm"], labels: ["İstanbul","İzmir"] }
+
+// Diğer olaylar: glint:tree-open · glint:tree-close</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="twx-coklu">Çoklu seçim — chip görünümü + tri-state</h3>
+                <p class="muted"><code>data-multiple data-display="tags"</code>. Başlangıç değeri input <code>value</code>'sundan okunur (<code>"ist,izm"</code>). Devre dışı düğüm (<code>Kocaeli</code>) <b>kaskaddan muaftır</b> ve ebeveyn tri-state türetiminin dışındadır — etkin kardeşlerin tamamı işaretliyse ebeveyn "tam işaretli" görünür.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · Marmara'ya tıkla (kaskad)</div>
+                        <div class="preview-form">
+                            <div class="glint-tree-group" data-multiple data-display="tags" data-expand="all"
+                                 data-options='[
+                                   {"label":"Marmara","value":"marmara","children":[
+                                     {"label":"İstanbul","value":"ist"},
+                                     {"label":"Bursa","value":"brs"},
+                                     {"label":"Kocaeli","value":"kco","disabled":true}
+                                   ]},
+                                   {"label":"Ege","value":"ege","children":[
+                                     {"label":"İzmir","value":"izm"},
+                                     {"label":"Muğla","value":"mgl"}
+                                   ]},
+                                   {"label":"İç Anadolu","value":"ic","children":[
+                                     {"label":"Ankara","value":"ank"},
+                                     {"label":"Konya","value":"kny"}
+                                   ]}
+                                 ]'>
+                                <input data-glint-tree id="twx-2" name="Bolgeler" value="ist,izm">
+                                <label class="glint-label" for="twx-2">Bölgeler</label>
+                            </div>
+                            <div id="twx-out-2" style="font-family:var(--font-mono);font-size:12px;opacity:.72;overflow-wrap:anywhere;min-height:16px"></div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-tree-group" data-multiple data-display="tags"
+     data-options='[ … ]'&gt;
+  &lt;input data-glint-tree name="Bolgeler" value="ist,izm"&gt;
+  &lt;label class="glint-label"&gt;Bölgeler&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-tree-group" data-multiple data-display="tags"
+     data-options-from="window.birimler"&gt;
+  &lt;input data-glint-tree asp-for="BirimIds" /&gt;
+&lt;/div&gt;
+@* Değer VİRGÜLLÜ STRING bağlanır ("ist,izm") ve çoklu modda yalnız
+   işaretli YAPRAK value'ları yazılır — ebeveyn türetilmiştir, gönderilmez *@</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="twx-buyuk">"N seçili" özeti + 840 düğüm (window kaynağı)</h3>
+                <p class="muted"><code>data-display="count"</code> chip yerine özet gösterir; <code>data-options-from="window.demoBig"</code> ile 40 bölüm × 20 birim = <b>840 düğüm</b> takılmadan çalışır (tek delegated listener; arama sınıf toggle'la filtreler).</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · arama kutusuna "3.1" yaz</div>
+                        <div class="preview-form">
+                            <div class="glint-tree-group" data-multiple data-display="count" data-options-from="window.demoBig">
+                                <input data-glint-tree id="twx-3" name="Birimler">
+                                <label class="glint-label" for="twx-3">Birimler (840 düğüm)</label>
+                            </div>
+                            <div id="twx-out-3" style="font-family:var(--font-mono);font-size:12px;opacity:.72;overflow-wrap:anywhere;min-height:16px"></div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="js">JS (veri)</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-tree-group" data-multiple data-display="count"
+     data-options-from="window.demoBig"&gt;
+  &lt;input data-glint-tree name="Birimler"&gt;
+  &lt;label class="glint-label"&gt;Birimler&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="js"><code>// Veri kütüphaneden ÖNCE tanımlı olmalı (mount'ta okunur)
+window.demoBig = [];
+for (let i = 1; i &lt;= 40; i++) {
+  const children = [];
+  for (let j = 1; j &lt;= 20; j++)
+    children.push({ label: 'Birim ' + i + '.' + j, value: 'b' + i + '-' + j });
+  window.demoBig.push({ label: 'Bölüm ' + i, value: 'bolum' + i, children });
+}</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="twx-typeahead">Aramasız mod — type-ahead</h3>
+                <p class="muted"><code>data-search="false"</code>: arama kutusu yok; açıkken harf yazmak etiketi o harfle başlayan görünür düğüme atlar. Mobilde arama kutusunun sanal klavye açmasını istemiyorsan da bu modu kullan.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · aç ve "a" tuşla</div>
+                        <div class="preview-form">
+                            <div class="glint-tree-group" data-search="false" data-expand="all" data-placeholder="Şehir seçin"
+                                 data-options='[
+                                   {"label":"Adana","value":"01"},
+                                   {"label":"Ankara","value":"06"},
+                                   {"label":"Bursa","value":"16","children":[
+                                     {"label":"Nilüfer","value":"16-n"},
+                                     {"label":"Osmangazi","value":"16-o"}
+                                   ]},
+                                   {"label":"İzmir","value":"35"}
+                                 ]'>
+                                <input data-glint-tree id="twx-4" name="Sehir">
+                            </div>
+                            <div id="twx-out-4" style="font-family:var(--font-mono);font-size:12px;opacity:.72;overflow-wrap:anywhere;min-height:16px"></div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-tree-group" data-search="false"
+     data-placeholder="Şehir seçin" data-options='[ … ]'&gt;
+  &lt;input data-glint-tree name="Sehir"&gt;
+&lt;/div&gt;</code></pre>
+                    </div>
+                </div>
+
+                <div class="tbl-wrap">
+                    <table class="tbl">
+                        <thead><tr><th>Klavye</th><th>Davranış</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>↑</code> / <code>↓</code></td><td>Görünür düğümler arasında gezinme</td></tr>
+                            <tr><td><code>←</code> / <code>→</code></td><td>Daralt / genişlet (arama kutusu doluyken caret önceliklidir)</td></tr>
+                            <tr><td><code>Enter</code> / <code>Space</code></td><td>Seç (çokluda işaretle/kaldır)</td></tr>
+                            <tr><td><code>Home</code> / <code>End</code></td><td>İlk / son görünür düğüm</td></tr>
+                            <tr><td><code>Esc</code></td><td>Kapat (odak trigger'a döner)</td></tr>
+                            <tr><td>Harf</td><td>Arama tohumlama; <code>data-search="false"</code> modunda type-ahead atlama</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+                    <div><b>Mobil.</b> ≤768px'te popover alttan kayan <b>bottom-sheet</b>'e döner (backdrop + body scroll kilidi + sürükleme tutamacı). Arama input'una odak sanal klavyeyi açar — istenmiyorsa <code>data-search="false"</code>. Diğer öznitelikler: <code>data-placeholder</code> · <code>data-empty-text</code> · <code>data-display="tags|count"</code> · <code>data-expand="1|all"</code>.</div>
+                </div>
+            </section>
+
+            <!-- ══════════════ QR KOD (v1.7) ══════════════ -->
+            <section class="sec reveal" id="qr">
+                <div class="sec-head"><span class="sec-kicker">21 · Bileşen</span><h2>QR kod üretici (GlintQr)</h2></div>
+                <p class="intro">Input değerini <b>QR koduna</b> çevirir: sağdaki aksiyon butonu mini bir popover açar — SVG önizleme + <b>PNG indir</b> + <b>panoya kopyala</b>. Encoder <b>sıfırdan</b> yazılmıştır (ISO/IEC 18004 Model 2: Byte mode UTF-8, EC seviyesi M→yetmezse L, sürüm 1-11 otomatik, Reed-Solomon GF(256), maske penaltı seçimi) — ağ isteği ve bağımlılık yok. Kapasite tavanı <b>321 bayt</b> (v11-L); aşımda popover'da bayt sayılı hata kartı gösterilir.</p>
+
+                <h3 class="h3" id="qrx-temel">Temel — URL alanı</h3>
+                <p class="muted">QR butonuna tıkla → popover. Açıkken yazmaya devam et: önizleme <b>300 ms debounce</b> ile canlı güncellenir.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · butona bas, sonra URL'yi değiştir</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group">
+                                <input class="glint-input" type="url" id="qrx-1" name="SiteUrl" value="https://github.com/ArmaganTambova/glint-ui-library" data-glint-qr>
+                                <label class="glint-label" for="qrx-1">Web sitesi</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><button class="tab" data-l="razor">Razor (MVC)</button><button class="tab" data-l="js">JS</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;!-- Tek attribute: QR butonu + popover otomatik --&gt;
+&lt;div class="glint-input-group"&gt;
+  &lt;input class="glint-input" type="url" id="site" value="https://…"
+         data-glint-qr&gt;
+  &lt;label class="glint-label" for="site"&gt;Web sitesi&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="razor"><code>&lt;div class="glint-input-group"&gt;
+  &lt;input asp-for="SiteUrl" class="glint-input" data-glint-qr /&gt;
+  &lt;label asp-for="SiteUrl" class="glint-label"&gt;&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                        <pre class="pane" data-l="js"><code>// Olaylar
+document.addEventListener('glint:qr-update', e =&gt; e.detail);
+// { value, ok, version, size, ecLevel, mask, bytes }
+// glint:qr-open · glint:qr-close · glint:qr-download {filename}
+// glint:qr-copy {mode:'png'|'text'}
+
+// SAF encoder — kendi render'ın için
+const m = Glint.QR.matrix('merhaba');   // boolean[][]
+m.version; m.size; m.ecLevel; m.mask; m.bytes;
+Glint.QR.toCanvas(m, 8, 4);             // &lt;canvas&gt; (PNG için)
+
+// Instance
+const qr = Glint.QR.get(input);
+qr.open(); qr.close(); qr.refresh(); qr.destroy();</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="qrx-dizilim">Temizle butonuyla dizilim + PNG adı</h3>
+                <p class="muted"><code>data-glint-clearable</code> grubunda QR butonu çekirdeğin aksiyon dizilim düzenine uyar (temizlenin soluna kayar, input padding'i genişler). <code>data-qr-filename</code> PNG dosya adını özelleştirir.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · Türkçe karakter + emoji destekli</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group" data-glint-clearable>
+                                <input class="glint-input" type="text" id="qrx-2" name="WifiNote" value="Türkçe karakter testi: çğıöşü ☕" data-glint-qr data-qr-filename="not-qr.png">
+                                <label class="glint-label" for="qrx-2">Paylaşılacak not</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-input-group" data-glint-clearable&gt;
+  &lt;input class="glint-input" type="text" value="…"
+         data-glint-qr data-qr-filename="not-qr.png"&gt;
+  &lt;label class="glint-label"&gt;Paylaşılacak not&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                    </div>
+                </div>
+
+                <h3 class="h3" id="qrx-bos">Boş değer — buton devre dışı</h3>
+                <p class="muted">Değer girilince buton aktifleşir; tümü silinince açık popover kendiliğinden kapanır.</p>
+                <div class="example">
+                    <div class="preview">
+                        <div class="preview__tag"><b></b> Canlı önizleme · yaz, sil, izle</div>
+                        <div class="preview-form">
+                            <div class="glint-input-group">
+                                <input class="glint-input" type="text" id="qrx-3" name="EmptyDemo" data-glint-qr>
+                                <label class="glint-label" for="qrx-3">Bir şeyler yaz…</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="code">
+                        <div class="code__bar"><button class="tab active" data-l="html">HTML</button><span class="sp"></span><button class="copy" type="button">Kopyala</button></div>
+                        <pre class="pane active" data-l="html"><code>&lt;div class="glint-input-group"&gt;
+  &lt;input class="glint-input" type="text" data-glint-qr&gt;
+  &lt;label class="glint-label"&gt;Bir şeyler yaz…&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+                    </div>
+                </div>
+
+                <div class="tbl-wrap">
+                    <table class="tbl">
+                        <thead><tr><th>Öznitelik</th><th>Açıklama</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>data-glint-qr</code></td><td>Opt-in seçici (<code>type="password"</code>/<code>hidden</code> alanlarda mount sessizce reddedilir — gizli değer QR'lanmaz)</td></tr>
+                            <tr><td><code>data-qr-debounce</code></td><td>Açık popover'ın canlı güncelleme gecikmesi, ms (vars. <b>300</b>)</td></tr>
+                            <tr><td><code>data-qr-filename</code></td><td>PNG dosya adı (vars. <code>qr-&lt;name&gt;.png</code> / <code>qr-kod.png</code>)</td></tr>
+                            <tr><td><code>data-qr-scale</code></td><td>PNG modül pikseli 2-32 (vars. <b>8</b>)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/></svg>
+                    <div><b>Renk ve okunabilirlik.</b> SVG önizleme <code>currentColor</code> kullanır (koyu temada ters kontrast — çoğu okuyucu çözer); <b>PNG çıktısı her zaman siyah/beyaz + 4 modül quiet zone</b> — okuyucu garantisi. Popover <code>role="dialog"</code> + odak tuzağı + Esc = kapat; kopyalama geri bildirimi <code>aria-live</code> ile duyurulur.</div>
+                </div>
+            </section>
+
             <!-- ══════════════ KÖPRÜ ══════════════ -->
             <section class="sec reveal" id="bridge">
-    <div class="sec-head"><span class="sec-kicker">17 · Köprü</span><h2>Input ↔ Toast Akıllı Hata Gösterimi</h2></div>
+    <div class="sec-head"><span class="sec-kicker">22 · Köprü</span><h2>Input ↔ Toast Akıllı Hata Gösterimi</h2></div>
     <p class="intro">Glint Input ve <b>glint-toast</b> bağımsız iki pakettir (ikisi de sıfır bağımlılık). İkisi de yüklüyse <b>gevşek-bağlı</b> işbirliği yapar: sunucudan (FluentValidation) dönen alan hataları, alanın o an <b>görünür</b> olup olmadığına göre akıllıca yönlendirilir. Tek API: <code>Glint.Toast.error(mesaj, alanId)</code>.</p>
 
     <div class="tbl-wrap">
@@ -5230,7 +5912,7 @@ Glint.Toast.error('Kayıt başarısız. Lütfen tekrar deneyin.');</code></pre>
 
             <!-- ══════════════ MVC ══════════════ -->
             <section class="sec reveal" id="mvc">
-                <div class="sec-head"><span class="sec-kicker">18</span><h2>ASP.NET Core MVC entegrasyonu</h2></div>
+                <div class="sec-head"><span class="sec-kicker">23</span><h2>ASP.NET Core MVC entegrasyonu</h2></div>
                 <p class="intro">Glint, normal HTML üretildiği sürece çalışır; yani Razor tag helper'larıyla (<code>asp-for</code>) tam uyumludur. İki yaklaşım: <b>(1)</b> her alanın yanında satır içi <code>asp-for</code>, <b>(2)</b> tekrarı azaltan, projeye drop-in edilebilen yeniden kullanılabilir yapılar.</p>
 
                 <h3 class="h3">1. Doğrulama köprüsü (jQuery unobtrusive)</h3>
@@ -5359,7 +6041,7 @@ public class GlintInputTagHelper : TagHelper
 
             <!-- ══════════════ API ══════════════ -->
             <section class="sec reveal" id="api">
-                <div class="sec-head"><span class="sec-kicker">19</span><h2>API referansı</h2></div>
+                <div class="sec-head"><span class="sec-kicker">24</span><h2>API referansı</h2></div>
 
                 <h3 class="h3">JavaScript API</h3>
                 <div class="tbl-wrap">
@@ -5380,8 +6062,14 @@ public class GlintInputTagHelper : TagHelper
                             <tr><td><code>Glint.setState(el, state, msg?)</code></td><td>Jenerik durum: <code>error/success/warning/loading</code> (+ aria). <code>Glint.clearState(el)</code> temizler.</td></tr>
                             <tr><td><code>Glint.format.thousands(n)</code></td><td>Binlik ayraçlı biçimleme yardımcı (bileşensiz, saf fonksiyon).</td></tr>
                             <tr><td><code>Glint.Phone.get(el)</code></td><td>v1.6 telefon örneği: <code>.country</code> · <code>.setCountry(iso2)</code> · <code>.digits</code> · <code>.e164</code> · <code>.isComplete</code>.</td></tr>
-                            <tr><td><code>Glint.Combobox.get(el)</code></td><td>v1.6 combobox örneği: <code>open()</code> · <code>close()</code> · <code>setOptions([...])</code> · <code>destroy()</code>.</td></tr>
+                            <tr><td><code>Glint.Combobox.get(el)</code></td><td>v1.6 combobox örneği: <code>open()</code> · <code>close()</code> · <code>setOptions([...])</code> · <code>destroy()</code>. <b>v1.7.1 çoklu mod</b> (<code>data-multiple</code>): <code>values</code> · <code>setValues([...])</code> · <code>glint:combobox-change</code>.</td></tr>
                             <tr><td><code>Glint.Card.get(el)</code></td><td>v1.6 kart örneği: <code>.brand</code> · <code>.digits</code> · <code>.isValid</code>.</td></tr>
+                            <tr><td><code>Glint.Iban.get(el)</code></td><td>v1.7 IBAN örneği: <code>.iban</code> · <code>.formatted</code> · <code>.country</code> · <code>.isValid</code> · <code>.value</code> setter. Saf: <code>Glint.Iban.isValid/normalize/format/mod97/LENGTHS</code>.</td></tr>
+                            <tr><td><code>Glint.Pwgen.get(el)</code></td><td>v1.7 parola üretici örneği: <code>generate()</code> · <code>destroy()</code>. Saf: <code>Glint.Pwgen.generatePassword({length, charset})</code>.</td></tr>
+                            <tr><td><code>Glint.Duration.get(el)</code></td><td>v1.7 süre örneği: <code>.seconds</code> · <code>.text</code> · <code>.setSeconds(n)</code>. Saf: <code>Glint.Duration.parse(text, units?)</code> · <code>.format(sec, units?)</code> · <code>.formatLong</code>.</td></tr>
+                            <tr><td><code>Glint.Tree.get(el)</code></td><td>v1.7 ağaç seçim örneği; olaylar: <code>glint:tree-open/close/change</code> (tekli <code>{value,label}</code> / çoklu <code>{values,labels}</code>).</td></tr>
+                            <tr><td><code>Glint.QR.get(el)</code></td><td>v1.7 QR örneği: <code>open()</code> · <code>close()</code> · <code>refresh()</code> · <code>destroy()</code>. Saf: <code>Glint.QR.matrix(text)</code> (= <code>window.glintQrMatrix</code>) · <code>Glint.QR.toCanvas(matrix, scale, quiet)</code>.</td></tr>
+                            <tr><td><code>Glint.motion()</code></td><td>v1.7 canlı hareket durumu: <code>{reduced, scale}</code>; değişimde kökte <code>glint:motionchange</code> yayınlanır. Anahtar: <code>Glint.configure({reducedMotion: true|false|'auto'})</code>.</td></tr>
                             <tr><td><code>Glint.Form.get(el).validate()</code></td><td>v1.6 form orkestratörü: hata basmadan doğrular, <code>true/false</code> döndürür.</td></tr>
                             <tr><td><code>Glint.Otp._instance(el)</code></td><td>OTP örneği: <code>setSuccess()</code> / <code>clearSuccess()</code> (v1.6 başarı dalgası), <code>setError(msg)</code>, <code>clear()</code>.</td></tr>
                             <tr><td><code>Glint.email.clearMemory(key?)</code></td><td>v1.6 e-posta hafızasını siler (KVKK); <code>key</code> ile form-bazlı geçmiş.</td></tr>
@@ -5415,14 +6103,14 @@ public class GlintInputTagHelper : TagHelper
                     <li>Native elemanlar DOM'da kalır; etiketler <code>for</code> / <code>asp-for</code> ile bağlanır.</li>
                     <li>Hata mesajı <code>aria-live="polite"</code> ve <code>role="alert"</code> ile duyurulur.</li>
                     <li>Klavye odağı halkaları (<code>:focus-visible</code>) tüm interaktif öğelerde mevcuttur.</li>
-                    <li>IME (composition) girişi desteklenir; <code>prefers-reduced-motion</code> açıkken animasyonlar kapanır, içerik tam okunur kalır.</li>
+                    <li>IME (composition) girişi desteklenir; <code>prefers-reduced-motion</code> açıkken animasyonlar kapanır, içerik tam okunur kalır. v1.7: OS tercihi <b>canlı</b> izlenir ve <code>Glint.configure({reducedMotion:true})</code> ile siteden de anında (remount'suz) kapatılabilir.</li>
                 </ul>
             </section>
 
             <!-- ══════════════ DEĞİŞKENLER ══════════════ -->
             <section class="sec reveal" id="degiskenler">
-                <div class="sec-head"><span class="sec-kicker">20</span><h2>CSS değişkenleri</h2></div>
-                <p class="intro">Hepsini <code>:root</code>'ta global ya da tek bir <code>.glint-input-group</code>'ta alan bazında override edebilirsin.</p>
+                <div class="sec-head"><span class="sec-kicker">25</span><h2>CSS değişkenleri</h2></div>
+                <p class="intro">Hepsini <code>:root</code>'ta global ya da tek bir <code>.glint-input-group</code>'ta alan bazında override edebilirsin. <b>v1.7 — Tema Kapağı:</b> tüm görsel token'lar artık <code>glint-input.css</code> dosyasının <b>tepesindeki tek <code>:root</code> bloğunda</b> (✎ DÜZENLEYİNİZ) bölümlenmiş ve satır satır açıklamalı olarak toplu durur — dosyayı açıp ilk ekranda düzenleyebilirsin. Çalışma-zamanı anahtarları ve data-* kataloğu da <code>glint-input.js</code> tepesindeki <b>Yapılandırma Envanteri</b>'ndedir. Aşağıdaki tablolar en sık kullanılanların özetidir.</p>
 
                 <h3 class="h3">Genel ve tema</h3>
                 <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Değişken</th><th>Varsayılan</th><th>Açıklama</th></tr></thead><tbody>
@@ -5430,6 +6118,8 @@ public class GlintInputTagHelper : TagHelper
                     <tr><td><code>--glint-label-bg</code></td><td>inherit</td><td>Yüzen etiketin arka planı (border'ı kesen "çentik" rengi).</td></tr>
                     <tr><td><code>--glint-surface</code></td><td>#f9fafb</td><td>Yüzey rengi.</td></tr>
                     <tr><td><code>--glint-border-default</code></td><td>#d1d5db</td><td>Pasif kenarlık.</td></tr>
+                    <tr><td><code>--glint-border-width</code></td><td>2px</td><td><b>v1.7.1</b> — alan kenarlık kalınlığı TEK KAYNAK: gerçek border + çizilen SVG stroke + e-posta chip çerçevesi birlikte kalınlaşır.</td></tr>
+                    <tr><td><code>--glint-picker-bw</code></td><td>1px</td><td><b>v1.7.1</b> — picker panel kenarlığı + açılış aksan çizgisi tek kaynak (imzayı güçlendirmek için ikisini birlikte kalınlaştır).</td></tr>
                     <tr><td><code>--glint-char-color</code></td><td>#111827</td><td>Metin (overlay) rengi.</td></tr>
                     <tr><td><code>--glint-state-error/-success/-warning/-info</code></td><td>—</td><td>Ortak durum makinesi + güç göstergesi/sayaç renkleri.</td></tr>
                     <tr><td><code>--glint-radius</code></td><td>12px</td><td>Anlamsal köşe yarıçapı ölçeği.</td></tr>
@@ -5493,6 +6183,20 @@ public class GlintInputTagHelper : TagHelper
         </div>
     </main>
 </div>
+
+<!-- TreeSelect 840-düğüm demosunun verisi — kütüphaneden ÖNCE tanımlı olmalı (mount'ta okunur) -->
+<script>
+(function () {
+    "use strict";
+    var big = [];
+    for (var i = 1; i <= 40; i++) {
+        var children = [];
+        for (var j = 1; j <= 20; j++) children.push({ label: "Birim " + i + "." + j, value: "b" + i + "-" + j });
+        big.push({ label: "Bölüm " + i, value: "bolum" + i, children: children });
+    }
+    window.demoBig = big;
+})();
+</script>
 
 <!-- ══════════════ Glint kütüphaneleri ══════════════ -->
 <script src="glint-input.js"></script>
@@ -5592,18 +6296,11 @@ public class GlintInputTagHelper : TagHelper
     }, { rootMargin: '-76px 0px -55% 0px', threshold: 0 });
     Object.keys(map).forEach(function (id) { spy.observe(document.getElementById(id)); });
 
-    // ── Demo: şifre göster/gizle (hero + input bölümü) ──
-    function wirePw(inputId, btnId) {
-        var pw = document.getElementById(inputId), btn = document.getElementById(btnId);
-        if (!pw || !btn) return;
-        btn.addEventListener('click', function () {
-            pw.type = pw.type === 'password' ? 'text' : 'password';
-            var inst = window.Glint && Glint.Input._getInstance(pw);
-            if (inst) { inst.isPassword = pw.type === 'password'; inst.syncOverlay(false); }
-        });
-    }
-    wirePw('in-pw', 'pwTg');
-    wirePw('h-pw', 'h-pw-tg');
+    // ── Demo: şifre göster/gizle — v1.7'den itibaren JS GEREKMEZ ──
+    // Şifre grubundaki elle .glint-field__action butonunu kütüphane kendisi
+    // adopte eder (caret restore + aria-pressed + ikon senkronu dahil).
+    // Eski wirePw() burada İKİNCİ listener olarak kalınca her tık type'ı iki
+    // kez çevirip net no-op oluyordu — v1.7'de kaldırıldı (denetim bulgusu).
 
     // ── Demo: hata ──
     var errEl = document.getElementById('in-err');
@@ -5714,6 +6411,78 @@ public class GlintInputTagHelper : TagHelper
         if (brc) brc.addEventListener('click', function () {
             ['br-email', 'br-user'].forEach(function (id) { var el = document.getElementById(id); if (el && window.Glint && Glint.Input) Glint.Input.clearError(el); });
             if (window.Glint && Glint.Toast) Glint.Toast.dismissAll();
+        });
+    })();
+
+    // ── Demo: IBAN canlı event günlüğü (#iban) ──
+    (function () {
+        var log = document.getElementById('ibx-log');
+        var src = document.getElementById('ibx-1');
+        if (!log || !src) return;
+        var grp = src.closest('.glint-input-group');
+        grp.addEventListener('glint:iban-complete', function (e) {
+            var li = document.createElement('li');
+            li.style.padding = '4px 8px';
+            li.style.borderRadius = '7px';
+            li.style.marginTop = '4px';
+            li.style.background = 'var(--panel-2)';
+            li.style.color = e.detail.valid ? 'var(--accent)' : '#f87171';
+            li.textContent = (e.detail.valid ? '✔ ' : '✖ ') + (e.detail.country || '??') +
+                ' · ' + e.detail.formatted + (e.detail.valid ? ' (geçerli)' : ' (geçersiz)');
+            log.appendChild(li);
+            while (log.children.length > 4) log.removeChild(log.firstChild);
+        });
+    })();
+
+    // ── Demo: Parola üretici event vitrini (#pwgen) ──
+    (function () {
+        var out = document.getElementById('pwx-out');
+        var src = document.getElementById('pwx-1');
+        if (!out || !src) return;
+        src.addEventListener('glint:pwgen-generate', function (e) {
+            out.textContent = 'glint:pwgen-generate → { length: ' + e.detail.length + ' }';
+        });
+    })();
+
+    // ── Demo: v1.7.1 uzunluk playground'ı (#pwx-boy) ──
+    (function () {
+        var input = document.getElementById('pwx-4');
+        var slider = document.getElementById('pwx-len');
+        var out = document.getElementById('pwx-len-out');
+        var btn = document.getElementById('pwx-len-gen');
+        if (!input || !slider || !out || !btn) return;
+        slider.addEventListener('input', function () {
+            out.textContent = slider.value;
+            input.setAttribute('data-generate-length', slider.value);
+        });
+        btn.addEventListener('click', function () {
+            var inst = window.Glint && window.Glint.Pwgen && window.Glint.Pwgen.get(input);
+            if (inst) inst.generate();
+        });
+    })();
+
+    // ── Demo: Süre girişi — gizli saniye + event (#duration) ──
+    (function () {
+        var out = document.getElementById('dux-out');
+        var src = document.getElementById('dux-1');
+        if (!out || !src) return;
+        var grp = src.closest('.glint-input-group');
+        grp.addEventListener('glint:duration-change', function (e) {
+            var hid = document.querySelector('input[name="MeetingSeconds"]');
+            out.textContent = 'MeetingSeconds = ' + (hid && hid.value ? hid.value : '—') +
+                '  ·  event: { seconds: ' + e.detail.seconds + ', text: "' + e.detail.text + '" }';
+        });
+    })();
+
+    // ── Demo: TreeSelect canlı çıktı kutuları (#tree) ──
+    (function () {
+        [['twx-1', 'twx-out-1'], ['twx-2', 'twx-out-2'], ['twx-3', 'twx-out-3'], ['twx-4', 'twx-out-4']].forEach(function (p) {
+            var input = document.getElementById(p[0]);
+            var out = document.getElementById(p[1]);
+            if (!input || !out) return;
+            input.addEventListener('glint:tree-change', function (e) {
+                out.textContent = 'change → ' + JSON.stringify(e.detail) + '  |  value = "' + input.value + '"';
+            });
         });
     })();
 })();

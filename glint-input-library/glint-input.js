@@ -1,11 +1,86 @@
 /* ════════════════════════════════════════════════════════════════════════
- *  ✎ DÜZENLEYİNİZ — projeye özel değiştirilebilir veriler
+ *  ✎ DÜZENLEYİNİZ — YAPILANDIRMA ENVANTERİ (v1.7 Tema Kapağı)
+ *  Tüm görsel token'lar + tüm çalışma-zamanı anahtarları TEK BAKIŞTA.
  *  ────────────────────────────────────────────────────────────────────────
- *  • Renk/boyut/şekil TOKEN'ları → glint-input.css :root bloğu
- *      --bs-primary · --glint-input-height/-radius/-padding-x/-font-size
- *      --glint-state-* · --glint-radius · --glint-motion · --glint-action-size
- *  • Çalışma zamanı AYARLARI → Glint.config (Glint.configure ile):
- *      locale · reducedMotion · autoMount · fieldErrors · fieldErrorText
+ *  1) GÖRSEL TOKEN'LAR (renk/boyut/şekil/hareket) → glint-input.css
+ *     dosyasının TEPESİNDEKİ tek :root bloğu ("TEMA KAPAĞI"):
+ *       --bs-primary (marka aksanı) · --glint-* (bölümlenmiş tam liste)
+ *
+ *  2) ÇALIŞMA ZAMANI AYARLARI — Glint.configure({...}) / Glint.config:
+ *       locale          : "tr" (Picker/etiketler)
+ *       reducedMotion   : "auto" | true | false — CANLI etki: köke
+ *                         data-glint-reduced basılır, --glint-motion-scale
+ *                         0.01/1 güncellenir, "glint:motionchange" yayınlanır;
+ *                         anlık durum: Glint.motion() → {reduced, scale}
+ *       autoMount       : true | false (false → otomatik tarama kapalı; SSR/test)
+ *       fieldErrors     : "smart" | "inline" | "toast" (input↔toast köprüsü)
+ *       fieldErrorText  : false | true (inline köprü hatasında yazı da göster)
+ *
+ *  3) LOCALE / METİN OVERRIDE NOKTALARI:
+ *       window.Glint.Picker.locale = {...}  ← varsayılan: Glint.Picker.LOCALE_TR
+ *         months · weekdays · weekStart · today/clear/ok · rangeSep ·
+ *         am/pm/amAria/pmAria (12h görünümü) · startLabel/endLabel/nextDay
+ *         (saat aralığı) · presets{today,last7,last30,thisMonth,lastMonth}
+ *       Glint.Color.config = { eyedropper, copyButton, showContrast, maxSaved, showRecents, presets,
+ *         labels:{a, savedTitle, saveAria, removeSavedAria, alphaAria} }
+ *       (Upload/Phone içi TEXT sözlükleri modül-içidir; bölüm başlıklarına bakın)
+ *
+ *  4) DATA-* KATALOĞU (bileşen başına; ayrıntı ilgili bölümde):
+ *     • Input çekirdek: data-glint-clearable (× butonu) · data-glint-counter
+ *       (karakter sayacı) · data-glint-no-toggle (parola gözünü kapat) ·
+ *       data-glint-strength (parola güç barı) · data-glint-group-thousands ·
+ *       data-glint-digit-anim · data-glint-url (URL segment boyama) ·
+ *       data-glint-email-assist/-memory/-domains/-memory-key (e-posta yardımcıları) ·
+ *       data-glint-diagonal (çapraz border çizimi) · data-glint-required-msg;
+ *       form orkestratörü: <form data-glint-form>
+ *     • Controls: Segmented data-name + buton data-value/data-icons;
+ *       Switch data-icon-on/-off (track ikon slotu); Rating data-max/-name/
+ *       -readonly (+ dataset allowHalf/allowClear)
+ *     • Select: data-search · data-multi · data-placeholder · data-max-selected ·
+ *       data-empty-text · data-creatable · data-hidden-name · async: data-source-fn/
+ *       -debounce · sanal liste: data-virtual/-virtual-row-height/-virtual-overscan ·
+ *       option ikonları: data-icon/-icon-html
+ *     • Tags: data-name · data-max-items/-max-length · data-transform ·
+ *       data-allow-dupes/-allow-space · data-pattern · data-reorder (sürükle-sırala) ·
+ *       öneri: data-suggest/-suggest-from/-suggest-min/-suggest-max
+ *     • OTP: data-length/-type/-name/-uppercase/-autosubmit/-resend/-group;
+ *       Mask: data-mask; Stepper: native min/max/step
+ *     • Slider/Range: data-min/-max/-step · çift uç: data-from/-to · data-prefix/
+ *       -suffix/-format · data-orientation="vertical" · işaretler: data-marks/
+ *       -mark-labels · data-disabled
+ *     • Upload: data-max-size/-max-files · data-crop (boş/free|1:1|4:3|16:9|a:b) ·
+ *       data-no-reorder
+ *     • Color: data-alpha (şeffaflık şeridi) · data-eyedropper · data-contrast
+ *       (WCAG rozeti, v1.7.1 opt-in) · data-copy (HEX kopyala, v1.7.1 opt-in) ·
+ *       data-swatch-save[=anahtar] (kalıcı paletler) · data-recents-key ·
+ *       data-raw-name; çıktı: data-glint-alpha — çekirdek: seçici + HEX + RGB
+ *     • Picker (date/time/datetime/month): data-min/-max · data-disabled/
+ *       -disabled-weekdays · data-range/-range-end (+ time'da saat aralığı,
+ *       data-overnight) · data-presets · data-natural (doğal dil) · data-inline[="bare"] ·
+ *       data-badges/-badges-from · data-week-numbers · data-months="2" ·
+ *       data-hour-cycle="12|auto" · data-minute-step (eşanlamlı: data-step) · data-raw-name
+ *     • Phone: data-country (başlangıç ülkesi) · data-priority-countries ·
+ *       data-flags · data-lang · data-strict · data-auto-error · data-remember
+ *       (son seçilen ülkeler, SALT OPT-IN) · data-raw-name
+ *     • Combobox: data-glint-combobox + data-options/-options-from ·
+ *       data-source-fn · data-min-chars/-debounce/-max-items · data-empty-text ·
+ *       ÇOKLU (v1.7.1): data-multiple + data-hidden-name (form adı) +
+ *       data-value ("a,b" başlangıç) — chip tepsisi grubun altında
+ *     • Card: data-glint-card (+ data-glint-card-expiry/-cvc) · data-raw-name;
+ *       çıktı: data-glint-raw
+ *     • IBAN: data-glint-iban · data-countries · data-copy · data-raw-name;
+ *       çıktı: data-glint-raw
+ *     • Pwgen: data-glint-generate (zar butonu) · data-generate-length/-charset
+ *     • TreeSelect: data-glint-tree + data-options/-options-from · data-multiple ·
+ *       data-display · data-placeholder · data-search · data-empty-text · data-expand
+ *     • QR: data-glint-qr · data-qr-debounce/-filename/-scale
+ *     • Duration: data-glint-duration · data-units ("sa,dk,sn" alt kümesi;
+ *       vars. "sa,dk") · data-min/-max (saniye ya da "15dk"/"8sa"/"1:30") ·
+ *       data-raw-name; çıktı: data-glint-seconds
+ *     İÇ işaret/çıktı attr'ları (ELLE VERMEYİN): data-glint-mounted ·
+ *       data-glint-raw · data-glint-alpha · data-glint-seconds · data-glint-created ·
+ *       data-glint-field · data-glint-reduced (kök) · data-act/-index/-label-cell/-dir/-which
+ *
  *  • SÜRÜM tek kaynak: ../build/version.js  (→ Glint.version; build/scripts/build.mjs senkronlar)
  *  • Tam sürüm geçmişi: ../CHANGELOG.md
  * ════════════════════════════════════════════════════════════════════════ */
@@ -41,6 +116,11 @@
  *  10) Phone — uluslararası telefon girişi (v1.6)
  *  11) Combobox — serbest metinli autocomplete (v1.6)
  *  12) Card — kredi kartı girişi (v1.6)
+ *  13) IBAN — uluslararası banka hesap numarası girişi (v1.7)
+ *  14) Pwgen — güçlü parola üretici (v1.7)
+ *  15) TreeSelect — hiyerarşik ağaç seçimi (v1.7)
+ *  16) QR — input değerinden QR kodu üretici (v1.7)
+ *  17) Duration — süre girişi "1sa 30dk" → saniye (v1.7)
  */
 
 
@@ -120,7 +200,12 @@
 (function () {
     "use strict";
 
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // v1.7 — CANLI hareket kapısı: mount anında dondurulmaz; her çağrıda
+    // çekirdeğin tek kaynağından okunur (Glint.configure / OS değişimi
+    // remount gerektirmeden anında etkir). Bkz. Glint.motion / reducedMotion.
+    const prefersReduced = () => (window.Glint && window.Glint.reducedMotion)
+        ? window.Glint.reducedMotion()
+        : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     // ── YARDIMCILAR ──
 
@@ -128,6 +213,77 @@
         const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
         for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
         return el;
+    }
+
+    // ── v1.7 EK-1: ÇERÇEVE GEOMETRİSİ — TEK DOĞRULUK KAYNAĞI ──
+    // Çerçeve SVG'leri artık GERÇEK kenarlığın computed stilinden türetilir:
+    //   • kalınlık borderTopWidth'ten (stroke merkez payı S = bw/2 — eski
+    //     sabit S=1, 2px'ten farklı her kalınlıkta merkez hattını kaydırırdı),
+    //   • dört köşe yarıçapı AYRI AYRI okunur ve '0px' MEŞRUDUR (eski
+    //     `|| 12` fallback'i kare köşeyi yuvarlak çiziyordu; çok-değerli
+    //     radius'ta parseFloat yalnız ilk köşeyi okuyordu),
+    //   • köşeler quadratic Bézier yerine GERÇEK DAİRE YAYI (A) ile çizilir —
+    //     CSS köşesi dairedir: merkez hattı yayı r − bw/2 yarıçaplı, düz
+    //     kenara tanjantları bw/2 + cr'de (Q eğrisi köşede ~0.3px dışa
+    //     taşıyor, tanjantları 1px kaydırıyordu → crossfade'de çift çerçeve).
+    // Aynı fonksiyonlar picker paneli (Glint._borderGeo üzerinden) ve
+    // gelecekteki tüm çerçeve çizimleri tarafından paylaşılır.
+
+    /** Tek köşe yarıçapını çözer: %'yi kutu boyutuna çevirir (yaklaşım:
+     *  min(W,H) tabanı; elliptik '12px / 24px' değerde yatay bileşen esas
+     *  alınır — bilinen sınır), sonra 0..min(W/2, H/2) aralığına kelepçeler. */
+    function resolveCornerRadius(v, W, H) {
+        const n = parseFloat(v);
+        if (!Number.isFinite(n)) return 0;
+        const r = (typeof v === "string" && v.indexOf("%") !== -1)
+            ? n / 100 * Math.min(W, H)
+            : n;
+        return Math.max(0, Math.min(r, W / 2, H / 2));
+    }
+
+    /**
+     * İki-yol çerçeve path çifti üretir (stroke merkez hattı, bw/2 içeride).
+     *   mode "split"    → klasik: iki yol sol-ortadan başlar, sağ-ortada buluşur
+     *   mode "diagonal" → picker dili: iki yol sol-üstten başlar, sağ-altta buluşur
+     * radii = { tl, tr, br, bl } DIŞ yarıçaplardır; köşe yayı cr = r − bw/2.
+     * cr = 0 köşede yay atlanır (L köşe noktasına — keskin köşe).
+     */
+    function roundedRectPaths(W, H, bw, radii, mode) {
+        const S = bw / 2;
+        const c = {
+            tl: Math.max(0, radii.tl - S), tr: Math.max(0, radii.tr - S),
+            br: Math.max(0, radii.br - S), bl: Math.max(0, radii.bl - S)
+        };
+        // sweep bayrağı yol yönüne göre: saat yönü ilerleyen segmentte 1,
+        // ters yönde (sol kenardan aşağı inip alttan sağa akan yol) 0.
+        const arc = (r, sweep, x, y) => r > 0
+            ? `A ${r} ${r} 0 0 ${sweep} ${x} ${y}`
+            : `L ${x} ${y}`;
+        let d1, d2;
+        if (mode === "diagonal") {
+            d1 = [
+                `M ${S} ${S + c.tl}`,
+                arc(c.tl, 1, S + c.tl, S), `L ${W - S - c.tr} ${S}`,
+                arc(c.tr, 1, W - S, S + c.tr), `L ${W - S} ${H - S - c.br}`,
+                arc(c.br, 1, W - S - c.br, H - S)
+            ].join(" ");
+            d2 = [
+                `M ${S} ${S + c.tl}`, `L ${S} ${H - S - c.bl}`,
+                arc(c.bl, 0, S + c.bl, H - S), `L ${W - S - c.br} ${H - S}`
+            ].join(" ");
+        } else {
+            d1 = [
+                `M ${S} ${H / 2}`, `L ${S} ${S + c.tl}`,
+                arc(c.tl, 1, S + c.tl, S), `L ${W - S - c.tr} ${S}`,
+                arc(c.tr, 1, W - S, S + c.tr), `L ${W - S} ${H / 2}`
+            ].join(" ");
+            d2 = [
+                `M ${S} ${H / 2}`, `L ${S} ${H - S - c.bl}`,
+                arc(c.bl, 0, S + c.bl, H - S), `L ${W - S - c.br} ${H - S}`,
+                arc(c.br, 0, W - S, H - S - c.br), `L ${W - S} ${H / 2}`
+            ].join(" ");
+        }
+        return { d1, d2 };
     }
 
     function diffStrings(oldStr, newStr) {
@@ -148,10 +304,66 @@
         };
     }
 
+    /**
+     * v1.7 — URL SEGMENT AYRIŞTIRICI (saf fonksiyon, test edilebilir).
+     * Karakter başına segment adı döner: "proto" | "host" | "path" |
+     * "query" | "frag". Basit ve TOLERANSLI regex/tarama yaklaşımı —
+     * URL constructor'a GÜVENİLMEZ (yarım URL'lerde de çalışmalı:
+     * "ht", "https:", "https://ex", "example.com/a?b" hepsi geçerli
+     * girdi). Geçersiz karakterlerde sessiz kalır — bu SALT görsel bir
+     * segmentasyondur, doğrulama değildir.
+     *
+     *   glintUrlSegments("https://a.io/p?q#f")
+     *     → ["proto"×8, "host"×4, "path"×2, "query"×2, "frag"×2]
+     */
+    function glintUrlSegments(str) {
+        const n = str.length;
+        const seg = new Array(n);
+        if (!n) return seg;
+
+        // 1) Protokol: "şema:" + opsiyonel "//" (mailto: gibi //'sızlar dahil).
+        //    Şema henüz tamamlanmadıysa (":" yok) her şey host sayılır —
+        //    yazarken "ht" → host, "https:" yazılınca proto'ya döner.
+        let i = 0;
+        const m = /^[A-Za-z][A-Za-z0-9+.\-]*:(?:\/\/)?/.exec(str);
+        if (m) {
+            for (; i < m[0].length; i++) seg[i] = "proto";
+        }
+
+        // 2) Host (+port): ilk "/", "?" veya "#" ayracına kadar.
+        while (i < n && str[i] !== "/" && str[i] !== "?" && str[i] !== "#") {
+            seg[i++] = "host";
+        }
+
+        // 3) Kalan: path → query ("?") → fragment ("#"). Ayraç karakteri
+        //    kendi bölümünün rengini alır; "#" sonrası "?" fragment'ta kalır.
+        let mode = null; // null = path
+        for (; i < n; i++) {
+            const c = str[i];
+            if (c === "#") mode = "frag";
+            else if (c === "?" && mode !== "frag") mode = "query";
+            seg[i] = mode || "path";
+        }
+        return seg;
+    }
+
 
     // ══════════════════════════════════════════════════════════════
     //  GlintInput
     // ══════════════════════════════════════════════════════════════
+
+    // v1.7 — canlı hareket geçişi: reduced çalışma zamanında KAPANIRSA
+    // mount'u reduced'ta yapılmış inputlara animasyon katmanı (overlay)
+    // sonradan kurulur; AÇILIRSA yapı yerinde kalır (CSS gizler) ama bayat
+    // ghost temizlenir. Örnekler kendini kurucuda ekler, destroy'da düşer.
+    const _liveInputs = new Set();
+    document.addEventListener("glint:motionchange", (e) => {
+        const reduced = !!(e.detail && e.detail.reduced);
+        for (const inst of _liveInputs) {
+            try { inst._onMotionChange(reduced); }
+            catch (err) { console.error("[Glint:motionchange]", err); }
+        }
+    });
 
     class GlintInput {
 
@@ -167,6 +379,23 @@
             this.savedRects = [];
             this.isComposing = false;
             this._svgBuilt = false;
+            // v1.7 EK-1 — ghost yaşam döngüsü kayıt defteri: overlay'e eklenen
+            // her hareket ghost'u buraya yazılır (tek kaldırma yolu:
+            // _disposeGhost). Multiline'da her input olayı rebuildSpans'tan
+            // önce bu kaydı HASAT eder (_harvestGhosts/_applyHarvest) —
+            // kesilen hareket ya yeni span'a yeniden bağlanır ya da kaldığı
+            // pikselden FLIP'e devredilir; öksüz/çifte ghost kalamaz.
+            this._ghosts = new Set();
+            this._pendingHarvest = null;
+            // v1.7 EK-1 — _autoGrow hızlı yolu bayrakları (bkz. _autoGrow)
+            this._agAppendOnly = false;
+            this._agLastH = null;
+            // v1.7 — karakter overlay post-process kancası (genel):
+            // rebuildSpans her koştuğunda (value, charSpans) ile çağrılır.
+            // Varsayılan null = no-op → davranış değişmez. URL segment
+            // renklendirme gibi SALT görsel dekorasyonlar span'lara sınıf
+            // basmak için bu kancayı kullanır (ileride başka özellikler de).
+            this._charDecorator = null;
 
             // ── MULTI-LINE TESPİT ──
             // Textarea → otomatik multiline; class manuel de eklenebilir.
@@ -196,6 +425,7 @@
             if (this.isAutoGrow) requestAnimationFrame(() => this._autoGrow());
             group._glintInstance = this;
             Glint.register(group, this);
+            _liveInputs.add(this);   // v1.7 — glint:motionchange aboneliği
         }
 
         // ── DOM ──
@@ -213,61 +443,10 @@
                 }
             });
 
-            if (!prefersReduced) {
-                this.overlay = document.createElement("div");
-                this.overlay.className = "glint-char-overlay";
-
-                this.charTrack = document.createElement("div");
-                this.charTrack.className = "glint-char-track";
-
-                // Ghost'lar (giriş/çıkış/FLIP) overlay'e eklenir; gerçek input
-                // tipografisini miras almaları için longhand kopyalanır
-                // (v1.5.1: `font` shorthand'i font-style/stretch'i normal'e
-                // sıfırlıyordu — italik/condensed temalarda glif genişliği
-                // kayardı; ayrıca webfont geç yüklenirse yeniden senkron
-                // gerekir → _syncOverlayFont hem burada hem fonts.ready'de).
-                this._syncOverlayFont();
-                if (document.fonts && document.fonts.ready) {
-                    document.fonts.ready.then(() => {
-                        if (this.charTrack) {
-                            this._syncOverlayFont();
-                            this.syncOverlay(false);
-                            this.rebuildSVG();
-                        }
-                    }).catch(() => { });
-                }
-                // Multi-line: line-height ve wrap kuralları textarea ile aynı olmalı.
-                // (CSS de aynısını veriyor ama inline ile garanti.)
-                if (this.isMultiline) {
-                    const ics = getComputedStyle(this.input);
-                    this.charTrack.style.lineHeight = ics.lineHeight;
-                    // KRİTİK: overlay ile native textarea BİREBİR aynı sarmalama
-                    // kurallarını kullanmalı; yoksa kelime farklı noktada bölünür
-                    // → imleç/seçim kayar, satır arası boşluk oluşur (bilinen bug).
-                    // word-break:normal → normal kelimeler BÜTÜN olarak alta iner
-                    // (mid-word split olmaz); overflow-wrap:break-word → yalnız
-                    // tek başına satıra sığmayan AŞIRI uzun kelime bölünür ve bu
-                    // ikisinde de AYNI noktada olur → imleç oturur.
-                    this.charTrack.style.whiteSpace = "pre-wrap";
-                    this.charTrack.style.overflowWrap = "break-word";
-                    this.charTrack.style.wordBreak = "normal";
-                    this.charTrack.style.tabSize = ics.tabSize;
-                    // Native textarea'yı da AYNI kurallara açıkça sabitle
-                    // (varsayılanı tarayıcıya bırakma → tutarlılık garanti).
-                    this.input.style.whiteSpace = "pre-wrap";
-                    this.input.style.overflowWrap = "break-word";
-                    this.input.style.wordBreak = "normal";
-                }
-
-                this.overlay.appendChild(this.charTrack);
-                this.group.appendChild(this.overlay);
-
-                // Overlay'i input'un exact boyut ve konumuna kilitle
-                this._syncOverlaySize();
-                // a11y: overlay var → native metni gizleyebiliriz (CSS guard).
-                // reduced-motion'da bu blok çalışmaz → metin görünür kalır.
-                this.group.classList.add("glint-has-overlay");
-            }
+            // v1.7 — overlay kurulumu CANLI hareket durumuna bağlı: reduced
+            // değilken kurulur; runtime'da reduced sonradan KAPANIRSA
+            // glint:motionchange üzerinden _onMotionChange geç kurulum yapar.
+            if (!prefersReduced()) this._buildOverlay();
 
             this.errorEl = document.createElement("p");
             this.errorEl.className = "glint-error-msg";
@@ -277,6 +456,96 @@
 
             this._buildExtras();
             this.input.style.borderColor = "transparent";
+        }
+
+        /**
+         * v1.7 — Karakter animasyon katmanı (overlay + charTrack) kurulumu.
+         * buildDOM'dan çıkarıldı ki mount'u reduced-motion'da yapılmış bir
+         * alan, reduced runtime'da KAPANINCA katmanı sonradan kurabilsin
+         * (glint:motionchange → _onMotionChange). İçerik buildDOM'daki eski
+         * blokla birebir aynıdır; yalnız errorEl'den ÖNCE eklenir (geç
+         * kurulumda DOM sırası ilk kurulumla aynı kalsın).
+         */
+        _buildOverlay() {
+            if (this.overlay || !this.input) return;
+            this.overlay = document.createElement("div");
+            this.overlay.className = "glint-char-overlay";
+
+            this.charTrack = document.createElement("div");
+            this.charTrack.className = "glint-char-track";
+
+            // Ghost'lar (giriş/çıkış/FLIP) overlay'e eklenir; gerçek input
+            // tipografisini miras almaları için longhand kopyalanır
+            // (v1.5.1: `font` shorthand'i font-style/stretch'i normal'e
+            // sıfırlıyordu — italik/condensed temalarda glif genişliği
+            // kayardı; ayrıca webfont geç yüklenirse yeniden senkron
+            // gerekir → _syncOverlayFont hem burada hem fonts.ready'de).
+            this._syncOverlayFont();
+            if (!this._fontsHooked && document.fonts && document.fonts.ready) {
+                this._fontsHooked = true;   // geç kurulumda çift kayıt olmasın
+                document.fonts.ready.then(() => {
+                    if (this.charTrack) {
+                        this._syncOverlayFont();
+                        this.syncOverlay(false);
+                        this.rebuildSVG();
+                    }
+                }).catch(() => { });
+            }
+            // Multi-line: line-height ve wrap kuralları textarea ile aynı olmalı.
+            // (CSS de aynısını veriyor ama inline ile garanti.)
+            if (this.isMultiline) {
+                const ics = getComputedStyle(this.input);
+                this.charTrack.style.lineHeight = ics.lineHeight;
+                // KRİTİK: overlay ile native textarea BİREBİR aynı sarmalama
+                // kurallarını kullanmalı; yoksa kelime farklı noktada bölünür
+                // → imleç/seçim kayar, satır arası boşluk oluşur (bilinen bug).
+                // word-break:normal → normal kelimeler BÜTÜN olarak alta iner
+                // (mid-word split olmaz); overflow-wrap:break-word → yalnız
+                // tek başına satıra sığmayan AŞIRI uzun kelime bölünür ve bu
+                // ikisinde de AYNI noktada olur → imleç oturur.
+                this.charTrack.style.whiteSpace = "pre-wrap";
+                this.charTrack.style.overflowWrap = "break-word";
+                this.charTrack.style.wordBreak = "normal";
+                this.charTrack.style.tabSize = ics.tabSize;
+                // Native textarea'yı da AYNI kurallara açıkça sabitle
+                // (varsayılanı tarayıcıya bırakma → tutarlılık garanti).
+                this.input.style.whiteSpace = "pre-wrap";
+                this.input.style.overflowWrap = "break-word";
+                this.input.style.wordBreak = "normal";
+            }
+
+            this.overlay.appendChild(this.charTrack);
+            // İlk kurulumda errorEl henüz yok → sona; geç kurulumda önüne.
+            if (this.errorEl && this.errorEl.parentNode === this.group) {
+                this.group.insertBefore(this.overlay, this.errorEl);
+            } else {
+                this.group.appendChild(this.overlay);
+            }
+
+            // Overlay'i input'un exact boyut ve konumuna kilitle
+            this._syncOverlaySize();
+            // a11y: overlay var → native metni gizleyebiliriz (CSS guard).
+            // reduced-motion'da overlay CSS ile gizlenir → metin görünür kalır.
+            this.group.classList.add("glint-has-overlay");
+        }
+
+        /**
+         * v1.7 — glint:motionchange tepkisi (çekirdek yayınlar):
+         *   reduced AÇILDI  → yapı yerinde kalır (CSS katmanı gizleyip native
+         *     metni gösterir; animasyon kapıları zaten çağrı anında kapanır),
+         *     yalnız bayat e-posta ghost'u temizlenir (görünmez öneri Tab ile
+         *     kabul edilmesin).
+         *   reduced KAPANDI → overlay yoksa kurulur, mevcut değerle senkronlanır
+         *     (reduced süresince span'lar güncellenmediği için bayattır).
+         * Görsel sonuç iki kutupta da eski mount-anı davranışıyla birebirdir.
+         */
+        _onMotionChange(reduced) {
+            if (reduced) { this._removeEmailGhost(); return; }
+            if (!this.overlay) this._buildOverlay();
+            this._syncOverlayFont();
+            this._syncOverlaySize();
+            this.syncOverlay(false);
+            this.syncScroll();
         }
 
         // Overlay/track tipografisini input'un computed longhand'lerinden
@@ -292,6 +561,13 @@
                 el.style.fontWeight = cs.fontWeight;
                 el.style.fontStyle = cs.fontStyle;
                 el.style.fontStretch = cs.fontStretch;
+                // v1.7: UA stylesheet'i input'a `font` SHORTHAND'i bastığından
+                // font-variant-numeric ELEMENTTE "normal"e sıfırlanır (gruba
+                // verilen değer kalıtımla inmez); overlay ise kalıtımla alırdı
+                // → glif (overlay) ile imleç (input) metriği rakamda ayrışırdı.
+                // Ayna longhand'lere variant-numeric da eklendi — overlay her
+                // koşulda input'u izler (duration tabular-nums bunun üstüne kurulu).
+                el.style.fontVariantNumeric = cs.fontVariantNumeric;
                 el.style.letterSpacing = cs.letterSpacing;
             }
             if (this.isMultiline) this.charTrack.style.lineHeight = cs.lineHeight;
@@ -324,7 +600,11 @@
             }
 
             // — Aksiyon butonları —
-            this._actionCount = 0;
+            // v1.7: markup'ta ÖNCEDEN yazılmış elle aksiyon butonları sayaca
+            // dahil edilir — sonradan enjekte edilen otomatik butonlar (clear
+            // vb.) aynı koordinata binmek yerine sola dizilir.
+            const manualActions = g.querySelectorAll("button.glint-field__action");
+            this._actionCount = manualActions.length;
             // Modern stroke (çizgi) eye / eye-slash — dolu-blob göz yerine ince, premium çizim
             const ICON_EYE =
                 '<svg class="glint-eye-on" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.6-6.8 9.5-6.8S21.5 12 21.5 12 17.9 18.8 12 18.8 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/></svg>' +
@@ -333,7 +613,32 @@
                 '<svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path d="M10 8.6l3.2-3.2 1.4 1.4L11.4 10l3.2 3.2-1.4 1.4L10 11.4l-3.2 3.2-1.4-1.4L8.6 10 5.4 6.8l1.4-1.4z"/></svg>';
 
             if (this.isPassword && !g.hasAttribute("data-glint-no-toggle")) {
-                this.pwBtn = this._addAction("glint-field__action--password", "Parolayı göster/gizle", ICON_EYE, () => this._togglePassword());
+                const manualBtn = manualActions[0] || null;
+                if (manualBtn) {
+                    // v1.7 — elle buton algılama: markup'ta hazır bir aksiyon
+                    // butonu varsa İKİNCİ bir göz enjekte edilmez (üst üste iki
+                    // buton hatası); elle buton kütüphanenin _togglePassword'üne
+                    // BAĞLANIR → caret restore, aria-pressed ve is-revealed ikon
+                    // senkronu elle butonda da bedavaya çalışır. Elle buton +
+                    // otomatik davranış istenmiyorsa data-glint-no-toggle ile
+                    // tamamen kapatılır.
+                    this.pwBtn = manualBtn;
+                    this._pwBtnManual = true;
+                    if (!manualBtn.hasAttribute("aria-label")) {
+                        manualBtn.setAttribute("aria-label", "Parolayı göster/gizle");
+                    }
+                    // Buton boşsa marka göz ikonu çifti verilir (ikon takası
+                    // is-revealed ile çalışsın); doluysa kullanıcının ikonu korunur.
+                    if (!manualBtn.innerHTML.trim()) {
+                        manualBtn.classList.add("glint-field__action--password");
+                        manualBtn.innerHTML = ICON_EYE;
+                    }
+                    if (!this._ac) this._ac = new AbortController();
+                    manualBtn.addEventListener("click", () => this._togglePassword(),
+                        { signal: this._ac.signal });
+                } else {
+                    this.pwBtn = this._addAction("glint-field__action--password", "Parolayı göster/gizle", ICON_EYE, () => this._togglePassword());
+                }
                 this.pwBtn.setAttribute("aria-pressed", "false");
             }
             if (g.hasAttribute("data-glint-clearable")) {
@@ -354,6 +659,22 @@
             this._emailAssist = (t === "email") && g.hasAttribute("data-glint-email-assist");
             this._emailMemory = (t === "email") && g.hasAttribute("data-glint-email-memory");
             if (this._emailAssist || this._emailMemory) this._setupEmail();
+
+            // — v1.7: URL segment renklendirme (opt-in: data-glint-url) —
+            //   type=url veya text input'unda (textarea DEĞİL — çok satırda
+            //   URL vurgusu anlamsız). Overlay span'larına _charDecorator
+            //   kancasıyla protokol/host/path/query/fragment sınıfı basılır.
+            //   SALT görseldir: değer, doğrulama ve caret'e dokunmaz;
+            //   reduced-motion'da overlay kurulmadığından sessizce etkisizdir.
+            if (input.tagName === "INPUT" && (t === "url" || t === "text") &&
+                (g.hasAttribute("data-glint-url") || input.hasAttribute("data-glint-url"))) {
+                this._charDecorator = (val, spans) => {
+                    const segs = glintUrlSegments(val);
+                    for (let i = 0; i < spans.length; i++) {
+                        if (segs[i]) spans[i].classList.add("glint-char--url-" + segs[i]);
+                    }
+                };
+            }
 
             // — Parola güç göstergesi (opt-in) —
             if (this.isPassword && g.hasAttribute("data-glint-strength")) {
@@ -390,8 +711,6 @@
 
         _togglePassword() {
             const reveal = this.input.type === "password";   // şu an gizli → göster
-            // Tip değişimi tarayıcıda seçimi sıfırlar (caret 0'a atar);
-            // mevcut caret/seçim kaydedilip değişimden sonra geri yüklenir.
             const selStart = this.input.selectionStart;
             const selEnd = this.input.selectionEnd;
             const selDir = this.input.selectionDirection;
@@ -399,11 +718,28 @@
             this.input.type = reveal ? "text" : "password";
             this.isPassword = !reveal;                        // text iken gerçek char göster
             if (hadFocus) this.input.focus();
-            if (selStart != null) {
+            // v1.7 — Chromium type değişiminden SONRA seçimi görev sonunda
+            // ASENKRON (0,0)'a sıfırlar → senkron restore tek başına ezilir.
+            // Restore hem senkron (flicker önleme + diğer tarayıcılar) hem
+            // rAF + setTimeout(0) ile uygulanır (ikisi de ampirik doğrulandı;
+            // ikili uygulama sıralama garantisi olmayan sürümlere karşı
+            // emniyet kemeri). Odak kaybolduysa dokunulmaz; hızlı çift
+            // tıklamada bekleyen restore'lar iptal edilir.
+            const restore = () => {
+                if (selStart == null || document.activeElement !== this.input) return;
                 try { this.input.setSelectionRange(selStart, selEnd, selDir || "none"); } catch (_) { }
+            };
+            restore();
+            if (hadFocus && selStart != null) {
+                if (this._pwSelRaf) cancelAnimationFrame(this._pwSelRaf);
+                if (this._pwSelTimer) clearTimeout(this._pwSelTimer);
+                this._pwSelRaf = requestAnimationFrame(() => { this._pwSelRaf = null; restore(); });
+                this._pwSelTimer = setTimeout(() => { this._pwSelTimer = null; restore(); }, 0);
             }
-            this.pwBtn.setAttribute("aria-pressed", String(reveal));
-            this.pwBtn.classList.toggle("is-revealed", reveal);
+            if (this.pwBtn) {
+                this.pwBtn.setAttribute("aria-pressed", String(reveal));
+                this.pwBtn.classList.toggle("is-revealed", reveal);
+            }
             this.syncOverlay(true);                           // overlay • ↔ gerçek karakter
         }
 
@@ -439,10 +775,13 @@
             score = v ? Math.min(4, score) : 0;
             const prev = this._lastScore || 0;
             if (score !== prev) {
-                // Yön sınıfı: azalışta segment gecikmeleri tersine döner
-                // (sağdan sola "boşalma" dalgası).
+                // v1.7 EK-1 — yön sınıfı artık davranış TAŞIMIYOR: dolgu tek
+                // --glint-strength-fill değerinden akıyor (Tasarım B, CSS),
+                // yönlü delay merdiveni kalktı. Sınıf, dışarıda stil bağlamış
+                // kullanıcılar için geriye dönük uyumlulukla basılmaya devam
+                // eder (sürüm notuna yazıldı).
                 this.strengthEl.classList.toggle("is-decreasing", score < prev);
-                if (score > prev && !prefersReduced) {
+                if (score > prev && !prefersReduced()) {
                     // Yeni ulaşılan tepe segmentte tek seferlik parıltı.
                     const segs = this.strengthEl.children;
                     for (const s of segs) s.classList.remove("glint-shine");
@@ -525,9 +864,12 @@
                     const relLeft = r ? r.left - containerRect.left : 0;
                     if (!visible(r, relLeft)) return;
                     const ghost = this._makeGhost(oldVal[s.index], relLeft, r.top - containerRect.top);
+                    // EK-1: _makeGhost artık kayıt tutuyor → tek kaldırma
+                    // yolu _disposeGhost (kayıt defteri temiz kalsın).
+                    const dropSep = () => this._disposeGhost(ghost);
                     ghost.animate([{ opacity: 1 }, { opacity: 0 }],
                         { duration: 120, easing: "ease-out", fill: "forwards" })
-                        .finished.then(() => ghost.remove()).catch(() => ghost.remove());
+                        .finished.then(dropSep).catch(dropSep);
                 });
 
                 // Silinen rakamlar — mevcut çıkış animasyonunun tek-karakter hali
@@ -627,6 +969,7 @@
             this._emailHistory = [];
             this._chipIdx = 0;
             this._chipDismissed = false;
+            this._chipHandoff = false;   // v1.7: chip → alan FLIP devri sürüyor mu
             this._ghostHint = "";
             this._ghostSource = null;
 
@@ -683,7 +1026,10 @@
 
         /** Ghost önerisini hesapla + overlay'de çiz (öncelik: hafıza > @ > alan adı). */
         _updateEmailGhost() {
-            if (!this.charTrack) return;   // reduced-motion: overlay yok → ghost yok
+            // Overlay yok ya da reduced canlı açık → ghost yok. (v1.7 —
+            // reduced'ta overlay CSS ile gizli olduğundan bayat bir öneri
+            // görünmez kalıp Tab ile kabul edilmesin diye temizlenir.)
+            if (prefersReduced() || !this.charTrack) { this._removeEmailGhost(); return; }
             const v = this.input.value;
             let hint = "", source = null;
 
@@ -737,7 +1083,7 @@
             this.input.value += hint;
             try { this.input.setSelectionRange(this.input.value.length, this.input.value.length); } catch (_) { }
             this.input.dispatchEvent(new Event("input", { bubbles: true }));
-            if (!prefersReduced && this.charSpans) {
+            if (!prefersReduced() && this.charSpans) {
                 for (let i = start; i < this.charSpans.length; i++) {
                     const span = this.charSpans[i];
                     if (!span) continue;
@@ -819,7 +1165,7 @@
             const email = this._emailHistory[this._chipIdx] || this._emailHistory[0];
             if (!email) return;
             chip.innerHTML =
-                '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+                '<svg class="glint-email-chip__icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
             const txt = document.createElement("span");
             txt.className = "glint-email-chip__text";
             // Glif FLIP için karakter başına span
@@ -837,39 +1183,56 @@
             }
             chip.setAttribute("aria-label", "Kayıtlı e-postayı kullan: " + email +
                 (this._emailHistory.length > 1 ? " (↓ ile diğerleri)" : ""));
+            // v1.7.1 — innerHTML üstteki satırda statik çerçeve SVG'sini de
+            // sildi; taze içerik ölçüsüyle yeniden kurulur (animasyonsuz).
+            this._buildChipSVG();
         }
 
         _updateEmailChip() {
-            if (!this._chipEl || this._chipDismissed || !this._emailHistory.length) return;
+            if (!this._chipEl || this._chipDismissed || this._chipHandoff || !this._emailHistory.length) return;
             // Alan zaten kayıtlı adresin kendisini taşıyorsa gösterme
             if (this._emailHistory.includes(this.input.value.trim())) { this._hideEmailChip(); return; }
             if (!this._chipEl.classList.contains("is-visible")) {
+                // v1.7.1 — kullanıcı direktifi: chip input'un ALTINDAN doğar
+                // (clip-path perdesi + opacity, tamamen CSS). Sekme-eki
+                // çerçevesi STATİKTİR — stroke draw-in ve alt çizgi kıvılcımı
+                // KALDIRILDI; çerçeve yalnız hover/odakta renklenir/parlar
+                // (üst kenarı olmadığından "üst border hariç parlar").
                 this._chipEl.classList.add("is-visible");
-                // Alt çizgide kısa bir parıltı: chip çizginin altından
-                // "süzülürken" border bir an nefes alır.
-                if (!prefersReduced && this.pathBottom) {
-                    try {
-                        this.pathBottom.animate(
-                            [{ strokeOpacity: 1 }, { strokeOpacity: 0.3 }, { strokeOpacity: 1 }],
-                            { duration: 420, easing: "ease-in-out" });
-                    } catch (_) { }
-                }
             }
         }
 
         _hideEmailChip() {
+            // Handoff (chip → alan FLIP) kendi söndürmesini yönetir; blur/focus
+            // dinleyicilerinden gelen çağrılar perdeyi geri oynatıp jank üretmesin.
+            if (this._chipHandoff) return;
             this._chipEl && this._chipEl.classList.remove("is-visible");
         }
 
         /** Chip'ten alana doldurma — glif FLIP: chip'teki karakterler alandaki
-         *  hedef konumlarına uçar (yazma animasyonu YOK; shared-element hissi). */
+         *  hedef konumlarına uçar (yazma animasyonu YOK; shared-element hissi).
+         *  v1.7 — tek FLIP: chip'in gerçek glifleri anında gizlenir (her glifin
+         *  TEK kopyası kalır), kabuk transform'suz salt-opacity ile söner —
+         *  eski "chip perdesi geri sararken ghost'lar beklerdi" çift-zıplama
+         *  jank'i böylece biter. Ölçümler oku/yaz fazlarına ayrılır (karakter
+         *  başına forced-layout yok). */
         _fillFromChip() {
+            if (this._chipHandoff) return;   // handoff sürerken çift tetik koruması
             const email = this._emailHistory[this._chipIdx] || this._emailHistory[0];
             if (!email) return;
             const chip = this._chipEl;
             const chipSpans = chip ? Array.from(chip.querySelectorAll(".glint-email-chip__text > span")) : [];
-            const grpRect = this.group.getBoundingClientRect();
             const srcRects = chipSpans.map(s => s.getBoundingClientRect());
+
+            const animate = !prefersReduced() && !!chip && srcRects.length > 0;
+            if (animate) {
+                // (1) Chip gliflerini ölçümden hemen sonra gizle — ghost'larla
+                //     üst üste ikinci bir kopya asla görünmesin. visibility,
+                //     genişliği korur (layout zıplaması yok) ve transition'lara
+                //     takılmaz.
+                chipSpans.forEach(s => { s.style.visibility = "hidden"; });
+                this._chipHandoff = true;
+            }
 
             this._removeEmailGhost();
             this._skipNextAnim = true;
@@ -878,16 +1241,49 @@
             try { this.input.setSelectionRange(email.length, email.length); } catch (_) { }
             this.input.dispatchEvent(new Event("input", { bubbles: true }));
             this.input.dispatchEvent(new Event("change", { bubbles: true }));
-            this._hideEmailChip();
 
-            if (prefersReduced || !this.charSpans || !this.charSpans.length || !srcRects.length) return;
+            if (!animate) { this._hideEmailChip(); return; }
+            if (!this.charSpans || !this.charSpans.length) {
+                // Overlay yok (ör. reduced-motion overlay'siz kurulum) →
+                // animasyonsuz bitir, chip gliflerini geri aç.
+                chipSpans.forEach(s => { s.style.visibility = ""; });
+                this._chipHandoff = false;
+                this._hideEmailChip();
+                return;
+            }
 
-            // Hedef konumlar (yeni span'lar) — grup koordinat uzayında ghost'lar
+            // (2) Kabuğu transform İÇERMEYEN tek WAAPI ile söndür — CSS
+            //     transition devre dışı (is-handoff), perde geri sarmaz.
+            chip.classList.add("is-handoff");
+            const fade = chip.animate([{ opacity: 1 }, { opacity: 0 }], {
+                duration: 180,                            // --glint-dur-3
+                easing: "cubic-bezier(0.4, 0, 0.7, 0.2)", // --glint-ease-in
+                fill: "forwards"
+            });
+            const endHandoff = () => {
+                chip.classList.remove("is-visible", "is-handoff");
+                chipSpans.forEach(s => { s.style.visibility = ""; });
+                try { fade.cancel(); } catch (_) { }      // fill:forwards kalıntısı temizlensin
+                this._chipHandoff = false;
+            };
+            fade.finished.then(endHandoff).catch(endHandoff);
+
+            // (3) OKU fazı: taze grup + hedef ölçümleri topluca
+            //     (dispatchEvent("input") yukarıda senkron çalışıp
+            //     _skipNextAnim yolundan rebuildSpans'i bitirdi).
+            const grpRect = this.group.getBoundingClientRect();
+            const dstRects = this.charSpans.map(s => s.getBoundingClientRect());
+
+            // (4) YAZ fazı: tüm ghost'lar tek fragment ile eklenir,
+            //     animasyonlar aynı senkron karede başlar.
+            const frag = document.createDocumentFragment();
+            const flights = [];
             this.charSpans.forEach((span, i) => {
                 const src = srcRects[i];
-                if (!src) return;
-                const dst = span.getBoundingClientRect();
-                // Overlay clip'i chip'i kapsamaz → ghost'lar GRUBA eklenir
+                const dst = dstRects[i];
+                // Ellipsis ile kırpılan chip glifleri (genişlik 0) uçurulamaz —
+                // hedef span görünür bırakılır.
+                if (!span || !src || !dst || src.width <= 0) return;
                 span.style.opacity = "0";
                 const ghost = document.createElement("span");
                 ghost.className = "glint-char-ghost";
@@ -895,41 +1291,125 @@
                 ghost.style.left = (dst.left - grpRect.left) + "px";
                 ghost.style.top = (dst.top - grpRect.top) + "px";
                 ghost.style.zIndex = "30";
-                this.group.appendChild(ghost);
-                const reveal = () => { span.style.opacity = ""; ghost.remove(); };
-                ghost.animate([
-                    { transform: `translate(${src.left - dst.left}px, ${src.top - dst.top}px) scale(0.92)`, opacity: 0.85 },
+                frag.appendChild(ghost);
+                flights.push({ ghost, span, src, dst, i });
+            });
+            this.group.appendChild(frag);
+            for (const f of flights) {
+                const reveal = () => { f.span.style.opacity = ""; f.ghost.remove(); };
+                f.ghost.animate([
+                    { transform: `translate(${f.src.left - f.dst.left}px, ${f.src.top - f.dst.top}px) scale(0.92)`, opacity: 0.85 },
                     { transform: "translate(0, 0) scale(1)", opacity: 1 }
                 ], {
-                    duration: 300,
-                    delay: i * 10,
-                    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                    duration: 320,                             // --glint-dur-5
+                    // Stagger 8-12ms bandında ama TAVANLI: uzun e-postalarda
+                    // geç glifler "ikinci dalga" hissi vermesin.
+                    delay: Math.min(f.i * 9, 90),
+                    easing: "cubic-bezier(0.77, 0, 0.175, 1)", // --glint-ease-move
                     fill: "backwards"
                 }).finished.then(reveal).catch(reveal);
-            });
+            }
         }
 
-        buildBorderSVG() {
-            // v1.6 — Stepper'da çizim GRUBU sarar (−/+ butonlar dahil tek
-            // kapsül); diğer alanlarda eskisi gibi input ölçülür. SVG zaten
-            // inset:0 ile grubun üzerinde durduğundan yalnız geometri kaynağı
-            // değişir.
-            const host = this.group.classList.contains("glint-input-group--stepper")
-                ? this.group : this.input;
-            const rect = host.getBoundingClientRect();
+        /** v1.7.1 — Hafıza chip'inin "sekme eki" çerçevesi (KULLANICI TARİFİ):
+         *  sol üst köşe DÜZ, sol kenar aşağı iner, alt köşeler yuvarlak, sağ
+         *  kenar yukarı çıkar ve sağ-üstte DIŞA içbükey kavisle inputun alt
+         *  border'ına DOĞRU uzanıp bitişik (ama birleşmeden) biter. Üst kenar
+         *  YOK. STATİK çizgidir: draw-in/dash animasyonu ve kıvılcım yoktur;
+         *  hover/odakta yalnız renk + parlama (CSS) değişir. Chip kutusu
+         *  inputun border'ına BİNMEZ (margin-top: 0 — bitişik, ezmez). */
+        _buildChipSVG() {
+            const chip = this._chipEl;
+            if (!chip) return;
+            const rect = chip.getBoundingClientRect();
             const W = rect.width, H = rect.height;
-            if (W === 0 || H === 0) return;
-
-            const R = Math.min(parseFloat(getComputedStyle(host).borderRadius) || 12, W / 2, H / 2);
-            if (this.svg) { this.svg.remove(); this.svg = null; }
-
-            this.svg = svgEl("svg", {
-                class: "glint-border-svg",
-                viewBox: `0 0 ${W} ${H}`,
-                preserveAspectRatio: "none"
+            if (!W || !H) return;
+            // Stroke merkez payı çekirdek çizimle AYNI kaynaktan (bw/2).
+            const bwn = this.defaultBorder
+                ? parseFloat(getComputedStyle(this.defaultBorder).borderTopWidth) : NaN;
+            const bw = Number.isFinite(bwn) && bwn > 0 ? bwn : 2;
+            const S = bw / 2;                         // stroke merkez payı
+            const F = 8;                              // sağ-üst içbükey kavis yarıçapı
+            const R = Math.min(12, W / 2, H / 2);     // alt köşe yarıçapı (CSS radius ile eş)
+            // v1.7.1 REV-3 — sol üst çizgi "biraz daha yukarı": inputun sol-alt
+            // KAVİSİ chip hizasında yukarı kaçtığından x=S'te border ile chip
+            // arasında boşluk kalır; sol uç, kavisin o noktadaki alt kenarına
+            // 1px kala kadar yukarı uzatılır (border'a DOKUNMAZ). Kavis yoksa
+            // (radius 0) uzatma da olmaz.
+            const ir = this.defaultBorder
+                ? parseFloat(getComputedStyle(this.defaultBorder).borderBottomLeftRadius) : NaN;
+            const r0 = Number.isFinite(ir) && ir > 0 ? ir : 0;
+            const rise = r0 > S
+                ? Math.max(0, (r0 - Math.sqrt(Math.max(0, r0 * r0 - (r0 - S) * (r0 - S)))) - 1)
+                : 0;
+            if (this._chipSvg) { this._chipSvg.remove(); this._chipSvg = null; }
+            const svg = svgEl("svg", {
+                class: "glint-email-chip__svg",
+                viewBox: `0 0 ${W + F} ${H}`,
+                "aria-hidden": "true"
             });
+            svg.style.width = (W + F) + "px";
+            svg.style.height = H + "px";
+            const d = [
+                `M ${S} ${-rise}`,                                // sol üst DÜZ uç — kavis altına uzanır
+                `L ${S} ${H - R - S}`,                            // sol kenar aşağı
+                `Q ${S} ${H - S} ${R + S} ${H - S}`,              // sol-alt köşe (yuvarlak)
+                `L ${W - R - S} ${H - S}`,                        // alt kenar
+                `Q ${W - S} ${H - S} ${W - S} ${H - R - S}`,      // sağ-alt köşe (yuvarlak)
+                `L ${W - S} ${F}`,                                // sağ kenar yukarı
+                // REV-3: kavis ucu TAM input alt border hizasında (y=0) biter —
+                // üst üste ama stroke butt-cap ile aşağıda kalır, border'ı ezmez.
+                `A ${F} ${F} 0 0 1 ${W - S + F} 0`
+            ].join(" ");
+            const path = svgEl("path", { d, class: "glint-email-chip__path" });
+            svg.appendChild(path);
+            chip.appendChild(svg);
+            this._chipSvg = svg;
+        }
 
-            const S = 1;
+        /**
+         * v1.7 EK-1 — SVG geometri ölçümü TEK kaynaktan: .glint-default-border
+         * (gerçek kenarlık elemanı). SVG ile aynı kutudadır — ikisi de group'a
+         * inset:0 oturur; eski stepper(group)/input host ayrımı böylece
+         * sadeleşti. Ek kazanım: global box-sizing reset'i olmayan host
+         * sayfada content-box input rect'inin şişmesi viewBox'ı artık bozamaz.
+         * Dönüş: { W, H, bw, radii, key } — key, radius/kalınlık-yalnız tema
+         * değişimlerinin ucuz bekçisi (onFocus karşılaştırır).
+         */
+        _measureBorderGeo() {
+            const src = this.defaultBorder || this.group;
+            const rect = src.getBoundingClientRect();
+            const W = rect.width, H = rect.height;
+            if (!W || !H) return null;
+            const cs = getComputedStyle(src);
+            const n = parseFloat(cs.borderTopWidth);
+            const bw = Number.isFinite(n) && n > 0 ? n : 2;
+            const radii = {
+                tl: resolveCornerRadius(cs.borderTopLeftRadius, W, H),
+                tr: resolveCornerRadius(cs.borderTopRightRadius, W, H),
+                br: resolveCornerRadius(cs.borderBottomRightRadius, W, H),
+                bl: resolveCornerRadius(cs.borderBottomLeftRadius, W, H)
+            };
+            return {
+                W, H, bw, radii,
+                key: [W, H, bw, radii.tl, radii.tr, radii.br, radii.bl].join("|")
+            };
+        }
+
+        buildBorderSVG(syncRestore) {
+            // v1.7 EK-1 — TEK DOĞRULUK KAYNAĞI: geometri .glint-default-border
+            // computed stilinden türetilir (kalınlık bw, dört köşe AYRI AYRI;
+            // '0px' meşru — eski `|| 12` fallback'i kalktı) ve köşeler gerçek
+            // daire yayı ile çizilir (roundedRectPaths). Animasyon-sonu SVG
+            // karesi gerçek border karesiyle piksel-birebir örtüşür →
+            // odak/blur crossfade'inde çift-çerçeve hizasızlığı biter.
+            // İN-PLACE güncelleme: svg/path DOM'u korunur, yalnız viewBox +
+            // d + dasharray tazelenir (ResizeObserver→rebuildSVG yolunda
+            // remove+recreate churn'ü biter — multiline auto-grow akıcılığı).
+            const geo = this._measureBorderGeo();
+            if (!geo) return;
+            const { W, H, bw, radii } = geo;
+
             // v1.6 — ÇAPRAZ çizim modu: picker gruplarında (ve data-glint-diagonal
             // ile herhangi bir alanda) iki yol SOL ÜST köşeden başlar ve SAĞ ALT
             // köşede buluşur (kullanıcının istediği "sol çaprazdan sağ çapraza"
@@ -938,36 +1418,24 @@
             // sağ-orta süpürme korunur.
             const diagonal = this.group.classList.contains("glint-input-group--picker") ||
                 this.group.hasAttribute("data-glint-diagonal");
-            let d1, d2;
-            if (diagonal) {
-                d1 = [
-                    `M ${S} ${R + S}`,
-                    `Q ${S} ${S} ${R + S} ${S}`, `L ${W - R - S} ${S}`,
-                    `Q ${W - S} ${S} ${W - S} ${R + S}`, `L ${W - S} ${H - R - S}`,
-                    `Q ${W - S} ${H - S} ${W - R - S} ${H - S}`
-                ].join(" ");
-                d2 = [
-                    `M ${S} ${R + S}`, `L ${S} ${H - R - S}`,
-                    `Q ${S} ${H - S} ${R + S} ${H - S}`, `L ${W - R - S} ${H - S}`
-                ].join(" ");
-            } else {
-                d1 = [
-                    `M ${S} ${H / 2}`, `L ${S} ${R + S}`,
-                    `Q ${S} ${S} ${R + S} ${S}`, `L ${W - R - S} ${S}`,
-                    `Q ${W - S} ${S} ${W - S} ${R + S}`, `L ${W - S} ${H / 2}`
-                ].join(" ");
-                d2 = [
-                    `M ${S} ${H / 2}`, `L ${S} ${H - R - S}`,
-                    `Q ${S} ${H - S} ${R + S} ${H - S}`, `L ${W - R - S} ${H - S}`,
-                    `Q ${W - S} ${H - S} ${W - S} ${H - R - S}`, `L ${W - S} ${H / 2}`
-                ].join(" ");
-            }
+            const { d1, d2 } = roundedRectPaths(W, H, bw, radii, diagonal ? "diagonal" : "split");
 
-            this.pathTop = svgEl("path", { d: d1, class: "glint-border-path" });
-            this.pathBottom = svgEl("path", { d: d2, class: "glint-border-path" });
-            this.svg.appendChild(this.pathTop);
-            this.svg.appendChild(this.pathBottom);
-            this.group.appendChild(this.svg);
+            if (!this.svg || !this.pathTop || !this.pathBottom) {
+                this.svg = svgEl("svg", {
+                    class: "glint-border-svg",
+                    viewBox: `0 0 ${W} ${H}`,
+                    preserveAspectRatio: "none"
+                });
+                this.pathTop = svgEl("path", { d: d1, class: "glint-border-path" });
+                this.pathBottom = svgEl("path", { d: d2, class: "glint-border-path" });
+                this.svg.appendChild(this.pathTop);
+                this.svg.appendChild(this.pathBottom);
+                this.group.appendChild(this.svg);
+            } else {
+                this.svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+                this.pathTop.setAttribute("d", d1);
+                this.pathBottom.setAttribute("d", d2);
+            }
 
             this.pathTopLen = this.pathTop.getTotalLength();
             this.pathBottomLen = this.pathBottom.getTotalLength();
@@ -981,6 +1449,13 @@
             // Çözüm:
             //   transition = 'none' → değer set et → reflow (getBCR)
             //   → sonraki rAF'ta transition = '' (geri aç)
+            //
+            // v1.7 EK-1 — in-place yolda da inline hedef HEP len (eski
+            // sözleşme korunur): odaklıyken/picker açıkken görünür değeri
+            // zaten CSS'in `stroke-dashoffset: 0 !important` kuralları tutar
+            // (inline'a karşı kazanır → flash yok); kapanış/blur geri sarımı
+            // inline len'e döner. Odaklı rebuild'lerde rebuildSVG ayrıca
+            // _applyFocusSVGInstant çağırır (mevcut akış).
             // ─────────────────────────────────────────────────────
             this.pathTop.style.transition = "none";
             this.pathBottom.style.transition = "none";
@@ -993,16 +1468,28 @@
             // Reflow: tarayıcıya yeni değeri "gör ve kaydet" dedik
             void this.pathTop.getBoundingClientRect();
 
-            requestAnimationFrame(() => {
-                if (this.pathTop) this.pathTop.style.transition = "";
-                if (this.pathBottom) this.pathBottom.style.transition = "";
-            });
-
-            if (this.group.classList.contains("glint-error")) {
-                this.pathTop.classList.add("glint-border-path--error");
-                this.pathBottom.classList.add("glint-border-path--error");
+            if (syncRestore) {
+                // v1.7 EK-1 — odak-anı rebuild'i (onFocus geometri bekçisi):
+                // transition AYNI görevde geri açılır ki hemen ardından
+                // eklenecek .glint-focused imza çizimini NORMAL süresiyle
+                // oynatabilsin (rAF beklenseydi sınıf, inline transition:none
+                // aktifken uygulanır ve draw-in atlanırdı). Reflow yukarıda
+                // değerleri sabitledi — retroaktif animasyon oluşmaz.
+                this.pathTop.style.transition = "";
+                this.pathBottom.style.transition = "";
+            } else {
+                requestAnimationFrame(() => {
+                    if (this.pathTop) this.pathTop.style.transition = "";
+                    if (this.pathBottom) this.pathBottom.style.transition = "";
+                });
             }
 
+            // Hata sınıfı in-place yolda da senkron kalsın (toggle)
+            const isErr = this.group.classList.contains("glint-error");
+            this.pathTop.classList.toggle("glint-border-path--error", isErr);
+            this.pathBottom.classList.toggle("glint-border-path--error", isErr);
+
+            this._svgGeoKey = geo.key;
             this._svgBuilt = true;
         }
 
@@ -1057,6 +1544,13 @@
             this.input.addEventListener("compositionstart", () => { this.isComposing = true; }, sig);
             this.input.addEventListener("compositionend", () => {
                 this.isComposing = false;
+                // v1.7 EK-1 — IME commit'i overlay'i komple yeniden kurar
+                // (syncOverlay → rebuildSpans): canlı add/flip ghost'ları
+                // önce hasat edilip düşürülür (diff'siz yol → FLIP devri
+                // yok); yoksa eski ghost kopyaları yeni span kaskadının
+                // üstünde 230-320ms daha oynardı.
+                if (this.isMultiline) { this._harvestGhosts(); this._applyHarvest(null); }
+                this._agAppendOnly = false;   // EK-1: IME kısaltabilir → tam yol
                 this.syncOverlay(true);
                 if (this.isAutoGrow) this._autoGrow();
             }, sig);
@@ -1067,33 +1561,61 @@
             }, sig);
 
             // Yalnız overlay'e (animasyon katmanına) hizmet eden dinleyiciler:
-            if (!prefersReduced) {
-                this.input.addEventListener("beforeinput", () => this.onBeforeInput(), sig);
-                this.input.addEventListener("scroll", () => this.syncScroll(), { signal: this._ac.signal, passive: true });
-                this.input.addEventListener("select", () => this.syncScroll(), sig);
-                this.input.addEventListener("keyup", () => this.syncScroll(), sig);
+            // v1.7 — bunlar da HER ZAMAN bağlanır; kapı çağrı ANINDA canlı
+            // reduced değeri + overlay varlığıyla atılır (mount-anı kapısı
+            // kalktı → runtime'da reduced kapatılınca overlay geç kurulup
+            // animasyonlar hemen işler; reduced açılınca handler'lar no-op).
+            this.input.addEventListener("beforeinput", () => {
+                if (!prefersReduced() && this.charTrack) this.onBeforeInput();
+            }, sig);
+            this.input.addEventListener("scroll", () => this.syncScroll(), { signal: this._ac.signal, passive: true });
+            this.input.addEventListener("select", () => this.syncScroll(), sig);
+            this.input.addEventListener("keyup", () => this.syncScroll(), sig);
 
-                // ── CTRL+A + BACKSPACE/DELETE İNTERCEPT ──
-                // Tüm metin seçiliyken silme → karakter karakter animasyonlu silme
-                this._bulkDeleting = false;
-                this.input.addEventListener("keydown", (e) => {
-                    if (this._bulkDeleting) { e.preventDefault(); return; }
-                    if (e.key === "Backspace" || e.key === "Delete") {
-                        const { selectionStart, selectionEnd, value } = this.input;
-                        const selectedLen = selectionEnd - selectionStart;
-                        if (selectedLen > 1 && selectedLen === value.length) {
-                            e.preventDefault();
-                            this._bulkDeleteAnimated();
-                        }
+            // ── CTRL+A + BACKSPACE/DELETE İNTERCEPT ──
+            // Tüm metin seçiliyken silme → karakter karakter animasyonlu silme
+            this._bulkDeleting = false;
+            this.input.addEventListener("keydown", (e) => {
+                // Animasyon katmanı yok/kapalı → native toplu silme (eski
+                // reduced davranışıyla birebir: intercept hiç devreye girmez).
+                if (prefersReduced() || !this.charTrack) return;
+                if (this._bulkDeleting) { e.preventDefault(); return; }
+                if (e.key === "Backspace" || e.key === "Delete") {
+                    const { selectionStart, selectionEnd, value } = this.input;
+                    const selectedLen = selectionEnd - selectionStart;
+                    if (selectedLen > 1 && selectedLen === value.length) {
+                        e.preventDefault();
+                        this._bulkDeleteAnimated();
                     }
-                }, sig);
-            }
+                }
+            }, sig);
 
-            this._resizeObserver = new ResizeObserver(() => this.rebuildSVG());
+            // v1.7 — tek observer iki hedef: input (border SVG + overlay) ve
+            // varsa e-posta hafıza chip'i (statik sekme-eki çerçevesi; içerik/
+            // coarse-pointer padding değişiminde yeniden ölçülür).
+            this._resizeObserver = new ResizeObserver((entries) => {
+                let core = false, chipResized = false;
+                for (const en of entries) {
+                    if (this._chipEl && en.target === this._chipEl) chipResized = true;
+                    else core = true;
+                }
+                if (core) this.rebuildSVG();
+                if (chipResized) this._buildChipSVG();
+            });
             this._resizeObserver.observe(this.input);
+            if (this._chipEl) this._resizeObserver.observe(this._chipEl);
         }
 
         onFocus() {
+            // v1.7 EK-1 — radius/kalınlık-YALNIZ tema değişimi ResizeObserver'a
+            // yakalanmaz (kutu boyutu aynı kalır): odak başına TEK
+            // computed-style anahtarı son build ile karşılaştırılır, farklıysa
+            // SVG odak çiziminden ÖNCE yeni geometriyle tazelenir
+            // (syncRestore=true → hemen ardından gelen draw-in normal oynar).
+            if (this._svgBuilt) {
+                const geo = this._measureBorderGeo();
+                if (geo && geo.key !== this._svgGeoKey) this.buildBorderSVG(true);
+            }
             this.group.classList.add("glint-focused");
             if (!this._svgBuilt) requestAnimationFrame(() => this._applyFocusSVGInstant());
             // Scroll sync polling — focus boyunca her frame scroll takip.
@@ -1153,9 +1675,17 @@
 
             if (this.group.classList.contains("glint-error")) this.clearError();
 
-            // Overlay yoksa (reduced-motion) animasyon katmanı atlanır ama
-            // işlevsel güncellemeler (auto-grow, sayaç, güç, label) çalışır.
-            if (!this.charTrack) {
+            // Overlay yoksa VEYA reduced canlı olarak açıksa animasyon katmanı
+            // atlanır ama işlevsel güncellemeler (auto-grow, sayaç, güç,
+            // label) çalışır. (v1.7 — reduced kapısı çağrı anında: runtime'da
+            // açılırsa mevcut overlay'li alanlar da bu işlevsel yola düşer;
+            // katman CSS ile gizli olduğundan bayat span görünmez, reduced
+            // kapanınca _onMotionChange senkronu tazeler.)
+            if (prefersReduced() || !this.charTrack) {
+                // Dış bileşenin (picker/stepper) animasyon devri bayrağı bu
+                // yolda tüketilmezse bayat kalırdı → burada da temizlenir.
+                this._skipNextAnim = false;
+                this._agAppendOnly = false;   // EK-1: diff'siz yol → tam auto-grow
                 if (this.isAutoGrow) this._autoGrow();
                 this.prevValue = newVal;
                 this.updateLabelState();
@@ -1169,6 +1699,7 @@
             if (this._skipNextAnim) {
                 this._skipNextAnim = false;
                 this.rebuildSpans(newVal);
+                this._agAppendOnly = false;   // EK-1: diff'siz yol → tam auto-grow
                 if (this.isAutoGrow) this._autoGrow();
                 this.prevValue = newVal;
                 this.updateLabelState();
@@ -1197,20 +1728,32 @@
             const diff = diffStrings(oldVal, newVal);
 
             if (this.isMultiline) {
-                // Multi-line akışı:
+                // Multi-line akışı (v1.7 EK-1 — ghost hasadı eklendi):
+                //   0) FAZ-1 HASAT: önceki tuşların hâlâ koşan add/flip
+                //      ghost'larının anlık pikselleri okunur — rebuild
+                //      onları öksüz bırakamaz (çifte oynatma/asılı harf yok)
                 //   1) Silinen karakterler için ghost (eski konumda öl)
                 //   2) rebuildSpans → yeni span'lar oluşur
                 //   3) AUTO-GROW önce — textarea yüksekliği stabilize olsun
                 //      ki FLIP delta hesabı doğru pozisyondan başlasın
                 //      (overlay yeni height'a göre clip alır, span'lar
                 //      yeni satırda görünür konumda olur).
+                //   3b) FAZ-2 HASAT KARARI: konumu değişmeyen giriş ghost'u
+                //       yaşar (his koruması), gerisi düşer + anlık konumu
+                //       savedRects'e midflight olarak devredilir
                 //   4) FLIP: konumu değişen mevcut span'ları slide
+                //      (midflight devri alanlar KALDIKLARI pikselden tek
+                //      sürekli hareketle sürer)
                 //   5) Yeni karakterler için snap-in animasyonu
+                this._harvestGhosts();
                 if (diff.removedCount > 0) {
                     this.animateRemovals(diff.prefixLen, diff.removedCount, e.inputType || "");
                 }
                 this.rebuildSpans(newVal);
+                // EK-1: yalnız-ekleme bayrağı — _autoGrow hızlı yolu
+                this._agAppendOnly = diff.removedCount === 0;
                 if (this.isAutoGrow) this._autoGrow();
+                this._applyHarvest(diff);
                 this._flipMoveExistingSpans(diff);
                 if (diff.addedChars.length > 0) {
                     this.animateAdditions(diff.addedStart, diff.addedChars.length, e.inputType || "");
@@ -1250,6 +1793,12 @@
                 span.textContent = this.isPassword ? "•" : value[i];
                 this.charTrack.appendChild(span);
                 this.charSpans.push(span);
+            }
+            // v1.7 — opsiyonel dekoratör kancası: span'lar taze kurulduğu
+            // için sınıf temizliği gerekmez. Hata SESSİZCE yutulur —
+            // dekorasyon salt görseldir, yazma akışını asla bozamaz.
+            if (this._charDecorator) {
+                try { this._charDecorator(value, this.charSpans); } catch (_) { /* sessiz */ }
             }
         }
 
@@ -1305,15 +1854,155 @@
          * Gerçek inline karakter transform alamadığı için tüm hareketli
          * animasyonlar (multi-line giriş / FLIP) bu ghost üzerinde döner.
          * relLeft/relTop overlay'in sol-üst köşesine göredir.
+         *
+         * v1.7 EK-1 — yaşam döngüsü kaydı: her ghost this._ghosts'a yazılır.
+         * meta OPSİYONELDİR — dış çağrıcılar (stepper odometer, TimeRange
+         * roll) 3 argümanla çalışmaya devam eder. meta biçimi:
+         *   { kind:'add'|'flip'|'remove', startIdx, endIdx, charOffsets,
+         *     absLeft, absTop }
+         * İndeksler ghost YARATILDIĞI andaki value'ya göredir; bu, bir
+         * SONRAKİ olayın savedRects indeks uzayıyla birebir aynıdır
+         * (savedRects onBeforeInput'ta prevValue üzerinden dolar). Hasat
+         * (_harvestGhosts) yalnız meta'lı 'add'/'flip' ghost'lara dokunur.
          */
-        _makeGhost(text, relLeft, relTop) {
+        _makeGhost(text, relLeft, relTop, meta) {
+            // Kayıt hijyeni: dış çağrıcılar ghost'u düz .remove() ile
+            // kaldırabilir → kopmuş kayıtları fırsatçı süpür (Set sınırsız
+            // büyümesin; canlı ghost sayısı küçüktür, maliyet ihmal edilir).
+            for (const g of this._ghosts) { if (!g.isConnected) this._ghosts.delete(g); }
             const ghost = document.createElement("span");
             ghost.className = "glint-char-ghost";
             ghost.textContent = text;
             ghost.style.left = relLeft + "px";
             ghost.style.top = relTop + "px";
+            ghost._meta = meta || null;
             this.overlay.appendChild(ghost);
+            this._ghosts.add(ghost);
             return ghost;
+        }
+
+        /**
+         * v1.7 EK-1 — ghost'un TEK kaldırma yolu: animasyonlar iptal edilir,
+         * DOM'dan sökülür, kayıttan düşülür. cancel → finished promise'i
+         * reject olur → reveal'lar catch dalına düşer; reveal'lardaki
+         * isConnected guard'ı sayesinde düşürülmüş ghost hiçbir span'ı
+         * yanlışlıkla açamaz/gizleyemez.
+         */
+        _disposeGhost(g) {
+            try { g.getAnimations().forEach(a => a.cancel()); } catch (_) { }
+            g.remove();
+            this._ghosts.delete(g);
+        }
+
+        /**
+         * v1.7 EK-1 — HASAT FAZ 1 (rebuildSpans'tan ÖNCE çağrılır).
+         *
+         * Kök neden (denetim): rebuildSpans charTrack'i komple silip yeni
+         * span'ları TAM GÖRÜNÜR üretir; overlay'de yaşayan add/flip
+         * ghost'ları ise silinmez — animasyonları 230-320ms daha sürer.
+         * Tuş aralığı < animasyon süresi olan her yazımda kelime hem
+         * hedefte durur hem ghost kopyası iner ("aşağı alma 2 kere
+         * çalışıyor"), düşen kelimenin son harfleri eski satır sonunda
+         * asılı kalır. Çözüm: her input olayında canlı add/flip ghost'ların
+         * ANLIK konumu (getBoundingClientRect — yürüyen transform DAHİL,
+         * pikselin ŞU AN olduğu yer) okunur ve faz-2 kararı için bekletilir;
+         * ghost'un gizlediği gerçek span'lar açılır (hijyen — rebuild zaten
+         * silecek). 'remove' ghost'larına ve meta'sız (dış çağrıcı)
+         * ghost'lara DOKUNULMAZ: exit yağmuru silinen karakteri temsil
+         * eder, yeni DOM'a bağlı değildir (bulk-delete hissi korunur).
+         */
+        _harvestGhosts() {
+            const pending = [];
+            if (this._ghosts && this._ghosts.size) {
+                for (const g of Array.from(this._ghosts)) {
+                    if (!g.isConnected) { this._ghosts.delete(g); continue; }
+                    const meta = g._meta;
+                    if (!meta || (meta.kind !== "add" && meta.kind !== "flip")) continue;
+                    const rect = g.getBoundingClientRect();
+                    (g._targets || []).forEach(s => { if (s) s.style.opacity = ""; });
+                    g._targets = null;   // kopacak eski span'lara işaret kalmasın
+                    pending.push({ ghost: g, meta, rect });
+                }
+            }
+            this._pendingHarvest = pending;
+        }
+
+        /**
+         * v1.7 EK-1 — HASAT FAZ 2 (rebuildSpans + _autoGrow SONRASI,
+         * _flipMoveExistingSpans'tan ÖNCE). Diff eşlemesiyle karar:
+         *
+         *   • diff yok (IME commit / bulk-delete yolu): tüm bekleyenler
+         *     düşer (devredilecek FLIP yok).
+         *   • 'add' ghost + konum DEĞİŞMEMİŞ (yaratılış konumu ile yeni
+         *     span rect'i < 0.5px): ghost YAŞATILIR — yeni span gizlenir,
+         *     reveal yeni span'a rebind edilir → normal hızdaki snap-in
+         *     kaskadı kesilmeden sürer (his koruması).
+         *   • konum DEĞİŞMİŞ 'add' / her 'flip': ghost düşürülür ve anlık
+         *     konumu savedRects[oldIdx] ÜZERİNE yazılır → FLIP karakteri
+         *     KALDIĞI pikselden yeni konumuna TEK sürekli hareketle taşır;
+         *     ikinci kopya fiziksel olarak imkânsız (ghost yok edildi),
+         *     eski satır sonunda asılı harf kalamaz.
+         *   • İndeks eşlemesi ŞÜPHELİYSE (oldIdx silinen aralıkta / yeni
+         *     span yok) sessiz dispose — midflight yazılmaz (emniyet; en
+         *     kötü durum kelimenin animasyonsuz yerine oturmasıdır, bugünkü
+         *     çifte-render'dan iyidir).
+         */
+        _applyHarvest(diff) {
+            const pending = this._pendingHarvest;
+            this._pendingHarvest = null;
+            if (!pending || !pending.length) return;
+
+            const added = diff ? diff.addedChars.length : 0;
+            const removed = diff ? diff.removedCount : 0;
+            const remEnd = diff ? diff.prefixLen + removed : 0;
+            // Eski indeks → yeni indeks (silinen aralığa düşen → -1)
+            const mapIdx = (oldIdx) => !diff ? -1 :
+                (oldIdx < diff.prefixLen ? oldIdx :
+                    (oldIdx >= remEnd ? oldIdx + added - removed : -1));
+
+            for (const item of pending) {
+                const ghost = item.ghost, meta = item.meta, rect = item.rect;
+                if (!this._ghosts.has(ghost)) continue;   // arada zaten düşmüş
+
+                if (diff && meta.kind === "add") {
+                    const newIdx = mapIdx(meta.startIdx);
+                    const span = (newIdx >= 0) ? this.charSpans[newIdx] : null;
+                    if (span) {
+                        const nr = span.getBoundingClientRect();
+                        if (Math.abs(nr.left - meta.absLeft) < 0.5 &&
+                            Math.abs(nr.top - meta.absTop) < 0.5) {
+                            // Konum aynı → YAŞAT: giriş animasyonu kaldığı
+                            // karesinden sürer, reveal yeni span'ı açar.
+                            span.style.opacity = "0";
+                            ghost._targets = [span];
+                            continue;
+                        }
+                        // Konum değişti → midflight devri: FLIP buradan devralır
+                        this.savedRects[meta.startIdx] = {
+                            left: rect.left, top: rect.top,
+                            width: rect.width, height: rect.height
+                        };
+                    }
+                    this._disposeGhost(ghost);
+                    continue;
+                }
+
+                if (diff && meta.kind === "flip") {
+                    const offs = meta.charOffsets || [0];
+                    for (let k = 0; k < offs.length; k++) {
+                        const oldIdx = meta.startIdx + k;
+                        const newIdx = mapIdx(oldIdx);
+                        // Şüpheli eşleme → o karakter için midflight yazılmaz
+                        if (newIdx < 0 || !this.charSpans[newIdx]) continue;
+                        const w = (k + 1 < offs.length ? offs[k + 1] : rect.width) - offs[k];
+                        this.savedRects[oldIdx] = {
+                            left: rect.left + offs[k], top: rect.top,
+                            width: Math.max(0, w), height: rect.height
+                        };
+                    }
+                }
+                this._disposeGhost(ghost);
+            }
         }
 
         /**
@@ -1338,8 +2027,21 @@
                 if (relTop + r.height < 0 || relTop > containerRect.height) continue;
 
                 span.style.opacity = "0";
-                const ghost = this._makeGhost(span.textContent, relLeft, relTop);
-                const reveal = () => { span.style.opacity = ""; ghost.remove(); };
+                // v1.7 EK-1 — meta: hasat bu ghost'u tanısın (indeks =
+                // yaratılış value'suna göre = sonraki olayın savedRects
+                // uzayı); abs* faz-2'nin "konum değişti mi?" kararı için.
+                const ghost = this._makeGhost(span.textContent, relLeft, relTop, {
+                    kind: "add", startIdx: startIndex + i, endIdx: startIndex + i,
+                    charOffsets: [0], absLeft: r.left, absTop: r.top
+                });
+                ghost._targets = [span];
+                const reveal = () => {
+                    // EK-1: hasatta düşürüldüyse (cancel → catch) hiçbir şey
+                    // açma — devralan FLIP/rebind yeni span'ların sahibidir.
+                    if (!ghost.isConnected) return;
+                    (ghost._targets || []).forEach(s => { s.style.opacity = ""; });
+                    this._disposeGhost(ghost);
+                };
 
                 const keyframes = isPaste
                     ? [
@@ -1407,6 +2109,12 @@
                     "z-index:10"
                 ].join(";");
                 this.overlay.appendChild(ghost);
+                // v1.7 EK-1 — kayıt (destroy iptali için). Hasat 'remove'
+                // türüne DOKUNMAZ: exit ghost silinen karakteri temsil eder,
+                // yeni DOM'a bağlı değildir (bulk-delete yağmuru hissi korunur).
+                ghost._meta = { kind: "remove" };
+                this._ghosts.add(ghost);
+                const drop = () => this._disposeGhost(ghost);
 
                 // Giriş animasyonunun simetrik tersi:
                 // Giriş: aşağıdan yukarı (translateY(60%) → -5% bounce → 0)
@@ -1421,7 +2129,7 @@
                         delay: animIndex * 20,
                         easing: "cubic-bezier(0.22, 1, 0.36, 1)",
                         fill: "forwards"
-                    }).finished.then(() => ghost.remove()).catch(() => ghost.remove());
+                    }).finished.then(drop).catch(drop);
                 } else {
                     ghost.animate([
                         { transform: "translateY(0) scale(1)", opacity: 1, filter: "blur(0px)" },
@@ -1431,7 +2139,7 @@
                         duration: 230,
                         easing: "cubic-bezier(0.22, 1, 0.36, 1)",
                         fill: "forwards"
-                    }).finished.then(() => ghost.remove()).catch(() => ghost.remove());
+                    }).finished.then(drop).catch(drop);
                 }
             });
         }
@@ -1445,6 +2153,12 @@
             if (this.group.classList.contains("glint-error")) this.clearError();
 
             const deleteNext = () => {
+                // v1.7 EK-1 — döngü rebuildSpans'i doğrudan çağırır: canlı
+                // add/flip ghost'ları önce hasat edilip düşürülür (exit
+                // yağmuru 'remove' türünde, hasat ona dokunmaz); içerik
+                // kısaldığı için auto-grow tam yoldan koşar.
+                if (this.isMultiline) { this._harvestGhosts(); this._applyHarvest(null); }
+                this._agAppendOnly = false;
                 const val = this.input.value;
                 if (val.length === 0) {
                     this._bulkDeleting = false;
@@ -1488,7 +2202,7 @@
         }
 
         syncOverlay(animate) {
-            if (prefersReduced || !this.charTrack) {
+            if (prefersReduced() || !this.charTrack) {
                 // Overlay yok → yalnız değer takibi güncellenir (composition
                 // ve autofill yollarının prevValue'su bayat kalmasın).
                 this.prevValue = this.input.value;
@@ -1587,9 +2301,20 @@
                     Math.abs(cur.deltaX - deltaX) < 0.5 && Math.abs(cur.deltaY - deltaY) < 0.5) {
                     cur.spans.push(span);
                     cur.text += span.textContent;
+                    // EK-1: run içi karakter ofseti (hasat, run ghost'unun
+                    // anlık rect'inden karakter konumlarını bununla türetir)
+                    cur.offsets.push(newRect.left - cur.absLeft);
                     cur.lastIdx = newIdx;
                 } else {
-                    cur = { spans: [span], text: span.textContent, deltaX, deltaY, relLeft, relTop, lastIdx: newIdx };
+                    cur = {
+                        spans: [span], text: span.textContent, deltaX, deltaY,
+                        relLeft, relTop, lastIdx: newIdx,
+                        // EK-1 meta alanları: startIdx YENİ indeks uzayında
+                        // (= bir sonraki olayın savedRects uzayı); abs*
+                        // yaratılış (hedef) konumu.
+                        startIdx: newIdx, absLeft: newRect.left, absTop: newRect.top,
+                        offsets: [0]
+                    };
                     runs.push(cur);
                 }
             });
@@ -1597,8 +2322,18 @@
             runs.forEach(run => {
                 // Gerçek inline karakterleri gizle; ghost eski→yeni konuma kaysın.
                 run.spans.forEach(s => { s.style.opacity = "0"; });
-                const ghost = this._makeGhost(run.text, run.relLeft, run.relTop);
-                const reveal = () => { run.spans.forEach(s => { s.style.opacity = ""; }); ghost.remove(); };
+                const ghost = this._makeGhost(run.text, run.relLeft, run.relTop, {
+                    kind: "flip", startIdx: run.startIdx, endIdx: run.lastIdx,
+                    charOffsets: run.offsets, absLeft: run.absLeft, absTop: run.absTop
+                });
+                ghost._targets = run.spans.slice();
+                const reveal = () => {
+                    // EK-1: hasatta düşürüldüyse (cancel → catch) dokunma —
+                    // hareket midflight'tan yeni FLIP'e devredildi.
+                    if (!ghost.isConnected) return;
+                    (ghost._targets || []).forEach(s => { s.style.opacity = ""; });
+                    this._disposeGhost(ghost);
+                };
 
                 ghost.animate([
                     { transform: `translate(${run.deltaX}px, ${run.deltaY}px)` },
@@ -1617,25 +2352,50 @@
         //
         // Textarea yüksekliği scrollHeight'a göre büyür; max-height'a
         // ulaşılınca scroll devreye girer (.glint-at-max → overflow-y:auto).
+        //
+        // v1.7 EK-1 — "değişim yoksa dokunma" ilkesi (jank kısıcı):
+        //   • HIZLI YOL: yalnız-ekleme tuşunda (this._agAppendOnly, onInput
+        //     diff'inden) içerik asla kısalmaz; taşma da yoksa 0 yazım +
+        //     1 okuma ile çıkılır. scrollHeight/clientHeight kontrolü
+        //     kanoniktir — ikisi de border hariç ölçer (box-sizing farkı
+        //     sonucu etkilemez).
+        //   • Hedef yükseklik değişmediyse _syncOverlaySize atlanır —
+        //     ölçümde olayların ~%98'i boşa tam senkron yapıyordu (tuş
+        //     başına getComputedStyle + 2×getBoundingClientRect + 6 style
+        //     yazımı kalkar).
+        //   • height set'i SENKRON KALIR — onInput sıralama şartı: FLIP,
+        //     auto-grow SONRASI ölçmeli. rAF'a ertelemek ghost'ları yanlış
+        //     clip/konumla üretir → "olay başına rAF'ta birleşik ölçüm"
+        //     alternatifi BİLEREK reddedildi.
+        //   • Genişlik/font kaynaklı boyut değişimlerini ResizeObserver →
+        //     rebuildSVG → _syncOverlaySize zaten bağımsız kapsıyor
+        //     (çift emniyet duruyor).
         _autoGrow() {
             if (!this.isAutoGrow || !this.input) return;
             const input = this.input;
+
+            // HIZLI YOL — yalnız-ekleme + taşma yok → yükseklik değişemez
+            if (this._agAppendOnly && !input.classList.contains("glint-at-max") &&
+                input.scrollHeight <= input.clientHeight) return;
+
             const cs = getComputedStyle(input);
             const maxHeight = parseFloat(cs.maxHeight);
 
             // Önce sıfırla ki scrollHeight gerçek içerik yüksekliğini versin
             input.style.height = "auto";
             const target = input.scrollHeight;
+            const clamped = !isNaN(maxHeight) && target >= maxHeight;
+            const h = clamped ? maxHeight : target;
+            input.style.height = h + "px";
+            input.classList.toggle("glint-at-max", clamped);
 
-            if (!isNaN(maxHeight) && target >= maxHeight) {
-                input.style.height = maxHeight + "px";
-                input.classList.add("glint-at-max");
-            } else {
-                input.style.height = target + "px";
-                input.classList.remove("glint-at-max");
-            }
-
-            // Boyut değişti → overlay'i ve SVG border'ı resync et
+            // Hedef yükseklik değişmedi → overlay/SVG senkronu gereksiz
+            // (ilk çağrıda _agLastH null → her zaman tam senkron; init
+            // davranışı değişmez).
+            if (h === this._agLastH) return;
+            this._agLastH = h;
+            // Boyut değişti → overlay'i (ResizeObserver dolaylı yoldan SVG
+            // border'ı) resync et; FLIP için SENKRON şart.
             this._syncOverlaySize();
         }
 
@@ -1761,7 +2521,7 @@
         }
 
         shake() {
-            if (prefersReduced) return;
+            if (prefersReduced()) return;
             this.group.classList.remove("glint-error-shake");
             void this.group.offsetWidth;
             this.group.classList.add("glint-error-shake");
@@ -1773,14 +2533,33 @@
         /** Yaşam döngüsü teardown — DOM'dan kalkınca çekirdek otomatik çağırır. */
         destroy() {
             this._scrollPolling = false;
+            _liveInputs.delete(this);   // v1.7 — motionchange aboneliği düşer
             if (this._ac) { this._ac.abort(); this._ac = null; }
             if (this._resizeObserver) { this._resizeObserver.disconnect(); this._resizeObserver = null; }
+            // v1.7 — bekleyen parola caret-restore zamanlayıcıları (restore
+            // zaten activeElement guard'lı ama temizlik hijyeni)
+            if (this._pwSelRaf) { cancelAnimationFrame(this._pwSelRaf); this._pwSelRaf = null; }
+            if (this._pwSelTimer) { clearTimeout(this._pwSelTimer); this._pwSelTimer = null; }
+            // v1.7 EK-1 — ghost kayıt defteri: koşan hareket animasyonları
+            // iptal edilip düşürülür (overlay.remove tek başına animasyonları
+            // iptal etmez; finished callback'leri bayat referans tutmasın).
+            if (this._ghosts) {
+                for (const g of Array.from(this._ghosts)) this._disposeGhost(g);
+            }
+            this._pendingHarvest = null;
             this.defaultBorder?.remove();
             this.overlay?.remove();
             this.svg?.remove();
             this.errorEl?.remove();
             this.counterEl?.remove();
-            this.pwBtn?.remove();
+            // v1.7 — elle (markup) buton benimsenmiş olabilir: kullanıcının
+            // DOM'u silinmez, yalnız kütüphanenin eklediği durum geri alınır.
+            if (this._pwBtnManual) {
+                this.pwBtn?.removeAttribute("aria-pressed");
+                this.pwBtn?.classList.remove("is-revealed");
+            } else {
+                this.pwBtn?.remove();
+            }
             this.clearBtn?.remove();
             this.strengthEl?.remove();
             this.strengthText?.remove();
@@ -1875,6 +2654,26 @@
 
             svg.appendChild(this.checkPath);
             svg.appendChild(this.minusPath);
+
+            // v1.7 — 'mürekkep' koreografisi FAZ A: kutu border-draw SVG'si.
+            // Input'un ÇAPRAZ iki-yol dilinin (buildBorderSVG diagonal modu)
+            // 20×20 ölçekli kopyası: iki kalem sol üst köşeden başlar, sağ
+            // altta buluşur — işaretlemede kenarlık 'kalemle çevrelenir'.
+            // DOM'da tik SVG'sinden ÖNCE durur (tik üstte boyanır).
+            const bSvg = document.createElementNS(ns, "svg");
+            bSvg.setAttribute("viewBox", "0 0 20 20");
+            bSvg.setAttribute("fill", "none");
+            bSvg.setAttribute("preserveAspectRatio", "none");
+            bSvg.setAttribute("class", "glint-cb-border-svg");
+            this.borderTop = document.createElementNS(ns, "path");
+            this.borderTop.setAttribute("class", "glint-cb-border-path");
+            this.borderBottom = document.createElementNS(ns, "path");
+            this.borderBottom.setAttribute("class", "glint-cb-border-path");
+            bSvg.appendChild(this.borderTop);
+            bSvg.appendChild(this.borderBottom);
+            this._setBorderGeometry(5);   // varsayılan --glint-cb-radius: 5px
+            this.box.appendChild(bSvg);
+
             this.box.appendChild(svg);
 
             // Native'den hemen sonra ekle
@@ -1886,6 +2685,38 @@
             if (this.label) this.label.classList.add("glint-checkbox-label");
 
             this._syncState(false);
+
+            // v1.7 — --glint-cb-radius override edilirse SVG köşe yayı gerçek
+            // radius'a uydurulur. Layout öncesi 0 dönebileceği için rAF'ta
+            // ölçülür; geometri değişince path uzunlukları da değiştiğinden
+            // dash durumu mevcut duruma göre anında yeniden set edilir.
+            requestAnimationFrame(() => {
+                if (!this.box || !this.box.isConnected || !this.borderTop) return;
+                const r = parseFloat(getComputedStyle(this.box).borderRadius) || 0;
+                if (r && Math.abs(r - 5) > 0.5) {
+                    this._setBorderGeometry(r);
+                    const inkOn = this.input.checked || this.input.indeterminate;
+                    this._setPathInstant(this.borderTop, inkOn);
+                    this._setPathInstant(this.borderBottom, inkOn);
+                }
+            });
+        }
+
+        /**
+         * v1.7 — 20×20 viewBox'ta çapraz iki-yol kenarlık geometrisi.
+         * R: köşe yayı yarıçapı (px ≈ viewBox birimi; kutu 20px olduğundan
+         * 1:1). S=1: stroke-width 2'nin merkezi kenarlığın ortasında durur.
+         */
+        _setBorderGeometry(R) {
+            const W = 20, S = 1;
+            R = Math.max(0, Math.min(R, W / 2 - S));
+            const d1 = `M ${S} ${R + S} Q ${S} ${S} ${R + S} ${S} L ${W - R - S} ${S} ` +
+                `Q ${W - S} ${S} ${W - S} ${R + S} L ${W - S} ${W - R - S} ` +
+                `Q ${W - S} ${W - S} ${W - R - S} ${W - S}`;
+            const d2 = `M ${S} ${R + S} L ${S} ${W - R - S} ` +
+                `Q ${S} ${W - S} ${R + S} ${W - S} L ${W - R - S} ${W - S}`;
+            this.borderTop.setAttribute("d", d1);
+            this.borderBottom.setAttribute("d", d2);
         }
 
         _bind() {
@@ -1933,32 +2764,61 @@
             const { input, box } = this;
             const isChecked = input.checked && !input.indeterminate;
             const isIndet = input.indeterminate;
+            // v1.7 — koreografi için önceki durum: checked↔indeterminate
+            // geçişinde kenarlık yeniden çizilmez, glif takası sıralı oynar.
+            const wasChecked = this._prevState === "checked";
+            const wasIndet = this._prevState === "indeterminate";
+            const wasInk = wasChecked || wasIndet;
+            this._prevState = isChecked ? "checked" : (isIndet ? "indeterminate" : "unchecked");
 
             box.classList.toggle("is-checked", isChecked);
             box.classList.toggle("is-indeterminate", isIndet);
             box.classList.toggle("is-unchecked", !isChecked && !isIndet);
 
-            if (prefersReduced || !animate) {
+            const inkOn = isChecked || isIndet;
+
+            if (prefersReduced() || !animate) {
                 // Animasyonsuz: dashoffset'i anında set et
                 this._setPathInstant(this.checkPath, isChecked);
                 this._setPathInstant(this.minusPath, isIndet);
+                this._setPathInstant(this.borderTop, inkOn);
+                this._setPathInstant(this.borderBottom, inkOn);
                 return;
             }
 
+            // v1.7 FAZ A — kenarlık kalemi: yalnız boş→dolu geçişinde çizilir;
+            // dolu→boş'ta 'imza silindikten sonra' 60ms gecikmeyle geri
+            // çekilir (dolgu ::before 40ms'de söner — CSS'te). checked↔
+            // indeterminate arasında kenarlık zaten çizili: flaş yok.
+            if (inkOn && !wasInk) {
+                this._drawPath(this.borderTop, true);
+                this._drawPath(this.borderBottom, true);
+            } else if (!inkOn && wasInk) {
+                this._drawPath(this.borderTop, false, 60);
+                this._drawPath(this.borderBottom, false, 60);
+            }
+
             if (isIndet) {
-                this._drawPath(this.minusPath, true);
+                // checked→indeterminate: önce tik silinir, çizgi tik
+                // silindikten SONRA çizilir (eşzamanlı glif çakışması yok).
                 this._drawPath(this.checkPath, false);
+                this._drawPath(this.minusPath, true, wasChecked ? 100 : 80);
+                // v1.7.1 — 'oturma' salınımı checkbox'tan kaldırıldı
+                // (indeterminate dahil); çizgi salt stroke draw-in ile gelir.
             } else if (isChecked) {
-                this._drawPath(this.checkPath, true, 60);
+                // FAZ B — tik imzası 80ms gecikmeli başlar: "önce kutu
+                // dolar, sonra imza atılır" (indeterminate'ten geliyorsa
+                // çizgi silinsin diye 100ms).
                 this._drawPath(this.minusPath, false);
-                // v1.6 mikro — kutu snap'i: 0.9 → 1.04 → 1 (sert mikro-yay).
-                // İmza çizimi 60ms gecikmeli başlar: "önce kutu dolar,
-                // sonra imza atılır". Sınıf one-shot; animationend'de düşer.
-                box.classList.remove("glint-cb-snap");
-                void box.offsetWidth;
-                box.classList.add("glint-cb-snap");
-                box.addEventListener("animationend", () => box.classList.remove("glint-cb-snap"), { once: true });
+                this._drawPath(this.checkPath, true, wasIndet ? 100 : 80);
+                // v1.7.1 — squash-stretch 'oturma' checkbox'tan KALDIRILDI
+                // (kullanıcı direktifi: tik işaretinin salınımı rahatsız
+                // ediyordu). Tik salt stroke draw-in ile işlenir; basış
+                // antisipasyonu (scale 0.92) transition'la kendiliğinden
+                // yumuşak döner. Radio kendi 'oturma'sını korur.
             } else {
+                // TERS ÇİZİM SİLME: imza ters yönde silinir (CSS'te bir
+                // kademe kısa + ease-in); mürekkep 40ms, kalem 60ms sonra.
                 this._drawPath(this.checkPath, false);
                 this._drawPath(this.minusPath, false);
             }
@@ -1966,7 +2826,11 @@
 
         _getLen(path) {
             try { return path.getTotalLength(); }
-            catch { return path.tagName === "line" ? 9 : 18; }
+            catch {
+                // display:none altında throw → yaklaşık uzunluk fallback'leri
+                if (path.tagName === "line") return 9;
+                return path.getAttribute("class") === "glint-cb-border-path" ? 30 : 18;
+            }
         }
 
         /** Anlık set (animasyonsuz) */
@@ -1975,23 +2839,37 @@
             path.style.transition = "none";
             path.style.strokeDasharray = len;
             path.style.strokeDashoffset = visible ? 0 : len;
+            // v1.7 — transition artık CSS token kuralında yaşar; inline
+            // 'none' burada kalırsa path sonsuza dek transitionsuz kalır.
+            // rAF'ta CSS'e geri devret (değer değişmediği için geri açış
+            // animasyon tetiklemez; buildBorderSVG'deki desenle aynı).
+            requestAnimationFrame(() => {
+                if (path.style.transitionProperty === "none") path.style.transition = "";
+            });
         }
 
-        /** Stroke-draw animasyonu (delayMs: çizime gecikmeli başlama — v1.6) */
+        /**
+         * Stroke-draw animasyonu (delayMs: gecikmeli başlama — v1.6).
+         * v1.7 — süre/easing CSS token kurallarına taşındı (.glint-cb-*-path
+         * transition'ları); burada yalnız dash değerleri + gecikme yönetilir.
+         * Böylece marka token'ı değişince checkbox otomatik uyar ve inline
+         * spesifiklik çakışması kalmaz.
+         */
         _drawPath(path, show, delayMs) {
             const len = this._getLen(path);
             path.style.strokeDasharray = len;
 
             if (show) {
-                // Eğer zaten çiziliyse reset et
+                // Eğer zaten çiziliyse reset et (transition kapalıyken başa sar)
                 path.style.transition = "none";
                 path.style.strokeDashoffset = len;
                 void path.getBoundingClientRect();
-                path.style.transition = "stroke-dashoffset 0.28s cubic-bezier(0.22, 1, 0.36, 1)" +
-                    (delayMs ? " " + delayMs + "ms" : "");
+                path.style.transition = "";   // CSS token kuralı devralır
+                path.style.transitionDelay = delayMs ? delayMs + "ms" : "";
                 path.style.strokeDashoffset = 0;
             } else {
-                path.style.transition = "stroke-dashoffset 0.18s ease-in";
+                path.style.transition = "";   // silme easing'i CSS'ten (ease-in)
+                path.style.transitionDelay = delayMs ? delayMs + "ms" : "";
                 path.style.strokeDashoffset = len;
             }
         }
@@ -2024,6 +2902,11 @@
 
     const Glint = window.Glint = window.Glint || {};
     Glint._components = Glint._components || [];
+
+    // v1.7 EK-1 — çerçeve geometrisi ortak yardımcıları: picker paneli
+    // (ve gelecekteki tüm çerçeve çizimleri) çekirdekle AYNI fonksiyondan
+    // geçsin (tek doğruluk kaynağı). İÇ API — sürüm garantisi verilmez.
+    Glint._borderGeo = { resolveRadius: resolveCornerRadius, roundedRectPaths };
 
     /**
      * Glint.defineComponent(name, def)
@@ -2089,7 +2972,7 @@
     // ══════════════════════════════════════════════════════════════
 
     /** Birleşik sürüm (input + toast ortak). */
-    Glint.version = "1.6.0";
+    Glint.version = "1.7.1";
 
     /**
      * Merkezi yapılandırma. Glint.configure({...}) ile değiştirilir.
@@ -2112,13 +2995,12 @@
     };
     Glint.configure = function (partial) {
         if (partial && typeof partial === "object") Object.assign(Glint.config, partial);
-        // v1.6 — reducedMotion artık runtime'da da etkili: true → kök sınıf
-        // tüm glint-* CSS geçiş/animasyonlarını anlık yapar ve hareket
-        // çarpanını sıfıra çeker. ("auto" → OS ayarı; false → sınıf kalkar,
-        // OS media query'si yine geçerli kalır.)
-        const forceOff = Glint.config.reducedMotion === true;
-        document.documentElement.classList.toggle("glint-motion-off", forceOff);
-        document.documentElement.style.setProperty("--glint-motion-scale", forceOff ? "0.01" : "1");
+        // v1.7 — hareket durumu MERKEZÎ uygulanır: kök sınıf/attr + CSS
+        // çarpanı güncellenir ve ETKİN değer değiştiyse "glint:motionchange"
+        // yayınlanır (bileşenler animasyon kapılarını çağrı anında okur,
+        // yapısal katman kuranlar bu olayla kendini günceller). Bkz.
+        // _applyMotionState (canlı reduced-motion bloğu).
+        _applyMotionState();
         return Glint.config;
     };
 
@@ -2271,9 +3153,18 @@
     Glint.Form = GlintForm;
 
     // ── Canlı reduced-motion (TEK kaynak; her modül buradan okur) ──
+    // v1.7 — hareket durumu artık ÇALIŞMA ZAMANINDA tamamen canlı:
+    //   • Glint.reducedMotion() → o anki etkin değer (OS + config override)
+    //   • Glint.motion()        → { reduced, scale } anlık hareket durumu
+    //   • Etkin değer DEĞİŞİNCE (OS ayarı veya Glint.configure) köke
+    //     data-glint-reduced attr'ı + --glint-motion-scale çarpanı basılır
+    //     ve document üzerinde "glint:motionchange" olayı yayınlanır
+    //     (detail: {reduced, scale}). Animasyon kapıları mount anında değil
+    //     ÇAĞRI anında bu kaynaktan okur; yapısal katman kuran bileşenler
+    //     (input overlay'i, slider balonu) olayla kendini günceller.
     const _rmQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let _rmSystem = _rmQuery.matches;
-    const _onRmChange = e => { _rmSystem = e.matches; };
+    const _onRmChange = e => { _rmSystem = e.matches; _applyMotionState(); };
     if (_rmQuery.addEventListener) _rmQuery.addEventListener("change", _onRmChange);
     else if (_rmQuery.addListener) _rmQuery.addListener(_onRmChange); // eski WebKit
     /** O anki gerçek "hareketi azalt" durumu (config override'ı dahil). */
@@ -2281,6 +3172,36 @@
         const c = Glint.config.reducedMotion;
         return c === "auto" ? _rmSystem : !!c;
     };
+    /**
+     * v1.7 — Anlık hareket durumu. scale, --glint-motion-scale CSS çarpanıyla
+     * birebir aynı değerdir (reduced'ta 0 değil 0.01: süreler pratikte anlık
+     * biter ama transitionend/animationend olayları yine ateşlenir — akışa
+     * bağlı temizlik kodları kilitlenmez). JS'te süre ölçeklemek için:
+     *   duration: 480 * Glint.motion().scale
+     */
+    Glint.motion = function () {
+        const reduced = Glint.reducedMotion();
+        return { reduced, scale: reduced ? 0.01 : 1 };
+    };
+    // Kök duruma uygula + etkin değer değiştiyse duyur. İlk çağrı (yük anı)
+    // yalnız senkronlar, olay yayınlamaz.
+    let _rmApplied = null;
+    function _applyMotionState() {
+        const m = Glint.motion();
+        const root = document.documentElement;
+        // v1.6 API yüzeyi korunur: sınıf YALNIZ config zorlamasında (true)
+        // basılır — OS-auto reduced'ta CSS'in ince ayarlı @media kuralları
+        // geçerli kalsın, kaba 0.01ms kısaltması onları ezmesin.
+        root.classList.toggle("glint-motion-off", Glint.config.reducedMotion === true);
+        // v1.7 — etkin değerin köke tek yansıması: attr (CSS kancası) + çarpan
+        root.toggleAttribute("data-glint-reduced", m.reduced);
+        root.style.setProperty("--glint-motion-scale", String(m.scale));
+        if (_rmApplied !== null && _rmApplied !== m.reduced) {
+            document.dispatchEvent(new CustomEvent("glint:motionchange", { detail: m }));
+        }
+        _rmApplied = m.reduced;
+    }
+    _applyMotionState();   // yük anında kök durumu senkronla
 
     // ── Örnek kaydı & yaşam döngüsü ────────────────────────────────
     // Bileşen sınıfları kendini Glint.register(el, instance) ile kaydeder.
@@ -2465,6 +3386,8 @@
 
     Glint.Input = GlintInput;
     Glint.Checkbox = GlintCheckbox;
+    // v1.7 — URL segment ayrıştırıcısı (saf fonksiyon; test/yeniden kullanım)
+    Glint.urlSegments = glintUrlSegments;
 
 })();
 
@@ -2500,7 +3423,12 @@
 (function () {
     "use strict";
 
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // v1.7 — CANLI hareket kapısı: mount anında dondurulmaz; her çağrıda
+    // çekirdeğin tek kaynağından okunur (Glint.configure / OS değişimi
+    // remount gerektirmeden anında etkir). Bkz. Glint.motion / reducedMotion.
+    const prefersReduced = () => (window.Glint && window.Glint.reducedMotion)
+        ? window.Glint.reducedMotion()
+        : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     // ── YARDIMCILAR ───────────────────────────────────────────────
 
@@ -2568,15 +3496,16 @@
         _bind() {
             this._ac = new AbortController();
             // Kullanıcı bu radio'yu seçince → tüm grubu senkronla
-            this.input.addEventListener("change", () => this._syncGroup(), { signal: this._ac.signal });
+            this.input.addEventListener("change", () => this._syncGroup(true), { signal: this._ac.signal });
 
             // Programatik `el.checked = ...` değişimini de yakala
+            // (checkbox'la tutarlı: programatik seçim de animasyonlu)
             const cd = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "checked");
             if (cd && cd.configurable !== false) {
                 const self = this;
                 Object.defineProperty(this.input, "checked", {
                     get() { return cd.get.call(self.input); },
-                    set(v) { cd.set.call(self.input, v); self._syncGroup(); },
+                    set(v) { cd.set.call(self.input, v); self._syncGroup(true); },
                     configurable: true
                 });
             }
@@ -2586,14 +3515,32 @@
             const form = this.input.form;
             if (form) {
                 form.addEventListener("reset", () => {
-                    requestAnimationFrame(() => this._syncGroup());
+                    requestAnimationFrame(() => this._syncGroup(false));
                 }, { signal: this._ac.signal });
             }
         }
 
-        /** Sadece bu kutunun görselini günceller. */
-        _sync() {
-            this.box.classList.toggle("is-checked", this.input.checked);
+        /**
+         * Sadece bu kutunun görselini günceller.
+         * v1.7 — animate=true iken YENİ seçilen kutuya checkbox'la ortak
+         * 'oturma' mikrosu (glint-ctl-settle) basılır. Yalnız false→true
+         * geçişinde: seçimi KAYBEDEN grup üyesi zıplamaz, sayfa yüklenişi
+         * ve form.reset (animate=false) animasyon oynatmaz.
+         */
+        _sync(animate) {
+            const on = this.input.checked;
+            const was = this.box.classList.contains("is-checked");
+            this.box.classList.toggle("is-checked", on);
+            if (animate && on && !was && !prefersReduced()) this._settle(this.box);
+        }
+
+        /** v1.7 — one-shot 'oturma' sınıfı (v1.7.1: artık yalnız radio'da —
+         *  checkbox'ın salınımı kullanıcı direktifiyle kaldırıldı). */
+        _settle(el) {
+            el.classList.remove("glint-ctl-settle");
+            void el.offsetWidth;
+            el.classList.add("glint-ctl-settle");
+            el.addEventListener("animationend", () => el.classList.remove("glint-ctl-settle"), { once: true });
         }
 
         /**
@@ -2601,8 +3548,8 @@
          * Native, aynı name'de yalnızca birini checked tutar ama diğer
          * GlintRadio örneklerine event gitmez → manuel tarama gerekli.
          */
-        _syncGroup() {
-            this._sync();
+        _syncGroup(animate) {
+            this._sync(animate);
             const name = this.input.name;
             if (!name) return;
             const root = this.input.form || document;
@@ -2611,7 +3558,7 @@
             );
             peers.forEach(p => {
                 const inst = p._glintRadioInstance;
-                if (inst && inst !== this) inst._sync();
+                if (inst && inst !== this) inst._sync(animate);
             });
         }
 
@@ -2724,7 +3671,7 @@
          * final translateX'ini içerir (CSS'te --on/--off varyantları).
          */
         _squash() {
-            if (prefersReduced || !this.track) return;
+            if (prefersReduced() || !this.track) return;
             const thumb = this.track.querySelector(".glint-switch-thumb");
             if (!thumb) return;
             const arm = (e) => {
@@ -2793,17 +3740,59 @@
             const isText = (el) => !!el && !el.querySelector("svg") && el.textContent.trim().length > 0;
             if (isText(this._iconOn) || isText(this._iconOff)) {
                 track.classList.add("glint-switch--text");
-                requestAnimationFrame(() => {
-                    if (track.isConnected) {
-                        track.style.setProperty("--glint-switch-w", track.offsetWidth + "px");
-                    }
-                });
+
+                // v1.7 — karşı-kayma iç sarmalayıcısı: clip-path katmanın
+                // kendisinde yaşadığından transform katmana verilemez (maske
+                // birlikte kayar) → metin içeriği .glint-switch-txt içine
+                // alınır; knob sağa giderken metin 4px sola süzülür ve reveal
+                // maskesinin altından geçerek dönüşür. childNodes taşınır
+                // (elle yazılmış span'lerde emoji/markup kaybolmaz).
+                this._txtWraps = [];
+                const wrapTxt = (span) => {
+                    if (!span || span.querySelector("svg")) return;
+                    // çift sarma koruması (re-init / yarım teardown)
+                    if (span.firstElementChild && span.firstElementChild.classList.contains("glint-switch-txt")) return;
+                    const inner = document.createElement("span");
+                    inner.className = "glint-switch-txt";
+                    while (span.firstChild) inner.appendChild(span.firstChild);
+                    span.appendChild(inner);
+                    this._txtWraps.push(inner);
+                };
+                wrapTxt(this._iconOn);
+                wrapTxt(this._iconOff);
+
+                // Ölçüm — rAF'ta; webfont geç yüklenirse genişlik bayatlıyordu
+                // (mevcut zayıflık) → fonts.ready sonrası yeniden ölçülür.
+                // Yeniden ölçümde önce inline değişken kaldırılır: min-width
+                // eski (büyük) değere kilitliyse doğal genişlik okunamazdı.
+                const measure = () => {
+                    if (!track.isConnected) return;
+                    track.style.removeProperty("--glint-switch-w");
+                    track.style.setProperty("--glint-switch-w", track.offsetWidth + "px");
+                };
+                requestAnimationFrame(measure);
+                if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === "function") {
+                    document.fonts.ready.then(() => requestAnimationFrame(measure));
+                }
             }
         }
 
         /** Yaşam döngüsü teardown. */
         destroy() {
             if (this._ac) { this._ac.abort(); this._ac = null; }
+            // v1.7 — .glint-switch-txt sarmalayıcılarını geri aç (unwrap):
+            // elle yazılmış span'lerde orijinal DOM'a dönülür; aksi halde
+            // re-init'te bayat sarmalayıcı kalırdı. (_ownTrack/_ownIcons
+            // durumlarında da zararsız — düğümler zaten silinecek.)
+            if (this._txtWraps) {
+                this._txtWraps.forEach((inner) => {
+                    const parent = inner.parentNode;
+                    if (!parent) return;
+                    while (inner.firstChild) parent.insertBefore(inner.firstChild, inner);
+                    inner.remove();
+                });
+                this._txtWraps = null;
+            }
             // Enjekte edilen ikon span'lerini temizle (track sahibi değilsek bile).
             // _ownTrack ise track komple silineceğinden ayrı ikon temizliği gereksiz.
             if (this._ownIcons && !this._ownTrack) {
@@ -2916,7 +3905,7 @@
 
         _onSelect(input) {
             this._updateTabIndex();
-            this._moveThumb(!prefersReduced);
+            this._moveThumb(!prefersReduced());
         }
 
         _onKeydown(e, input) {
@@ -3123,7 +4112,7 @@
             this._set(v);
             // v1.6 mikro — POINTER seçiminde hedef yıldızda güçlü pop
             // (klavyede yalnız mevcut hover pop'u; tören farede kalır).
-            if (!prefersReduced && v > 0) {
+            if (!prefersReduced() && v > 0) {
                 const star = this.stars[Math.ceil(v) - 1];
                 if (star) {
                     star.classList.remove("glint-star-pop");
@@ -3290,6 +4279,10 @@
  *      Native select DOM'da kalır (gizli) → asp-for / form binding
  *      bozulmaz. Seçenekler native <option>'lardan okunur, seçim
  *      native select.value/selectedOptions ile çift yönlü senkron.
+ *      v1.7: ikon yuvası (<option data-icon="anahtar"> +
+ *      Glint.Select.icons kayıt defteri VEYA data-icon-html) ve async
+ *      adaptör (data-source-fn — Combobox sözleşmesi: kullanıcı
+ *      fonksiyonu, spinner satırı, yarış guard'ı; kütüphane fetch etmez).
  *
  *   2) GlintTags — <div class="glint-tags"> içinde chip input'u.
  *      Enter / virgül ile chip ekler, Backspace son chip'i siler.
@@ -3310,7 +4303,12 @@
 (function () {
     "use strict";
 
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // v1.7 — CANLI hareket kapısı: mount anında dondurulmaz; her çağrıda
+    // çekirdeğin tek kaynağından okunur (Glint.configure / OS değişimi
+    // remount gerektirmeden anında etkir). Bkz. Glint.motion / reducedMotion.
+    const prefersReduced = () => (window.Glint && window.Glint.reducedMotion)
+        ? window.Glint.reducedMotion()
+        : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     let _uid = 0;
     function uid(prefix) { return (prefix || "glint") + "-" + (++_uid) + "-" + Date.now().toString(36); }
@@ -3322,6 +4320,23 @@
             .replace(/ı/g, "i")
             .normalize("NFD")
             .replace(/[̀-ͯ]/g, "");
+    }
+
+    /**
+     * v1.7 — "window.app.fn" gibi nokta yolunu window üzerinde çöz
+     * (Combobox'taki resolvePath ile bire bir). Bulunamazsa undefined.
+     * AĞ İSTEĞİ YAPILMAZ — çözülen şey kullanıcının kendi fonksiyonudur.
+     */
+    function resolvePath(path) {
+        if (!path) return undefined;
+        const parts = String(path).trim().split(".");
+        if (parts[0] === "window") parts.shift();
+        let obj = window;
+        for (const p of parts) {
+            if (obj == null) return undefined;
+            obj = obj[p];
+        }
+        return obj;
     }
 
     // SVG ikon yardımcıları (string → innerHTML)
@@ -3377,6 +4392,20 @@
             this.placeholder = this.group.getAttribute("data-placeholder") ||
                 this._detectPlaceholder() || "Seçiniz";
 
+            // ── v1.7: Async adaptör (Combobox data-source-fn ile aynı sözleşme) ──
+            // data-source-fn = "window.app.searchUsers" → fn(query) →
+            // Promise<Array<string | {value, label, icon?, iconHtml?, disabled?}>>.
+            // KULLANICININ fonksiyonudur; kütüphane ASLA ağ isteği yapmaz.
+            // Beklerken listede spinner satırı, yalnız SON isteğin sonucu
+            // işlenir (yarış guard'ı: _reqSeq), hata/reject sessizce boş liste.
+            const fnPath = this.group.getAttribute("data-source-fn");
+            const srcFn = fnPath ? resolvePath(fnPath) : null;
+            this.sourceFn = (typeof srcFn === "function") ? srcFn : null;
+            const db = parseInt(this.group.getAttribute("data-debounce"), 10);
+            this._debounceMs = (!isNaN(db) && db >= 0) ? db : 150;   // Combobox varsayılanı
+            this._deb = null;      // arama debounce zamanlayıcısı
+            this._reqSeq = 0;      // yarış guard'ı: yalnız SON isteğin sonucu işlenir
+
             this.isOpen = false;
             this.activeIndex = -1;      // klavyeyle vurgulanan görünür seçenek
             this._typeBuffer = "";
@@ -3392,7 +4421,9 @@
                 const hasGroups = this.options.some(o => o.group);
                 const forced = this.group.getAttribute("data-virtual") === "true";
                 const auto = realCount > 150;
-                this._virtual = (forced || auto) && !hasGroups && !this.creatable;
+                // v1.7: async kaynak (data-source-fn) da sanal modu kapatır —
+                // sonuç listesi her istekte yeniden kurulur, spacer penceresi anlamsız.
+                this._virtual = (forced || auto) && !hasGroups && !this.creatable && !this.sourceFn;
                 // Satır yüksekliği: önce attr, açılışta ilk gerçek satırdan ölçülür.
                 const rh = parseInt(this.group.getAttribute("data-virtual-row-height"), 10);
                 this._vRowH = (!isNaN(rh) && rh > 0) ? rh : 40;
@@ -3434,6 +4465,11 @@
                     nativeIndex: i,
                     group: groupLabel || null,
                     isPlaceholder,
+                    // v1.7 — ikon yuvası: data-icon = Glint.Select.icons kayıt
+                    // anahtarı, data-icon-html = doğrudan inline SVG (yalnız
+                    // GELİŞTİRİCİ kaynaklı — bkz. _iconHtml güvenlik notu).
+                    icon: opt.getAttribute("data-icon") || null,
+                    iconHtml: opt.getAttribute("data-icon-html") || null,
                     el: null   // listbox DOM düğümü
                 });
             };
@@ -3523,9 +4559,23 @@
 
             this.emptyEl = document.createElement("li");
             this.emptyEl.className = "glint-select-empty";
-            this.emptyEl.textContent = "Sonuç yok";
+            // v1.7 — Combobox pariteli boş-sonuç metni (data-empty-text)
+            this.emptyEl.textContent = g.getAttribute("data-empty-text") || "Sonuç yok";
             this.emptyEl.style.display = "none";
             this.list.appendChild(this.emptyEl);
+
+            // v1.7 — async yükleme satırı (yalnız data-source-fn varsa):
+            // spinner + metin; _lookupAsync gösterir, sonuç uygulanınca gizlenir.
+            if (this.sourceFn) {
+                this.loadingEl = document.createElement("li");
+                this.loadingEl.className = "glint-select-loading";
+                this.loadingEl.setAttribute("role", "presentation");
+                this.loadingEl.innerHTML =
+                    '<span class="glint-select-loading__spin" aria-hidden="true"></span>' +
+                    '<span>Yükleniyor…</span>';
+                this.loadingEl.style.display = "none";
+                this.list.appendChild(this.loadingEl);
+            }
 
             if (this._virtual) {
                 // ── SANAL MOD: li'ler önceden kurulMAZ. Üst/alt spacer + pencere.
@@ -3624,11 +4674,42 @@
             label.textContent = o.label;
 
             li.appendChild(check);
+            // v1.7 — opsiyonel ikon (16px, metinle hizalı)
+            const icon = this._makeIconEl(o, "glint-select-option__icon");
+            if (icon) li.appendChild(icon);
             li.appendChild(label);
             o.el = li;
             o._optIndex = idx;
             li._optModel = o;
             this.list.insertBefore(li, this.createEl || this.emptyEl);
+        }
+
+        // ── v1.7: İKON YUVASI ───────────────────────────────────────
+
+        /**
+         * Modelin ikon HTML'ini çöz: önce data-icon-html (doğrudan SVG),
+         * yoksa data-icon anahtarı Glint.Select.icons kayıt defterinden.
+         * GÜVENLİK NOTU: dönen HTML innerHTML ile basılır. Bu YALNIZ
+         * geliştirici kaynaklıdır (statik markup attribute'u veya JS'ten
+         * doldurulan kayıt defteri) — kullanıcı verisi bu yola girmez.
+         * Kullanıcı girdisini ASLA data-icon-html'e/kayda koymayın (XSS).
+         */
+        _iconHtml(model) {
+            if (!model) return null;
+            if (model.iconHtml) return model.iconHtml;
+            if (model.icon && GlintSelect.icons[model.icon]) return GlintSelect.icons[model.icon];
+            return null;
+        }
+
+        /** İkon span'ı üret (ikonu yoksa null) — liste/trigger/chip ortak. */
+        _makeIconEl(model, cls) {
+            const html = this._iconHtml(model);
+            if (!html) return null;
+            const s = document.createElement("span");
+            s.className = cls;
+            s.setAttribute("aria-hidden", "true");
+            s.innerHTML = html;   // yalnız geliştirici kaynaklı — bkz. _iconHtml
+            return s;
         }
 
         // ── SANAL LİSTE (windowing) ─────────────────────────────────
@@ -3766,11 +4847,11 @@
                 this.search.addEventListener("compositionstart", () => { this._composing = true; });
                 this.search.addEventListener("compositionend", () => {
                     this._composing = false;
-                    this._filter(this.search.value);
+                    this._onSearch(this.search.value);
                 });
                 this.search.addEventListener("input", () => {
                     if (this._composing) return;
-                    this._filter(this.search.value);
+                    this._onSearch(this.search.value);
                 });
                 // Çoklu modda yapıştırarak toplu seçim (Excel/CSV → "a, b, c")
                 this.search.addEventListener("paste", (e) => {
@@ -4121,6 +5202,170 @@
             }
         }
 
+        // ── v1.7: ASYNC ADAPTÖR (data-source-fn — Combobox sözleşmesi) ──
+
+        /**
+         * Arama girişini yönlendir: async kaynak varsa debounce'lu KULLANICI
+         * fonksiyonu, yoksa yerel filtre (mevcut davranış, birebir korunur).
+         */
+        _onSearch(q) {
+            if (!this.sourceFn) { this._filter(q); return; }
+            if (this._deb) clearTimeout(this._deb);
+            this._deb = setTimeout(() => {
+                this._deb = null;
+                this._lookupAsync(q);
+            }, this._debounceMs);
+        }
+
+        /**
+         * Async sorgu yolu (Combobox._lookupAsync ile aynı sözleşme):
+         * beklerken listede spinner satırı; yalnız SON isteğin sonucu
+         * işlenir (yarış guard'ı: _reqSeq); hata / reject / senkron-throw
+         * sessizce boş liste. Kütüphane fetch ETMEZ — fonksiyon kullanıcıya
+         * aittir; ne döndüreceği (yerel arama, cache, ağ...) onun kararıdır.
+         */
+        _lookupAsync(q) {
+            if (!this.sourceFn) return;
+            const seq = ++this._reqSeq;
+            if (this.loadingEl) this.loadingEl.style.display = "";
+            if (this.emptyEl) this.emptyEl.style.display = "none";
+            let p;
+            try { p = Promise.resolve(this.sourceFn(q)); }
+            catch (_) { p = Promise.resolve([]); }   // senkron throw → boş liste
+            p.then(
+                (arr) => (Array.isArray(arr) ? arr : []),
+                () => []                              // reject → sessizce boş liste
+            ).then((arr) => {
+                if (seq !== this._reqSeq) return;     // bayat istek — at
+                if (this.loadingEl) this.loadingEl.style.display = "none";
+                // Beklerken kapandıysa dokunma; sonraki açılış zaten yeniden çeker
+                if (!this.isOpen) return;
+                this._applyAsyncItems(arr, normalize(typeof q === "string" ? q.trim() : ""));
+            });
+        }
+
+        /**
+         * Async sonuçları native <select>'e ve listbox'a uygula.
+         * SÖZLEŞME: seçili değerler KORUNUR — sonuç listesinde olmasalar da
+         * native option'ları DOM'da kalır (form binding bozulmaz, chip'ler
+         * yaşar) ama listboxta GÖSTERİLMEZLER (liste = güncel sonuçlar).
+         * Öğe biçimi: string | {value, label, icon?, iconHtml?, disabled?}.
+         */
+        _applyAsyncItems(arr, nq) {
+            // 1) Ham diziyi normalize et (string | obje) + value tekrarını ele
+            const items = [];
+            const seen = new Set();
+            (Array.isArray(arr) ? arr : []).forEach(it => {
+                if (it == null) return;
+                let value, label, icon = null, iconHtml = null, disabled = false;
+                if (typeof it === "object") {
+                    value = it.value != null ? String(it.value) : (it.label != null ? String(it.label) : "");
+                    label = it.label != null ? String(it.label) : value;
+                    icon = it.icon != null ? String(it.icon) : null;
+                    iconHtml = it.iconHtml != null ? String(it.iconHtml) : null;
+                    disabled = !!it.disabled;
+                } else {
+                    value = String(it);
+                    label = value;
+                }
+                value = value.trim();
+                label = label.trim() || value;
+                if (!value || seen.has(value)) return;
+                seen.add(value);
+                items.push({ value, label, icon, iconHtml, disabled });
+            });
+
+            // 2) Korunacaklar: mevcut seçim + tekli placeholder option'ı
+            const selectedVals = new Set(
+                Array.from(this.select.selectedOptions).map(op => op.value).filter(v => v !== ""));
+            const keepPh = (!this.multiple && this.select.options[0] &&
+                this.select.options[0].value === "") ? this.select.options[0] : null;
+            const keepSelected = Array.from(this.select.options).filter(op =>
+                op.selected && op.value !== "" && !items.some(it => it.value === op.value));
+
+            // 3) Trigger yeniden-çizimi yalnız seçim görüntüsü değişirse (chip
+            //    animasyonları her tuş vuruşunda yeniden oynamasın)
+            const selSig = () => this._selectedModels()
+                .map(o => o.value + "|\t|" + o.label).join("\n");
+            const beforeSig = selSig();
+
+            // 4) Native select'i yeniden kur: [placeholder?] + sonuçlar +
+            //    (sonuç dışı seçililer — sonda, listede görünmez)
+            this.select.innerHTML = "";
+            if (keepPh) this.select.appendChild(keepPh);
+            items.forEach(it => {
+                const op = document.createElement("option");
+                op.value = it.value;
+                op.textContent = it.label;
+                if (it.disabled) op.disabled = true;
+                if (it.icon) op.setAttribute("data-icon", it.icon);
+                if (it.iconHtml) op.setAttribute("data-icon-html", it.iconHtml);
+                this.select.appendChild(op);
+                if (selectedVals.has(it.value)) op.selected = true;
+            });
+            keepSelected.forEach(op => {
+                this.select.appendChild(op);
+                op.selected = true;   // yeniden iliştirmede seçimi garanti et
+            });
+            // Tekli modda hiç seçim yoksa: placeholder'a dön; placeholder da
+            // yoksa tarayıcının "ilk option otomatik seçilir" davranışını
+            // nötrle (selectedIndex=-1) — sonuç gelmesi seçim DEĞİLDİR.
+            if (!this.multiple && selectedVals.size === 0 && keepSelected.length === 0) {
+                if (keepPh) keepPh.selected = true;
+                else this.select.selectedIndex = -1;
+            }
+
+            // 5) Modelleri ve listbox DOM'unu yeniden kur (sonuç dışı seçililer
+            //    modelde kalır — chip/etiket için — ama li üretilmez)
+            this._readOptions();
+            const hiddenVals = new Set(keepSelected.map(op => op.value));
+            this._rebuildListDom(hiddenVals);
+
+            // 6) Vurgu + durum + aktif satır senkronu
+            if (nq) {
+                this.options.forEach(o => {
+                    if (!o.el) return;
+                    const lbl = o.el.querySelector(".glint-select-option__label");
+                    if (lbl) this._highlight(lbl, o.label, nq);
+                });
+            }
+            this._syncOptionStates();
+            if (this.emptyEl) this.emptyEl.style.display = items.length ? "none" : "block";
+            this._setActive(this._firstSelectable(), false);
+            this._updateToolbar();
+            if (selSig() !== beforeSig) this._renderTrigger();
+            if (this.isOpen) this._position();   // yükseklik değişmiş olabilir
+        }
+
+        /**
+         * Listbox li'lerini modellerden sıfırdan kur (async yolu). Sabit
+         * satırlar (empty / create / loading / toolbar) yerinde kalır; eski
+         * option li'leri ve optgroup başlıkları sökülür. hiddenVals: listede
+         * gösterilmeyecek (sonuç dışı ama seçili) value kümesi.
+         */
+        _rebuildListDom(hiddenVals) {
+            Array.from(this.list.querySelectorAll(".glint-select-option, .glint-select-optgroup"))
+                .forEach(li => li.remove());
+            this._groupHeaders = [];
+            let lastGroup = null;
+            this.options.forEach((o, idx) => {
+                if (o.isPlaceholder) return;
+                if (hiddenVals && hiddenVals.has(o.value)) return;
+                if (o.group && o.group !== lastGroup) {
+                    const gh = document.createElement("li");
+                    gh.className = "glint-select-optgroup";
+                    gh.setAttribute("role", "presentation");
+                    gh.textContent = o.group;
+                    this.list.insertBefore(gh, this.createEl || this.emptyEl);
+                    this._groupHeaders.push({ el: gh, group: o.group });
+                    lastGroup = o.group;
+                } else if (!o.group) {
+                    lastGroup = null;
+                }
+                this._buildOptionEl(o, idx);
+            });
+        }
+
         // ── Seçim ───────────────────────────────────────────────────
 
         _choose(model) {
@@ -4276,25 +5521,29 @@
                     }
                 } else {
                     this.valueEl.classList.remove("is-placeholder");
-                    const newLabel = selected[0].label;
+                    const model = selected[0];
+                    const newLabel = model.label;
                     const oldLabel = this.valueEl.textContent;
                     // v1.6 mikro — değer odometer'ı: eski metin yukarı süzülüp
                     // solar, yenisi alttan gelir (yalnız DEĞER DEĞİŞİMİNDE;
                     // ilk render ve aynı değerde animasyon yok).
-                    if (!prefersReduced && oldLabel && oldLabel !== newLabel &&
+                    // (v1.7: içerik ikon+metin olabildiğinden yazım
+                    //  _setTriggerContent'e taşındı; SVG metin içermediği için
+                    //  oldLabel karşılaştırması textContent ile aynı kalır.)
+                    if (!prefersReduced() && oldLabel && oldLabel !== newLabel &&
                         oldLabel !== this.placeholder && this._odometerReady) {
                         const el = this.valueEl;
                         // Hızlı ardışık seçimde bayat closure'a karşı sıra numarası
                         this._odoSeq = (this._odoSeq || 0) + 1;
                         const seq = this._odoSeq;
-                        const settle = () => { if (seq === this._odoSeq) el.textContent = newLabel; };
+                        const settle = () => { if (seq === this._odoSeq) this._setTriggerContent(model, newLabel); };
                         el.animate([
                             { transform: "translateY(0)", opacity: 1 },
                             { transform: "translateY(-55%)", opacity: 0 }
                         ], { duration: 120, easing: "cubic-bezier(0.4, 0, 0.7, 0.2)" }
                         ).finished.then(() => {
                             if (seq !== this._odoSeq) return;
-                            el.textContent = newLabel;
+                            this._setTriggerContent(model, newLabel);
                             el.animate([
                                 { transform: "translateY(55%)", opacity: 0 },
                                 { transform: "translateY(0)", opacity: 1 }
@@ -4302,16 +5551,30 @@
                         }).catch(settle);
                     } else {
                         this._odoSeq = (this._odoSeq || 0) + 1;
-                        this.valueEl.textContent = newLabel;
+                        this._setTriggerContent(model, newLabel);
                     }
                     this._odometerReady = true;
                 }
             }
         }
 
+        /**
+         * v1.7 — Tekli trigger içeriği: opsiyonel ikon (16px) + metin.
+         * İkonsuz seçeneklerde davranış eski textContent yazımıyla birebir.
+         */
+        _setTriggerContent(model, label) {
+            this.valueEl.textContent = "";
+            const icon = this._makeIconEl(model, "glint-select-value__icon");
+            if (icon) this.valueEl.appendChild(icon);
+            this.valueEl.appendChild(document.createTextNode(label));
+        }
+
         _makeChip(model) {
             const chip = document.createElement("span");
             chip.className = "glint-select-chip";
+
+            // v1.7 — chip'te de ikon görünür (tags/multi modu)
+            const icon = this._makeIconEl(model, "glint-select-chip__icon");
 
             const label = document.createElement("span");
             label.className = "glint-select-chip__label";
@@ -4327,10 +5590,11 @@
                 this._deselect(model);
             });
 
+            if (icon) chip.appendChild(icon);
             chip.appendChild(label);
             chip.appendChild(x);
 
-            if (!prefersReduced) {
+            if (!prefersReduced()) {
                 chip.animate(
                     [
                         { transform: "scale(0.95)", opacity: 0 },
@@ -4352,6 +5616,7 @@
 
             if (this.search) { this.search.value = ""; this._filter(""); }
             else if (this._virtual) {
+                // (v1.7 not: sourceFn varsa _virtual zaten kapalı — bkz. ctor)
                 // Aramasız sanal select: pencereyi açılışta bir kez çiz, sonra aktif.
                 this._vModels = this.options.filter(o => !o.isPlaceholder);
                 this._vStart = 0; this._vEnd = 0;
@@ -4364,6 +5629,11 @@
                 }
             }
             else this._setActive(this._firstSelectable(), false);
+
+            // v1.7 — async kaynak: açılışta güncel listeyi kullanıcı
+            // fonksiyonundan çek (debounce'suz — açılış gecikmesiz hissedilsin;
+            // spinner satırı yanar, sonuç gelince liste yerinde güncellenir)
+            if (this.sourceFn) this._lookupAsync("");
 
             // İlk seçili öğeye vurguyu götür (varsa)
             const selected = this._selectedModels();
@@ -4454,6 +5724,9 @@
             if (this._onNativeChange) this.select.removeEventListener("change", this._onNativeChange);
             if (this._form && this._onFormReset) this._form.removeEventListener("reset", this._onFormReset);
             clearTimeout(this._typeTimer);
+            // v1.7 — async temizliği: bekleyen debounce + uçuştaki istek iptal
+            if (this._deb) { clearTimeout(this._deb); this._deb = null; }
+            this._reqSeq++;
             this.popover.remove();
             this.trigger.remove();
             // Init guard'ları temizle ki aynı select yeniden mount edilebilsin
@@ -4469,6 +5742,18 @@
             return g?._glintSelectInstance || null;
         }
     }
+
+    /**
+     * v1.7 — İKON KAYIT DEFTERİ: anahtar → inline SVG string'i.
+     *   Glint.Select.icons.star = '<svg viewBox="0 0 24 24">...</svg>';
+     *   <option data-icon="star">Favori</option>
+     * Alternatif: <option data-icon-html='<svg ...>...</svg>'> ile doğrudan.
+     * GÜVENLİK NOTU: bu HTML innerHTML ile basılır ve YALNIZ geliştirici
+     * kaynaklıdır (statik markup / JS kaydı) — kullanıcı girdisini ASLA
+     * bu kayda veya data-icon-html'e koymayın (XSS). Object.create(null):
+     * prototype anahtarları ("constructor" vb.) ikon sanılmasın.
+     */
+    GlintSelect.icons = Object.create(null);
 
 
     // ══════════════════════════════════════════════════════════════
@@ -4925,7 +6210,7 @@
                 chip.addEventListener("pointerdown", (e) => this._startDrag(e, tag), { signal: this._ac.signal });
             }
 
-            if (animate && !prefersReduced) {
+            if (animate && !prefersReduced()) {
                 chip.animate(
                     [
                         { transform: "scale(0.95)", opacity: 0 },
@@ -4944,7 +6229,7 @@
             this.tags.splice(idx, 1);
 
             const done = () => { tag.el.remove(); };
-            if (!prefersReduced) {
+            if (!prefersReduced()) {
                 tag.el.animate(
                     [
                         { transform: "scale(1)", opacity: 1 },
@@ -5066,7 +6351,7 @@
         }
 
         _reject() {
-            if (prefersReduced) return;
+            if (prefersReduced()) return;
             this.host.classList.remove("is-reject");
             void this.host.offsetWidth;
             this.host.classList.add("is-reject");
@@ -5195,7 +6480,12 @@
 (function () {
     "use strict";
 
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // v1.7 — CANLI hareket kapısı: mount anında dondurulmaz; her çağrıda
+    // çekirdeğin tek kaynağından okunur (Glint.configure / OS değişimi
+    // remount gerektirmeden anında etkir). Bkz. Glint.motion / reducedMotion.
+    const prefersReduced = () => (window.Glint && window.Glint.reducedMotion)
+        ? window.Glint.reducedMotion()
+        : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
     // ── YARDIMCILAR ──
@@ -5458,8 +6748,15 @@
         _onFocus(i) {
             const cell = this.cells[i];
             cell.classList.add("glint-otp-cell--active");
-            // Odaklanınca içeriği seç → üzerine yazma kolay
-            requestAnimationFrame(() => { try { cell.select(); } catch (_) { } });
+            // Odaklanınca içeriği seç → üzerine yazma kolay.
+            // v1.7.1 GUARD: rAF throttling altında (arka plan sekmesi/headless)
+            // kuyruklanan select() sonradan odaklanan BAŞKA alanın odağını
+            // çalabiliyordu (Chrome'da select odak taşır) — hücre hâlâ odaklıysa
+            // çalışır, değilse sessizce atlanır.
+            requestAnimationFrame(() => {
+                if (document.activeElement !== cell) return;
+                try { cell.select(); } catch (_) { }
+            });
         }
 
         _sanitize(ch) {
@@ -5578,7 +6875,7 @@
         }
 
         _pop(cell) {
-            if (prefersReduced) return;
+            if (prefersReduced()) return;
             cell.classList.remove("glint-otp-cell--pop");
             void cell.offsetWidth;
             cell.classList.add("glint-otp-cell--pop");
@@ -5655,7 +6952,7 @@
                 }
                 this._liveEl.textContent = message;
             }
-            if (!prefersReduced) {
+            if (!prefersReduced()) {
                 this.root.classList.remove("glint-otp--shake");
                 void this.root.offsetWidth;
                 this.root.classList.add("glint-otp--shake");
@@ -5942,7 +7239,7 @@
          * generic diff animasyonu _skipNextAnim ile susturulmuştur.
          */
         _odometer(dir, oldStr, inst) {
-            if (prefersReduced) return;
+            if (prefersReduced()) return;
             if (!inst || !inst.overlay || !inst.charSpans) return;
             const contRect = inst.overlay.getBoundingClientRect();
             const outY = dir > 0 ? "-60%" : "60%";
@@ -6125,7 +7422,12 @@
 (function () {
     "use strict";
 
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // v1.7 — CANLI hareket kapısı: mount anında dondurulmaz; her çağrıda
+    // çekirdeğin tek kaynağından okunur (Glint.configure / OS değişimi
+    // remount gerektirmeden anında etkir). Bkz. Glint.motion / reducedMotion.
+    const prefersReduced = () => (window.Glint && window.Glint.reducedMotion)
+        ? window.Glint.reducedMotion()
+        : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     // ── YARDIMCILAR ──────────────────────────────────────────────
 
@@ -6157,6 +7459,18 @@
     //  GlintSlider — tekli native input[type=range]
     // ══════════════════════════════════════════════════════════════
 
+    // v1.7 — canlı hareket geçişi: statik balon sınıfı mount'ta bir kez
+    // damgalanmakla kalmaz, glint:motionchange ile etkin değere uyar
+    // (reduced → balon hep görünür; normal → hover/odak yönetir).
+    const _liveSliders = new Set();
+    document.addEventListener("glint:motionchange", (e) => {
+        const reduced = !!(e.detail && e.detail.reduced);
+        for (const inst of _liveSliders) {
+            try { inst._onMotionChange(reduced); }
+            catch (err) { console.error("[Glint:motionchange]", err); }
+        }
+    });
+
     class GlintSlider {
 
         constructor(input) {
@@ -6164,6 +7478,7 @@
             input._glintSliderInit = true;
             input._glintSliderInstance = this;
             window.Glint.register(input, this);
+            _liveSliders.add(this);   // v1.7 — motionchange aboneliği
             this.input = input;
 
             // Native min/max/step (yoksa makul varsayılan)
@@ -6224,7 +7539,7 @@
             this.bubble = document.createElement("div");
             this.bubble.className = "glint-slider__bubble";
             this.bubble.setAttribute("aria-hidden", "true");
-            if (prefersReduced) this.bubble.classList.add("glint-slider__bubble--static");
+            if (prefersReduced()) this.bubble.classList.add("glint-slider__bubble--static");
             this.wrap.appendChild(this.bubble);
 
             // İşaret katmanı (varsa) — wrap içine, salt görsel (pointer-events kapalı).
@@ -6319,8 +7634,22 @@
             }
         }
 
+        /**
+         * v1.7 — glint:motionchange tepkisi: statik sınıf etkin değere göre
+         * güncellenir. Görünürlüğü CSS (!important) yönettiğinden eski
+         * _showBubble'ın bıraktığı inline kalıntılar iki yönde de temizlenir
+         * (statikten çıkışta balon takılı-görünür kalmasın).
+         */
+        _onMotionChange(reduced) {
+            if (!this.bubble) return;
+            this.bubble.classList.toggle("glint-slider__bubble--static", reduced);
+            this.bubble.style.opacity = "";
+            this.bubble.style.transform = "";
+        }
+
         // Bellek temizliği — SPA'da dinamik kaldırmada sızıntı önler.
         destroy() {
+            _liveSliders.delete(this);   // v1.7 — motionchange aboneliği düşer
             if (this.marksLayer) { this.marksLayer.remove(); this.marksLayer = null; }
             // v1.5.1 — balon her destroy'da sökülür; yoksa re-init mevcut
             // wrap'ı yeniden kullanıp İKİNCİ balon ekliyordu. Kendi
@@ -6878,7 +8207,7 @@
  *   3. Sürükle-bırak edilen dosyaları DataTransfer ile native
  *      input.files'a YAZAR → form submit'te dosyalar gönderilir.
  *   4. Görsel dosyalar için FileReader ile küçük önizleme üretir.
- *   5. İlerleme çubuğunu transform: scaleX ile simüle eder (gerçek
+ *   5. İlerleme çubuğunu transform: translateX ile simüle eder (gerçek
  *      upload bağlanmadıysa görsel doldurma; API ile dışarıdan da
  *      sürülebilir → Glint.Upload.setProgress).
  *
@@ -6886,6 +8215,10 @@
  *   • multiple — birden çok dosya; tek dosyalıda yeni seçim öncekini değiştirir
  *   • accept   — uzantı/MIME filtresi (geçersiz dosya işaretlenir)
  *   • data-max-size — bayt cinsinden tavan; aşılırsa dosya işaretlenir
+ *   • data-crop — v1.7: görseller listeye eklenmeden önce kırpma katmanı
+ *     açılır. Değer: "free" (vars.) | "1:1" | "4:3" | "16:9". Sürükle =
+ *     taşı, tekerlek/pinch = zoom, serbest modda köşe tutamaçları.
+ *     Çoklu seçimde kuyruk; focus trap + Esc = vazgeç.
  *   • dragenter/over/leave/drop highlight (emerald kenar)
  *   • klavye: dropzone Tab ile odaklanır, Enter/Space dosya seçtirir
  *   • kaldırma chip-out animasyonu, dark mode, reduced motion
@@ -6894,7 +8227,8 @@
  *   Glint.Upload                          → sınıf (otomatik mount)
  *   Glint.Upload.get(inputEl)             → örnek
  *   instance.setProgress(file, 0..1)      → gerçek upload ilerlemesi
- *   instance.complete(file)               → %100 + done state
+ *   instance.complete(file)               → %100 + done state (tören)
+ *   instance.fail(file, message?)         → hata: kırmızı morf + shake
  *   instance.clear()                      → tüm dosyaları kaldır
  *   instance.getFiles()                   → mevcut geçerli File[] dizisi
  *
@@ -6907,7 +8241,12 @@
 (function () {
     "use strict";
 
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // v1.7 — CANLI hareket kapısı: mount anında dondurulmaz; her çağrıda
+    // çekirdeğin tek kaynağından okunur (Glint.configure / OS değişimi
+    // remount gerektirmeden anında etkir). Bkz. Glint.motion / reducedMotion.
+    const prefersReduced = () => (window.Glint && window.Glint.reducedMotion)
+        ? window.Glint.reducedMotion()
+        : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     // ── İKON SVG'leri (inline, bağımlılık yok) ──
     const ICON_CLOUD =
@@ -6927,6 +8266,12 @@
         'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
         '<path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 
+    // v1.7 — tamamlanma tik'i (stroke-dasharray çizimiyle canlanır, CSS)
+    const ICON_CHECK =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M5 13l4 4 10-10"/></svg>';
+
     // Sürükle-sırala tutamacı (6 nokta — "grip")
     const ICON_GRIP =
         '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
@@ -6941,7 +8286,14 @@
         hintMultiple: "Birden çok dosya seçebilirsiniz",
         hintSingle: "Tek dosya seçin",
         errSize: "Dosya çok büyük",
-        errType: "Tür desteklenmiyor"
+        errType: "Tür desteklenmiyor",
+        // v1.7 — kırpma katmanı (data-crop)
+        cropTitle: "Görseli kırp",
+        cropApply: "Kırp ve ekle",
+        cropAsIs: "Olduğu gibi ekle",
+        cropCancel: "Vazgeç",
+        cropHint: "Sürükleyerek taşıyın · tekerlek ya da iki parmakla yakınlaştırın",
+        cropStageLabel: "Kırpma önizlemesi — ok tuşları taşır, +/− yakınlaştırır"
     };
 
     // ── YARDIMCILAR ──
@@ -7006,6 +8358,22 @@
             // Sürükle-sırala: yalnız çoklu modda anlamlı; data-no-reorder ile kapatılır.
             this.reorderable = this.multiple && !input.hasAttribute("data-no-reorder");
             this._dragEntry = null;   // o an sürüklenen kayıt
+
+            // v1.7 — data-crop: görseller listeye girmeden önce kırpma katmanı.
+            // "free" (vars.) | "1:1" | "4:3" | "16:9" (genel "a:b" de kabul edilir).
+            this.cropMode = input.hasAttribute("data-crop")
+                ? ((input.getAttribute("data-crop") || "free").trim().toLowerCase() || "free")
+                : null;
+            this.cropRatio = null;    // null = serbest çerçeve (tutamaçlı)
+            if (this.cropMode && this.cropMode !== "free") {
+                const m = /^(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)$/.exec(this.cropMode);
+                const r = m ? parseFloat(m[1]) / parseFloat(m[2]) : NaN;
+                if (isFinite(r) && r > 0) this.cropRatio = r;
+            }
+            this._cropQueue = [];     // bekleyen {file, animate} kayıtları
+            this._crop = null;        // aktif kırpma oturumu (overlay + durum)
+            this._cropTotal = 0;      // "2 / 3" sayacı için
+            this._cropIndex = 0;
 
             // Aktif dosya kayıtları: { file, valid, error, row, bar, instId }
             this.entries = [];
@@ -7323,10 +8691,32 @@
         // ── DOSYA ALIMI ──
 
         /**
+         * Dosya alım kapısı. v1.7 — data-crop varsa KULLANICI etkileşimiyle
+         * gelen görseller (image/*) önce kırpma kuyruğuna girer; sayfa
+         * yüklenişinde hazır gelen dosyalar (animate=false) ve görsel
+         * olmayanlar doğrudan akar. Kırpma sonucu _ingestDirect'e düşer.
+         */
+        _ingest(files, animate) {
+            if (this.cropMode && animate) {
+                // Tekil modda zaten yalnız ilk dosya alınır — kuyruğa da
+                // fazlasını sokma (commit'te _ingestDirect yine kırpar).
+                if (!this.multiple) files = files.slice(0, 1);
+                const imgs = files.filter(f => isImage(f));
+                if (imgs.length) {
+                    const rest = files.filter(f => !isImage(f));
+                    if (rest.length) this._ingestDirect(rest, animate);
+                    this._enqueueCrop(imgs, animate);
+                    return;
+                }
+            }
+            this._ingestDirect(files, animate);
+        }
+
+        /**
          * Yeni dosyaları kaydeder. animate=true ise chip giriş animasyonu.
          * Tekil (multiple yok) modda yeni seçim öncekileri TAMAMEN değiştirir.
          */
-        _ingest(files, animate) {
+        _ingestDirect(files, animate) {
             if (!this.multiple) {
                 // Tek dosya: önceki kayıtları temizle, yalnızca ilkini al.
                 this._clearRows();
@@ -7389,7 +8779,7 @@
             const li = document.createElement("li");
             li.className = "glint-upload-item";
             if (!entry.valid) li.classList.add("glint-upload-item--invalid");
-            if (animate && !prefersReduced) li.classList.add("glint-upload-item--entering");
+            if (animate && !prefersReduced()) li.classList.add("glint-upload-item--entering");
 
             // Thumbnail kabı
             const thumb = document.createElement("span");
@@ -7473,10 +8863,13 @@
             entry.row = li;
             this.list.appendChild(li);
 
-            // Giriş animasyonu bitince entering sınıfını temizle
-            if (animate && !prefersReduced) {
+            // Giriş animasyonu bitince entering sınıfını temizle.
+            // v1.7 — doğrulama hatasıyla gelen satır (boyut/tip) girişin
+            // hemen ardından marka shake'iyle reddi hissettirir.
+            if (animate && !prefersReduced()) {
                 li.addEventListener("animationend", () => {
                     li.classList.remove("glint-upload-item--entering");
+                    if (!entry.valid) this._shakeRow(li);
                 }, { once: true });
             }
 
@@ -7513,9 +8906,9 @@
 
         // ── İLERLEME ──
 
-        /** Simüle ilerleme: scaleX 0 → 1, küçük adımlarla (gerçek upload yoksa). */
+        /** Simüle ilerleme: translateX -100% → 0, küçük adımlarla (gerçek upload yoksa). */
         _simulateProgress(entry) {
-            if (prefersReduced) {
+            if (prefersReduced()) {
                 // Hareket yok → anında doldur
                 this._applyProgress(entry, 1);
                 this._markDone(entry);
@@ -7539,15 +8932,57 @@
 
         _applyProgress(entry, ratio) {
             // Public API (setProgress) dışarıdan NaN/undefined/string alabilir.
-            // Sayısallaştır + sonlu değilse 0'a düş → "scaleX(NaN)" üretme.
+            // Sayısallaştır + sonlu değilse 0'a düş → "translateX(NaN%)" üretme.
             let r = Number(ratio);
             if (!isFinite(r)) r = 0;
             entry.progress = Math.max(0, Math.min(1, r));
-            if (entry.bar) entry.bar.style.transform = "scaleX(" + entry.progress + ")";
+            // v1.7 — dolum scaleX yerine translateX: bar ölçeklenmediği için
+            // shimmer (::after) ve parlak uç (::before) her yüzdede
+            // distorsiyonsuz kalır; track'in overflow:hidden'ı taşanı kırpar.
+            if (entry.bar) {
+                entry.bar.style.transform =
+                    "translateX(" + ((entry.progress - 1) * 100) + "%)";
+            }
         }
 
         _markDone(entry) {
-            if (entry.row) entry.row.classList.add("glint-upload-item--done");
+            if (!entry.row) return;
+            entry.row.classList.add("glint-upload-item--done");
+
+            // v1.7 — tamamlanma töreni tik'i: thumb köşesine success rozeti.
+            // _markDone birden çok kez çağrılabilir (setProgress(1) + complete)
+            // → idempotent guard.
+            if (entry._checked) return;
+            entry._checked = true;
+
+            const badge = document.createElement("span");
+            badge.className = "glint-upload-item__check";
+            badge.setAttribute("aria-hidden", "true");
+            badge.innerHTML = ICON_CHECK;
+
+            const thumb = entry.row.querySelector(".glint-upload-item__thumb");
+            if (thumb && thumb.tagName === "IMG") {
+                // <img> çocuk barındıramaz → konumlandırma sarmalayıcısı
+                const holder = document.createElement("span");
+                holder.className = "glint-upload-item__thumbwrap";
+                thumb.replaceWith(holder);
+                holder.appendChild(thumb);
+                holder.appendChild(badge);
+            } else if (thumb) {
+                thumb.appendChild(badge);
+            }
+        }
+
+        /** v1.7 — marka ret sarsıntısı (çekirdeğin shake deseni: sınıf
+         *  ekle → animationend'de kaldır; tekrar tetiklenebilir). */
+        _shakeRow(row) {
+            if (!row || prefersReduced()) return;
+            row.classList.remove("glint-upload-item--shake");
+            void row.offsetWidth;
+            row.classList.add("glint-upload-item--shake");
+            row.addEventListener("animationend", () => {
+                row.classList.remove("glint-upload-item--shake");
+            }, { once: true });
         }
 
         // ── KALDIRMA ──
@@ -7575,7 +9010,7 @@
                 this._syncNativeFiles();
             };
 
-            if (prefersReduced) {
+            if (prefersReduced()) {
                 finish();
             } else {
                 li.classList.add("glint-upload-item--leaving");
@@ -7614,6 +9049,542 @@
         }
 
         // ══════════════════════════════════════════════════════════
+        //  KIRPMA KATMANI (v1.7 — data-crop)
+        // ══════════════════════════════════════════════════════════
+        //
+        // Görsel dosyalar listeye eklenmeden ÖNCE tam ekran overlay'de
+        // kırpılır. Tek canvas: görsel pan/zoom (scale + offset) ile
+        // çizilir; kırpma çerçevesi DOM elemanıdır (dışı dev box-shadow
+        // ile kararır). Çoklu seçim sırayla işlenir (kuyruk). Focus
+        // trap + Esc = o dosyadan vazgeç. Katman: panel(1060) <
+        // kırpma(8000) < toast(9000).
+
+        /** Kuyruğa görsel(ler) ekle; overlay kapalıysa aç. */
+        _enqueueCrop(files, animate) {
+            for (const f of files) this._cropQueue.push({ file: f, animate });
+            if (this._crop) {
+                // Kırpma sürerken yeni dosya bırakıldı → sayacı büyüt.
+                this._cropTotal += files.length;
+                this._cropUpdateCount();
+            } else {
+                this._cropTotal = files.length;
+                this._cropIndex = 0;
+                this._cropNext();
+            }
+        }
+
+        /** Kuyruktan sıradaki dosyayı yükle; kuyruk bittiyse kapat. */
+        _cropNext() {
+            const item = this._cropQueue.shift();
+            if (!item) {
+                this._closeCropOverlay();
+                // Vazgeçilen dosyalar native input.files'ta kalmış olabilir
+                // (change eventi seçimi çoktan yazdı) → kayıtlarla eşitle.
+                this._syncNativeFiles();
+                return;
+            }
+            if (!this._crop) this._buildCropOverlay();
+            this._loadCropImage(item);
+        }
+
+        /** Overlay DOM'unu kur ve olayları bağla (kuyruk boyunca yeniden kullanılır). */
+        _buildCropOverlay() {
+            this._cropPrevFocus = document.activeElement;
+
+            const ov = document.createElement("div");
+            ov.className = "glint-crop-overlay";
+            ov.setAttribute("role", "dialog");
+            ov.setAttribute("aria-modal", "true");
+            ov.setAttribute("aria-label", TEXT.cropTitle);
+
+            // Köşe tutamaçları yalnız serbest modda (sabit oranda çerçeve kilitli)
+            const handles = this.cropRatio ? "" :
+                ["nw", "ne", "sw", "se"].map(d =>
+                    '<button type="button" class="glint-crop-handle glint-crop-handle--' + d +
+                    '" data-dir="' + d + '" aria-label="Kırpma çerçevesi köşe tutamacı"></button>'
+                ).join("");
+
+            ov.innerHTML =
+                '<div class="glint-crop-dialog">' +
+                    '<div class="glint-crop-head">' +
+                        '<span class="glint-crop-title">' + TEXT.cropTitle + '</span>' +
+                        '<span class="glint-crop-file"></span>' +
+                        '<span class="glint-crop-count"></span>' +
+                    '</div>' +
+                    '<div class="glint-crop-stage" tabindex="0" role="application" aria-label="' +
+                        TEXT.cropStageLabel + '">' +
+                        '<canvas class="glint-crop-canvas"></canvas>' +
+                        '<div class="glint-crop-frame">' + handles + '</div>' +
+                    '</div>' +
+                    '<p class="glint-crop-hint">' + TEXT.cropHint + '</p>' +
+                    '<div class="glint-crop-actions">' +
+                        '<button type="button" class="glint-crop-btn glint-crop-btn--ghost" data-act="cancel">' +
+                            TEXT.cropCancel + '</button>' +
+                        '<button type="button" class="glint-crop-btn" data-act="asis">' +
+                            TEXT.cropAsIs + '</button>' +
+                        '<button type="button" class="glint-crop-btn glint-crop-btn--primary" data-act="crop">' +
+                            TEXT.cropApply + '</button>' +
+                    '</div>' +
+                '</div>';
+
+            document.body.appendChild(ov);
+
+            const stage = ov.querySelector(".glint-crop-stage");
+            const canvas = ov.querySelector(".glint-crop-canvas");
+
+            const c = this._crop = {
+                overlay: ov,
+                stage,
+                canvas,
+                ctx: canvas.getContext("2d"),
+                frame: ov.querySelector(".glint-crop-frame"),
+                fileEl: ov.querySelector(".glint-crop-file"),
+                countEl: ov.querySelector(".glint-crop-count"),
+                btnCancel: ov.querySelector('[data-act="cancel"]'),
+                btnAsis: ov.querySelector('[data-act="asis"]'),
+                btnCrop: ov.querySelector('[data-act="crop"]'),
+                img: null, imgW: 0, imgH: 0, imgUrl: null,
+                ready: false, exporting: false,
+                scale: 1, minScale: 0.05, maxScale: 8,
+                ox: 0, oy: 0,                    // görsel offset (sahne px)
+                fx: 0, fy: 0, fw: 0, fh: 0,      // çerçeve (sahne px)
+                stageW: 0, stageH: 0, dpr: 1,
+                pointers: new Map(), pinch: null,
+                item: null,
+                onResize: null
+            };
+
+            // Olaylar — overlay DOM'la birlikte söküleceği için yalnız
+            // window dinleyicisi ayrıca temizlenir (_closeCropOverlay).
+            ov.addEventListener("keydown", (e) => this._cropOverlayKey(e));
+            // Arkadaki sayfanın tekerlekle kaymasını engelle (zoom sahnede)
+            ov.addEventListener("wheel", (e) => e.preventDefault(), { passive: false });
+            stage.addEventListener("pointerdown", (e) => this._cropPointerDown(e));
+            stage.addEventListener("pointermove", (e) => this._cropPointerMove(e));
+            stage.addEventListener("pointerup", (e) => this._cropPointerEnd(e));
+            stage.addEventListener("pointercancel", (e) => this._cropPointerEnd(e));
+            stage.addEventListener("wheel", (e) => this._cropWheel(e), { passive: false });
+            stage.addEventListener("keydown", (e) => this._cropStageKey(e));
+            ov.querySelector(".glint-crop-actions").addEventListener("click", (e) => {
+                const btn = e.target.closest ? e.target.closest("[data-act]") : null;
+                if (btn) this._cropAction(btn.getAttribute("data-act"));
+            });
+            c.onResize = () => {
+                // Boyut değişince sığdırma/çerçeve baştan kurulur (ayar sıfırlanır)
+                if (this._crop === c && c.ready) this._cropReset();
+            };
+            window.addEventListener("resize", c.onResize);
+
+            try { stage.focus({ preventScroll: true }); } catch (_) { }
+        }
+
+        /** "2 / 3" sayacı (tek dosyada gizli). */
+        _cropUpdateCount() {
+            const c = this._crop;
+            if (!c) return;
+            c.countEl.textContent = this._cropTotal > 1
+                ? Math.min(this._cropIndex, this._cropTotal) + " / " + this._cropTotal
+                : "";
+        }
+
+        /** Sıradaki dosyanın bitmap'ini çöz (EXIF yönü tarayıcıya bırakılır). */
+        _loadCropImage(item) {
+            const c = this._crop;
+            c.item = item;
+            c.ready = false;
+            c.pointers.clear();
+            c.pinch = null;
+            this._cropIndex++;
+            c.fileEl.textContent = item.file.name;
+            c.fileEl.title = item.file.name;
+            this._cropUpdateCount();
+            c.btnCrop.disabled = true;   // görsel çözülene dek kırpılamaz
+
+            const done = (img, w, h) => {
+                if (this._crop !== c || c.item !== item) {
+                    // Bu arada vazgeçildi/kapatıldı → kaynağı bırak
+                    if (img && typeof img.close === "function") { try { img.close(); } catch (_) { } }
+                    return;
+                }
+                if (!(w > 0 && h > 0)) { failLoad(); return; }
+                c.img = img;
+                c.imgW = w;
+                c.imgH = h;
+                c.ready = true;
+                c.btnCrop.disabled = false;
+                this._cropReset();
+            };
+
+            // Çözülemeyen görsel (bozuk dosya vb.) → kırpmadan olduğu gibi ekle
+            const failLoad = () => {
+                if (this._crop !== c || c.item !== item) return;
+                c.item = null;
+                this._ingestDirect([item.file], item.animate);
+                this._cropNext();
+            };
+
+            const viaImage = () => {
+                let url;
+                try { url = URL.createObjectURL(item.file); }
+                catch (_) { failLoad(); return; }
+                const img = new Image();
+                img.onload = () => {
+                    if (this._crop !== c || c.item !== item) {
+                        try { URL.revokeObjectURL(url); } catch (_) { }
+                        return;
+                    }
+                    c.imgUrl = url;   // çizim boyunca canlı; item bitince revoke
+                    done(img, img.naturalWidth, img.naturalHeight);
+                };
+                img.onerror = () => {
+                    try { URL.revokeObjectURL(url); } catch (_) { }
+                    failLoad();
+                };
+                img.src = url;
+            };
+
+            if (typeof window.createImageBitmap === "function") {
+                // imageOrientation desteklenmeyen eski motorlarda düz çağrıya,
+                // o da olmazsa Image fallback'ine düş.
+                createImageBitmap(item.file, { imageOrientation: "from-image" })
+                    .catch(() => createImageBitmap(item.file))
+                    .then((bmp) => done(bmp, bmp.width, bmp.height), () => viaImage());
+            } else {
+                viaImage();
+            }
+        }
+
+        /** Sahneyi ölç, görseli sığdır (contain) ve çerçeveyi kur. */
+        _cropReset() {
+            const c = this._crop;
+            if (!c || !c.ready) return;
+            const rect = c.stage.getBoundingClientRect();
+            c.stageW = Math.max(1, Math.round(rect.width));
+            c.stageH = Math.max(1, Math.round(rect.height));
+            c.dpr = Math.min(window.devicePixelRatio || 1, 2);
+            c.canvas.width = Math.round(c.stageW * c.dpr);
+            c.canvas.height = Math.round(c.stageH * c.dpr);
+
+            const fit = Math.min(c.stageW / c.imgW, c.stageH / c.imgH);
+            c.scale = fit;
+            c.minScale = fit * 0.5;
+            c.maxScale = Math.max(fit * 8, 8);
+            c.ox = (c.stageW - c.imgW * fit) / 2;
+            c.oy = (c.stageH - c.imgH * fit) / 2;
+
+            // Çerçeve: görüntülenen görsel dikdörtgeni üzerinden
+            const iw = c.imgW * fit, ih = c.imgH * fit;
+            if (this.cropRatio) {
+                // Sabit oran: görsele sığan en büyük oranlı dikdörtgen, ortada
+                let fw = iw, fh = fw / this.cropRatio;
+                if (fh > ih) { fh = ih; fw = fh * this.cropRatio; }
+                c.fw = fw;
+                c.fh = fh;
+                c.fx = c.ox + (iw - fw) / 2;
+                c.fy = c.oy + (ih - fh) / 2;
+            } else {
+                // Serbest: tüm görsel; kullanıcı tutamaçlarla daraltır
+                c.fx = c.ox;
+                c.fy = c.oy;
+                c.fw = iw;
+                c.fh = ih;
+            }
+            this._cropRender();
+        }
+
+        /** Canvas'ı ve çerçeve konumunu güncelle. */
+        _cropRender() {
+            const c = this._crop;
+            if (!c || !c.ready || !c.ctx) return;
+            const ctx = c.ctx;
+            ctx.setTransform(c.dpr, 0, 0, c.dpr, 0, 0);
+            ctx.clearRect(0, 0, c.stageW, c.stageH);
+            ctx.imageSmoothingQuality = "high";
+            try { ctx.drawImage(c.img, c.ox, c.oy, c.imgW * c.scale, c.imgH * c.scale); }
+            catch (_) { /* detached bitmap vb. — sessiz */ }
+            c.frame.style.left = c.fx + "px";
+            c.frame.style.top = c.fy + "px";
+            c.frame.style.width = c.fw + "px";
+            c.frame.style.height = c.fh + "px";
+        }
+
+        /** (cx,cy) sahne noktası çapa kalacak şekilde zoom. */
+        _cropZoomAt(cx, cy, sNew) {
+            const c = this._crop;
+            if (!c || !c.ready) return;
+            const s = Math.max(c.minScale, Math.min(c.maxScale, sNew));
+            if (s !== c.scale) {
+                const k = s / c.scale;
+                c.ox = cx - (cx - c.ox) * k;
+                c.oy = cy - (cy - c.oy) * k;
+                c.scale = s;
+            }
+            this._cropRender();
+        }
+
+        _cropPointerDown(e) {
+            const c = this._crop;
+            if (!c || !c.ready) return;
+            e.preventDefault();
+            const h = e.target.closest ? e.target.closest(".glint-crop-handle") : null;
+            try { c.stage.setPointerCapture(e.pointerId); } catch (_) { }
+            c.pointers.set(e.pointerId, {
+                x: e.clientX,
+                y: e.clientY,
+                dir: h ? h.getAttribute("data-dir") : null
+            });
+            // İkinci serbest parmak → pinch tabanı (mesafe + orta nokta)
+            const free = Array.from(c.pointers.values()).filter(p => !p.dir);
+            if (free.length === 2) {
+                const rect = c.stage.getBoundingClientRect();
+                c.pinch = {
+                    dist: Math.max(1, Math.hypot(free[0].x - free[1].x, free[0].y - free[1].y)),
+                    scale: c.scale,
+                    mid: {
+                        x: (free[0].x + free[1].x) / 2 - rect.left,
+                        y: (free[0].y + free[1].y) / 2 - rect.top
+                    }
+                };
+            }
+        }
+
+        _cropPointerMove(e) {
+            const c = this._crop;
+            if (!c || !c.ready) return;
+            const p = c.pointers.get(e.pointerId);
+            if (!p) return;
+            e.preventDefault();
+            const dx = e.clientX - p.x;
+            const dy = e.clientY - p.y;
+            p.x = e.clientX;
+            p.y = e.clientY;
+
+            const free = Array.from(c.pointers.values()).filter(q => !q.dir);
+            if (!p.dir && free.length >= 2 && c.pinch) {
+                // Pinch: orta nokta kayması kadar pan + mesafe oranıyla zoom
+                const rect = c.stage.getBoundingClientRect();
+                const dist = Math.max(1, Math.hypot(free[0].x - free[1].x, free[0].y - free[1].y));
+                const midX = (free[0].x + free[1].x) / 2 - rect.left;
+                const midY = (free[0].y + free[1].y) / 2 - rect.top;
+                c.ox += midX - c.pinch.mid.x;
+                c.oy += midY - c.pinch.mid.y;
+                c.pinch.mid = { x: midX, y: midY };
+                this._cropZoomAt(midX, midY, c.pinch.scale * dist / c.pinch.dist);
+            } else if (p.dir) {
+                this._cropResizeFrame(p.dir, dx, dy);
+            } else {
+                // Sürükle = görseli taşı
+                c.ox += dx;
+                c.oy += dy;
+                this._cropRender();
+            }
+        }
+
+        _cropPointerEnd(e) {
+            const c = this._crop;
+            if (!c) return;
+            c.pointers.delete(e.pointerId);
+            try { c.stage.releasePointerCapture(e.pointerId); } catch (_) { }
+            const free = Array.from(c.pointers.values()).filter(p => !p.dir);
+            if (free.length < 2) c.pinch = null;
+        }
+
+        /** Serbest modda köşe tutamacıyla çerçeve boyutlandırma. */
+        _cropResizeFrame(dir, dx, dy) {
+            const c = this._crop;
+            const MIN = 24;   // px — dokunmada kaybolmayan alt sınır
+            if (dir.indexOf("w") > -1) {
+                const right = c.fx + c.fw;
+                c.fx = Math.min(Math.max(0, c.fx + dx), right - MIN);
+                c.fw = right - c.fx;
+            }
+            if (dir.indexOf("e") > -1) {
+                c.fw = Math.max(MIN, Math.min(c.fw + dx, c.stageW - c.fx));
+            }
+            if (dir.indexOf("n") > -1) {
+                const bottom = c.fy + c.fh;
+                c.fy = Math.min(Math.max(0, c.fy + dy), bottom - MIN);
+                c.fh = bottom - c.fy;
+            }
+            if (dir.indexOf("s") > -1) {
+                c.fh = Math.max(MIN, Math.min(c.fh + dy, c.stageH - c.fy));
+            }
+            this._cropRender();
+        }
+
+        _cropWheel(e) {
+            const c = this._crop;
+            if (!c || !c.ready) return;
+            e.preventDefault();
+            const rect = c.stage.getBoundingClientRect();
+            const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+            this._cropZoomAt(e.clientX - rect.left, e.clientY - rect.top, c.scale * factor);
+        }
+
+        /** Sahne klavyesi: oklar taşır (Shift ×3), +/− yakınlaştırır. */
+        _cropStageKey(e) {
+            const c = this._crop;
+            if (!c || !c.ready) return;
+            if (e.key === "+" || e.key === "=") {
+                e.preventDefault();
+                this._cropZoomAt(c.stageW / 2, c.stageH / 2, c.scale * 1.15);
+                return;
+            }
+            if (e.key === "-" || e.key === "_") {
+                e.preventDefault();
+                this._cropZoomAt(c.stageW / 2, c.stageH / 2, c.scale / 1.15);
+                return;
+            }
+            const step = e.shiftKey ? 36 : 12;
+            if (e.key === "ArrowLeft") c.ox -= step;
+            else if (e.key === "ArrowRight") c.ox += step;
+            else if (e.key === "ArrowUp") c.oy -= step;
+            else if (e.key === "ArrowDown") c.oy += step;
+            else return;
+            e.preventDefault();
+            this._cropRender();
+        }
+
+        /** Overlay klavyesi: Esc = vazgeç, Tab = odak tuzağı. */
+        _cropOverlayKey(e) {
+            const c = this._crop;
+            if (!c) return;
+            if (e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                this._finishCropItem(null);
+                return;
+            }
+            if (e.key !== "Tab") return;
+            const nodes = c.overlay.querySelectorAll('button:not([disabled]), [tabindex="0"]');
+            if (!nodes.length) return;
+            const first = nodes[0];
+            const last = nodes[nodes.length - 1];
+            const active = document.activeElement;
+            if (e.shiftKey && (active === first || !c.overlay.contains(active))) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && (active === last || !c.overlay.contains(active))) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+
+        _cropAction(act) {
+            const c = this._crop;
+            if (!c || !c.item) return;
+            if (act === "cancel") this._finishCropItem(null);
+            else if (act === "asis") this._finishCropItem(c.item.file);
+            else if (act === "crop") this._cropExport();
+        }
+
+        /** Çerçeveyi kaynak piksellere eşle → canvas.toBlob → aynı adla File. */
+        _cropExport() {
+            const c = this._crop;
+            if (!c || !c.ready || !c.item || c.exporting) return;
+            const item = c.item;
+
+            // Sahne → kaynak piksel eşlemesi; çerçeve görsel dışına taşmışsa
+            // görünen kesişimle kırpılır (öngörülebilir çıktı).
+            let sx = (c.fx - c.ox) / c.scale;
+            let sy = (c.fy - c.oy) / c.scale;
+            const x2 = Math.min(c.imgW, sx + c.fw / c.scale);
+            const y2 = Math.min(c.imgH, sy + c.fh / c.scale);
+            sx = Math.max(0, sx);
+            sy = Math.max(0, sy);
+            const sw = x2 - sx;
+            const sh = y2 - sy;
+            if (!(sw >= 1 && sh >= 1)) {
+                // Çerçevede görsel kalmadı → anlamlı çıktı yok, olduğu gibi ekle
+                this._finishCropItem(item.file);
+                return;
+            }
+
+            const out = document.createElement("canvas");
+            out.width = Math.max(1, Math.round(sw));
+            out.height = Math.max(1, Math.round(sh));
+            const octx = out.getContext("2d");
+            if (!octx) { this._finishCropItem(item.file); return; }
+
+            const keepType = /^image\/(jpeg|png|webp)$/.test(item.file.type)
+                ? item.file.type : "image/png";
+            if (keepType === "image/jpeg") {
+                // JPEG'de şeffaflık yok → taşan bölge beyaz zemin
+                octx.fillStyle = "#fff";
+                octx.fillRect(0, 0, out.width, out.height);
+            }
+            octx.imageSmoothingQuality = "high";
+            try { octx.drawImage(c.img, sx, sy, sw, sh, 0, 0, out.width, out.height); }
+            catch (_) { this._finishCropItem(item.file); return; }
+
+            c.exporting = true;
+            c.btnCrop.disabled = true;
+            c.btnAsis.disabled = true;
+            c.btnCancel.disabled = true;
+
+            const finalize = (blob) => {
+                // Esc/kapatma araya girdiyse sonucu bırak (item değişti)
+                if (this._crop !== c || c.item !== item) return;
+                let f = item.file;
+                if (blob) {
+                    try {
+                        f = new File([blob], item.file.name, {
+                            type: blob.type || keepType,
+                            lastModified: Date.now()
+                        });
+                    } catch (_) { f = item.file; }   // File ctor yoksa olduğu gibi
+                }
+                this._finishCropItem(f);
+            };
+            try { out.toBlob(finalize, keepType, 0.92); }
+            catch (_) { finalize(null); }
+        }
+
+        /**
+         * Aktif dosyayı sonuçlandır: file verildiyse listeye ekle
+         * (kırpılmış ya da olduğu gibi), null ise atla (vazgeç).
+         * Ardından kuyruktaki sıradakine geç.
+         */
+        _finishCropItem(file) {
+            const c = this._crop;
+            if (!c || !c.item) return;
+            const item = c.item;
+            c.item = null;
+            c.exporting = false;
+            c.btnCrop.disabled = false;
+            c.btnAsis.disabled = false;
+            c.btnCancel.disabled = false;
+            // Görsel kaynaklarını bırak
+            if (c.img && typeof c.img.close === "function") { try { c.img.close(); } catch (_) { } }
+            c.img = null;
+            c.ready = false;
+            if (c.imgUrl) {
+                try { URL.revokeObjectURL(c.imgUrl); } catch (_) { }
+                c.imgUrl = null;
+            }
+            if (file) this._ingestDirect([file], item.animate);
+            this._cropNext();
+        }
+
+        /** Overlay'i sök, window dinleyicisini kaldır, odağı geri ver. */
+        _closeCropOverlay() {
+            const c = this._crop;
+            if (!c) return;
+            this._crop = null;
+            this._cropTotal = 0;
+            this._cropIndex = 0;
+            if (c.onResize) window.removeEventListener("resize", c.onResize);
+            if (c.img && typeof c.img.close === "function") { try { c.img.close(); } catch (_) { } }
+            if (c.imgUrl) { try { URL.revokeObjectURL(c.imgUrl); } catch (_) { } }
+            c.overlay.remove();
+            // Odağı açan yere geri ver (kaybolmasın)
+            const back = (this._cropPrevFocus && this._cropPrevFocus.isConnected)
+                ? this._cropPrevFocus : this.zone;
+            try { back.focus({ preventScroll: true }); } catch (_) { }
+            this._cropPrevFocus = null;
+        }
+
+        // ══════════════════════════════════════════════════════════
         //  PROGRAMATİK API
         // ══════════════════════════════════════════════════════════
 
@@ -7627,11 +9598,21 @@
             if (!en || !en.valid) return;
             en._manualProgress = true;
             if (en._timer) { clearTimeout(en._timer); en._timer = null; }
+            // v1.7 — fail sonrası retry: bar yeniden sürülüyorsa hata
+            // durumunu (kırmızı morf + mesaj) temizle.
+            if (en.failed) {
+                en.failed = false;
+                if (en.row) {
+                    en.row.classList.remove("glint-upload-item--failed");
+                    const err = en.row.querySelector(".glint-upload-item__error");
+                    if (err) err.remove();
+                }
+            }
             this._applyProgress(en, ratio);
             if (en.progress >= 1) this._markDone(en);
         }
 
-        /** Upload tamamlandı → %100 + done state. */
+        /** Upload tamamlandı → %100 + done state (tamamlanma töreni). */
         complete(file) {
             const en = this._findEntry(file);
             if (!en || !en.valid) return;
@@ -7639,6 +9620,34 @@
             if (en._timer) { clearTimeout(en._timer); en._timer = null; }
             this._applyProgress(en, 1);
             this._markDone(en);
+        }
+
+        /**
+         * v1.7 — Upload başarısız: complete()'in hata simetriği.
+         * Bar mevcut yüzdesinde kırmızıya morf olur, satır marka
+         * shake'iyle sarsılır; message verilirse satır altına yazılır.
+         * setProgress ile yeniden sürülürse durum temizlenir (retry).
+         */
+        fail(file, message) {
+            const en = this._findEntry(file);
+            if (!en || !en.valid) return;
+            en._manualProgress = true;
+            if (en._timer) { clearTimeout(en._timer); en._timer = null; }
+            en.failed = true;
+            if (!en.row) return;
+            en.row.classList.remove("glint-upload-item--done");
+            en.row.classList.add("glint-upload-item--failed");
+            if (message) {
+                const body = en.row.querySelector(".glint-upload-item__body");
+                let err = en.row.querySelector(".glint-upload-item__error");
+                if (!err && body) {
+                    err = document.createElement("div");
+                    err.className = "glint-upload-item__error";
+                    body.appendChild(err);
+                }
+                if (err) err.textContent = message;
+            }
+            this._shakeRow(en.row);
         }
 
         /** Tüm dosyaları kaldır. */
@@ -7693,6 +9702,10 @@
             // Timer'ları durdur + satırları kaldır
             clearTimeout(this._limitTimer);
             this._clearRows();
+
+            // v1.7 — açık kırpma katmanını kapat, kuyruğu boşalt
+            this._cropQueue = [];
+            this._closeCropOverlay();
 
             // Native input'u tab akışına geri al ve wrap yerine koy
             this.input.removeAttribute("tabindex");
@@ -7805,22 +9818,42 @@
  * Çekirdek: Glint.defineComponent ile kaydolur (kendi observer'ını
  * kurmaz). Global API: window.Glint.Color.
  *
- * Sınırlamalar (v1):
- *   - Alpha (RGBA/şeffaflık) kanalı desteklenmiyor — yalnız #rrggbb.
- *     Swatch'taki checkerboard ileride alpha için hazır görsel altyapı.
- *   - HSL giriş alanı yok (HEX + RGB). HSV dahili kullanılır.
+ * v1.7 — panel sözleşmesi + opt-in katman:
+ *   SABİT ÇEKİRDEK (her örnekte, config'ten bağımsız):
+ *     SV alanı + Hue + HEX satırı + R/G/B grid satırı + Hazır Renkler.
+ *     (showRgb:false artık yok sayılır — console.warn ile duyurulur;
+ *      presets yalnız açık `presets:false` ile kapatılabilir.)
+ *   OPT-IN KATMAN (per-instance data-* öznitelikleri):
+ *     data-eyedropper        → pipet butonu (EyeDropper API varsa)
+ *     data-recents-key="k"   → Son Kullanılanlar (localStorage kalıcı;
+ *                              anahtar YOKSA bölüm hiç kurulmaz —
+ *                              oturumluk istisna: config showRecents:true)
+ *     data-swatch-save="k"   → Kayıtlı Renkler ("+" ile manuel kaydet,
+ *                              hover/odakta × ya da Delete ile sil,
+ *                              localStorage "glint-color:saved:k")
+ *     data-alpha             → alfa kaydırıcısı + A kutusu + HEX8 kabulü.
+ *                              Native value #rrggbb KALIR (native sınır);
+ *                              alfa `data-glint-alpha` (0-1) özniteliğine,
+ *                              `glint:color-change` detayına {hex, rgba,
+ *                              alpha} ve ops. data-raw-name gizli
+ *                              input'una rgba(...) olarak yazılır.
  */
 
 (function () {
     "use strict";
 
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // v1.7 — CANLI hareket kapısı: mount anında dondurulmaz; her çağrıda
+    // çekirdeğin tek kaynağından okunur (Glint.configure / OS değişimi
+    // remount gerektirmeden anında etkir). Bkz. Glint.motion / reducedMotion.
+    const prefersReduced = () => (window.Glint && window.Glint.reducedMotion)
+        ? window.Glint.reducedMotion()
+        : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     // ══════════════════════════════════════════════════════════════
     //  YAPILANDIRMA (override edilebilir)
     // ══════════════════════════════════════════════════════════════
 
-    // Varsayılan hazır palet — Tailwind/Bootstrap dengesi, 18 ton.
+    // Varsayılan hazır palet — Tailwind/Bootstrap dengesi, 21 ton.
     const DEFAULT_PRESETS = [
         "#111827", "#374151", "#6b7280", "#9ca3af", "#d1d5db", "#f3f4f6", "#ffffff",
         "#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16", "#22c55e", "#059669",
@@ -7828,31 +9861,50 @@
     ];
 
     const DEFAULTS = {
-        presets: DEFAULT_PRESETS,
-        showRgb: true,        // HEX'in yanında R/G/B alanları göster
-        showHsl: true,        // HSL mod toggle (RGB ile birlikte → HEX/RGB/HSL geçişi)
+        presets: DEFAULT_PRESETS,   // sabit çekirdek; yalnız açık `presets:false` gizler
+        showRgb: true,        // v1.7 — YOK SAYILIR: R/G/B panelin sabit çekirdeğidir
+        showHsl: true,        // HSL mod toggle (HEX/RGB/HSL geçişi)
         defaultMode: "rgb",   // başlangıç sayısal modu: "rgb" | "hsl"
-        showContrast: true,   // seçili renge karşı beyaz/siyah WCAG kontrast rozeti
-        showRecents: true,    // son kullanılanlar satırı
+        showContrast: false,  // v1.7.1 — OPT-IN: kontrast rozeti (data-contrast ya da bu anahtar);
+                              // kullanıcı kuralı: çekirdek = seçici + HEX + RGB, gerisi eklenti
+        // v1.7 — Son Kullanılanlar artık gerçek opt-in: data-recents-key
+        // (kalıcı) verildiğinde otomatik açılır; anahtar olmadan oturumluk
+        // istemek için tek kaçış yolu global `showRecents: true` config'i.
+        showRecents: false,
         maxRecents: 9,
+        maxSaved: 17,         // v1.7 — kayıtlı renk sınırı (+ butonuyla 2 satır dolar)
+        eyedropper: false,    // v1.7 — pipet opt-in (data-eyedropper ya da bu anahtar)
+        copyButton: false,    // v1.7.1 — HEX kopyala butonu OPT-IN (data-copy ya da bu anahtar)
         labels: {
             hex: "HEX",
             r: "R", g: "G", b: "B",
             h: "H", s: "S", l: "L",
+            a: "A",
             modeRgb: "RGB", modeHsl: "HSL",
             contrastTitle: "Kontrast",
             contrastWhite: "Beyaz",
             contrastBlack: "Siyah",
             presetsTitle: "Hazır Renkler",
             recentsTitle: "Son Kullanılanlar",
+            savedTitle: "Kayıtlı Renkler",
+            saveAria: "Bu rengi kaydet",
+            removeSavedAria: "Kayıtlı rengi sil:",
             triggerAria: "Renk seç",
             svAria: "Doygunluk ve parlaklık",
-            hueAria: "Renk tonu"
+            hueAria: "Renk tonu",
+            alphaAria: "Opaklık"
         }
     };
 
+    // v1.7 — showRgb:false sessizce kırılmasın: bir kez uyar, yok say.
+    let warnedShowRgb = false;
+
     function getConfig() {
         const ext = (window.Glint && window.Glint.Color && window.Glint.Color.config) || {};
+        if (ext.showRgb === false && !warnedShowRgb) {
+            warnedShowRgb = true;
+            console.warn("Glint.Color: v1.7'den itibaren R/G/B alanları panelin sabit çekirdeğidir; 'showRgb: false' yok sayılıyor.");
+        }
         const labels = Object.assign({}, DEFAULTS.labels, ext.labels || {});
         return Object.assign({}, DEFAULTS, ext, { labels });
     }
@@ -7887,6 +9939,31 @@
             g: parseInt(s.slice(2, 4), 16),
             b: parseInt(s.slice(4, 6), 16)
         };
+    }
+
+    /**
+     * v1.7 — alfa dahil ayrıştırma:
+     * "#rgb" / "#rgba" / "#rrggbb" / "#rrggbbaa" → {r,g,b,a} | null.
+     * a: 0-1 (2 ondalık) ya da null (alfa BELİRTİLMEMİŞ — çağıran
+     * mevcut alfayı korusun diye ayırt edilir).
+     */
+    function parseHexA(str) {
+        if (typeof str !== "string") return null;
+        let s = str.trim().replace(/^#/, "");
+        if (/^[0-9a-fA-F]{3,4}$/.test(s)) {
+            s = s.split("").map(ch => ch + ch).join("");
+        }
+        if (/^[0-9a-fA-F]{6}$/.test(s)) {
+            const rgb = parseHex(s);
+            return rgb ? { r: rgb.r, g: rgb.g, b: rgb.b, a: null } : null;
+        }
+        if (/^[0-9a-fA-F]{8}$/.test(s)) {
+            const rgb = parseHex(s.slice(0, 6));
+            if (!rgb) return null;
+            const a = Math.round(parseInt(s.slice(6, 8), 16) / 255 * 100) / 100;
+            return { r: rgb.r, g: rgb.g, b: rgb.b, a };
+        }
+        return null;
     }
 
     /** {r,g,b} → "#rrggbb" (küçük harf) */
@@ -8042,10 +10119,40 @@
             // HEX'e yuvarlamak gri/siyahta hue'yu kaybettirir).
             this.hsv = { h: 0, s: 0, v: 0 };
 
-            // Son kullanılanlar — örnek başına ayrı liste (opsiyonel kalıcı)
+            // Son kullanılanlar — v1.7: gerçek opt-in. data-recents-key
+            // (kalıcı) bölümü otomatik açar; anahtar yoksa yalnız global
+            // config showRecents:true ile (oturumluk) açılır.
             this.recents = [];
             this.recentsKey = this.input.getAttribute("data-recents-key") || (this.cfg && this.cfg.recentsKey) || null;
+            this._wantRecents = !!this.recentsKey || this.cfg.showRecents === true;
             this._loadRecents();
+
+            // v1.7 — pipet opt-in: data-eyedropper ya da global config.
+            // API desteklenmiyorsa öznitelik olsa bile buton çıkmaz
+            // (graceful degrade — _buildPopover'da ikinci koşul).
+            this._wantEyedrop = input.hasAttribute("data-eyedropper") || this.cfg.eyedropper === true;
+
+            // v1.7.1 — çekirdek/eklenti ayrımı (kullanıcı kuralı): çekirdek
+            // yalnız seçici + HEX + RGB'dir. Kontrast rozeti ve HEX kopyala
+            // da pipet gibi OPT-IN'e alındı (data-contrast / data-copy ya da
+            // global showContrast / copyButton anahtarları).
+            this._wantContrast = input.hasAttribute("data-contrast") || this.cfg.showContrast === true;
+            this._wantCopy = input.hasAttribute("data-copy") || this.cfg.copyButton === true;
+
+            // v1.7 — kayıtlı renkler (manuel kaydet): data-swatch-save="anahtar".
+            // Değersiz öznitelik "default" anahtarına düşer. localStorage
+            // anahtarı "glint-color:saved:<anahtar>" (recents ile çakışmaz).
+            this.savedKey = input.hasAttribute("data-swatch-save")
+                ? (input.getAttribute("data-swatch-save") || "default")
+                : null;
+            this.saved = [];
+            this._loadSaved();
+
+            // v1.7 — alfa kanalı (data-alpha): kaydırıcı + A kutusu + HEX8.
+            this.hasAlpha = input.hasAttribute("data-alpha");
+            this.alpha = 1;
+            // Ops. gizli ikiz input — forma rgba(...) değeri taşır.
+            this.rawName = input.getAttribute("data-raw-name") || null;
 
             this._initialFromInput();
             this._build();
@@ -8056,9 +10163,21 @@
         // ── Başlangıç durumu ───────────────────────────────────────
 
         _initialFromInput() {
-            const rgb = parseHex(this.input.value) || parseHex("#000000");
+            // v1.7 — alfa: metin input başlangıçta #rrggbbaa taşıyabilir;
+            // type=color taşıyamaz (native sınır), onun için başlangıç
+            // alfası data-glint-alpha özniteliğinden okunur.
+            const rgba = parseHexA(this.input.value);
+            const rgb = rgba || parseHex("#000000");
             this.hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
-            // Native input.value'yu normalize et (#rrggbb küçük harf)
+            if (this.hasAlpha) {
+                const attrA = parseFloat(this.input.getAttribute("data-glint-alpha"));
+                if (rgba && rgba.a != null) this.alpha = rgba.a;
+                else if (!isNaN(attrA)) this.alpha = clamp(attrA, 0, 1);
+                this.input.setAttribute("data-glint-alpha", String(this.alpha));
+                this._lastAlpha = this.alpha;   // ilk _commit'te sahte fark olmasın
+            }
+            // Native input.value'yu normalize et (#rrggbb küçük harf —
+            // alfa native value'ya YAZILMAZ, ayrı kanallardan taşınır)
             const norm = rgbToHex(rgb.r, rgb.g, rgb.b);
             if (this.input.value !== norm) {
                 // type=color zaten normalize eder; metin input için garanti
@@ -8116,6 +10235,16 @@
             // Disabled mirror
             if (input.disabled) this.field.classList.add("is-disabled");
 
+            // v1.7 — data-raw-name: forma rgba(...) yazan gizli ikiz input
+            // (native value #rrggbb kalır; alfa bilgisi burada taşınır).
+            if (this.rawName) {
+                this.rawInput = document.createElement("input");
+                this.rawInput.type = "hidden";
+                this.rawInput.name = this.rawName;
+                this.field.appendChild(this.rawInput);
+                this._syncRawInput();
+            }
+
             // 3. Popover (+ backdrop)
             this._buildPopover();
             this._buildBackdrop();
@@ -8152,20 +10281,37 @@
             this.hue.appendChild(this.hueThumb);
             this.popover.appendChild(this.hue);
 
-            // ── Giriş alanları (HEX + ops. RGB) ──
+            // ── v1.7: Alfa kaydırıcısı (data-alpha) — hue şeridinin altı ──
+            if (this.hasAlpha) {
+                this.alphaEl = document.createElement("div");
+                this.alphaEl.className = "glint-color-alpha";
+                this.alphaEl.setAttribute("role", "slider");
+                this.alphaEl.setAttribute("tabindex", "0");
+                this.alphaEl.setAttribute("aria-label", L.alphaAria);
+                this.alphaEl.setAttribute("aria-valuemin", "0");
+                this.alphaEl.setAttribute("aria-valuemax", "100");
+                this.alphaThumb = document.createElement("div");
+                this.alphaThumb.className = "glint-color-alpha-thumb";
+                this.alphaEl.appendChild(this.alphaThumb);
+                this.popover.appendChild(this.alphaEl);
+            }
+
+            // ── Giriş alanları — üst satır: HEX + araç butonları ──
             const inputs = document.createElement("div");
             inputs.className = "glint-color-inputs";
 
             const hexWrap = this._buildField("hex", L.hex, "glint-color-input-wrap--hex");
             this.hexInput = hexWrap.input;
-            this.hexInput.maxLength = 7;
+            // v1.7 — data-alpha ile #RRGGBBAA (9 karakter) kabul edilir
+            this.hexInput.maxLength = this.hasAlpha ? 9 : 7;
             // v1.5.1 — intrinsic min-content ~175px'i öldür: hex alanı flex
             // içinde gerçekten daralabilsin (satır 248px paneli taşırıyordu).
             this.hexInput.size = 7;
             inputs.appendChild(hexWrap.wrap);
 
-            // EyeDropper (ekrandan renk al) — destekleyen tarayıcıda görünür
-            if ("EyeDropper" in window) {
+            // v1.7 — EyeDropper artık OPT-IN (data-eyedropper ya da global
+            // config eyedropper:true); API desteği yoksa sessizce düşer.
+            if (("EyeDropper" in window) && this._wantEyedrop) {
                 this.eyedropBtn = document.createElement("button");
                 this.eyedropBtn.type = "button";
                 this.eyedropBtn.className = "glint-color-tool glint-color-eyedrop";
@@ -8180,42 +10326,48 @@
                     } catch (_) { }
                 });
             }
-            // HEX kopyala
-            this.copyBtn = document.createElement("button");
-            this.copyBtn.type = "button";
-            this.copyBtn.className = "glint-color-tool glint-color-copy";
-            this.copyBtn.setAttribute("aria-label", "HEX kopyala");
-            this.copyBtn.innerHTML = '<svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path d="M7 2h7a2 2 0 012 2v9a2 2 0 01-2 2H7a2 2 0 01-2-2V4a2 2 0 012-2zm0 2v9h7V4H7zM3 6v10a2 2 0 002 2h8v-2H5V6H3z"/></svg>';
-            inputs.appendChild(this.copyBtn);
-            this.copyBtn.addEventListener("click", () => {
-                const hex = this._currentHex();
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(hex).then(() => {
-                        this.copyBtn.classList.add("is-copied");
-                        setTimeout(() => this.copyBtn.classList.remove("is-copied"), 1200);
-                    }).catch(() => { });
-                }
-            });
-
-            if (this.cfg.showRgb) {
-                const rWrap = this._buildField("r", L.r, "glint-color-input-wrap--rgb glint-color-input-wrap--num glint-color-input-wrap--rgbgrp");
-                const gWrap = this._buildField("g", L.g, "glint-color-input-wrap--rgb glint-color-input-wrap--num glint-color-input-wrap--rgbgrp");
-                const bWrap = this._buildField("b", L.b, "glint-color-input-wrap--rgb glint-color-input-wrap--num glint-color-input-wrap--rgbgrp");
-                this.rInput = rWrap.input;
-                this.gInput = gWrap.input;
-                this.bInput = bWrap.input;
-                this._rgbWraps = [rWrap.wrap, gWrap.wrap, bWrap.wrap];
-                [this.rInput, this.gInput, this.bInput].forEach(i => {
-                    i.maxLength = 3;
-                    i.inputMode = "numeric";
+            // HEX kopyala — v1.7.1: OPT-IN (data-copy ya da config copyButton)
+            if (this._wantCopy) {
+                this.copyBtn = document.createElement("button");
+                this.copyBtn.type = "button";
+                this.copyBtn.className = "glint-color-tool glint-color-copy";
+                this.copyBtn.setAttribute("aria-label", "HEX kopyala");
+                this.copyBtn.innerHTML = '<svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path d="M7 2h7a2 2 0 012 2v9a2 2 0 01-2 2H7a2 2 0 01-2-2V4a2 2 0 012-2zm0 2v9h7V4H7zM3 6v10a2 2 0 002 2h8v-2H5V6H3z"/></svg>';
+                inputs.appendChild(this.copyBtn);
+                this.copyBtn.addEventListener("click", () => {
+                    const hex = this._currentHex();
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(hex).then(() => {
+                            this.copyBtn.classList.add("is-copied");
+                            setTimeout(() => this.copyBtn.classList.remove("is-copied"), 1200);
+                        }).catch(() => { });
+                    }
                 });
-                inputs.appendChild(rWrap.wrap);
-                inputs.appendChild(gWrap.wrap);
-                inputs.appendChild(bWrap.wrap);
-            } else if (this.mode === "rgb") {
-                // RGB kapalıysa moddan da düş
-                this.mode = this.cfg.showHsl ? "hsl" : "rgb";
             }
+
+            // ── v1.7: Sayısal grid satırı — R/G/B SABİT çekirdek üyedir
+            // (showRgb yok sayılır), ops. H/S/L ve ops. A aynı grid'de.
+            // Tek düz flex kap yerine ayrı grid satırı: v1.5.1'in sarma
+            // kırılması (R üstte, G/B alta düşüyordu) kökten çözülür —
+            // görünür üçlü/dörtlü HER ZAMAN tek satırda eşit kolonlarda.
+            const numRow = document.createElement("div");
+            numRow.className = "glint-color-num-row" +
+                (this.hasAlpha ? " glint-color-num-row--alpha" : "");
+
+            const rWrap = this._buildField("r", L.r, "glint-color-input-wrap--rgb glint-color-input-wrap--num glint-color-input-wrap--rgbgrp");
+            const gWrap = this._buildField("g", L.g, "glint-color-input-wrap--rgb glint-color-input-wrap--num glint-color-input-wrap--rgbgrp");
+            const bWrap = this._buildField("b", L.b, "glint-color-input-wrap--rgb glint-color-input-wrap--num glint-color-input-wrap--rgbgrp");
+            this.rInput = rWrap.input;
+            this.gInput = gWrap.input;
+            this.bInput = bWrap.input;
+            this._rgbWraps = [rWrap.wrap, gWrap.wrap, bWrap.wrap];
+            [this.rInput, this.gInput, this.bInput].forEach(i => {
+                i.maxLength = 3;
+                i.inputMode = "numeric";
+            });
+            numRow.appendChild(rWrap.wrap);
+            numRow.appendChild(gWrap.wrap);
+            numRow.appendChild(bWrap.wrap);
 
             if (this.cfg.showHsl) {
                 const hWrap = this._buildField("h", L.h, "glint-color-input-wrap--rgb glint-color-input-wrap--num glint-color-input-wrap--hslgrp");
@@ -8228,14 +10380,26 @@
                 this.hInput.maxLength = 3; this.hInput.inputMode = "numeric";
                 this.sInput.maxLength = 3; this.sInput.inputMode = "numeric";
                 this.lInput.maxLength = 3; this.lInput.inputMode = "numeric";
-                inputs.appendChild(hWrap.wrap);
-                inputs.appendChild(sWrap.wrap);
-                inputs.appendChild(lWrap.wrap);
+                numRow.appendChild(hWrap.wrap);
+                numRow.appendChild(sWrap.wrap);
+                numRow.appendChild(lWrap.wrap);
             }
-            this.popover.appendChild(inputs);
 
-            // ── Mod toggle (RGB/HSL) — yalnız RGB+HSL birlikte açıksa ──
-            if (this.cfg.showRgb && this.cfg.showHsl) {
+            // v1.7 — A kutusu (yüzde 0-100): mod toggle'dan bağımsız,
+            // RGB ve HSL görünümlerinin ikisinde de kalır.
+            if (this.hasAlpha) {
+                const aWrap = this._buildField("a", L.a, "glint-color-input-wrap--rgb");
+                this.aInput = aWrap.input;
+                this.aInput.maxLength = 3;
+                this.aInput.inputMode = "numeric";
+                numRow.appendChild(aWrap.wrap);
+            }
+
+            this.popover.appendChild(inputs);
+            this.popover.appendChild(numRow);
+
+            // ── Mod toggle (RGB/HSL) — RGB sabit; toggle HSL açıksa çıkar ──
+            if (this.cfg.showHsl) {
                 this.modeToggle = document.createElement("div");
                 this.modeToggle.className = "glint-color-modes";
                 this.modeToggle.setAttribute("role", "tablist");
@@ -8254,7 +10418,7 @@
             }
 
             // ── WCAG kontrast rozetleri ──
-            if (this.cfg.showContrast) {
+            if (this._wantContrast) {
                 this.contrastEl = document.createElement("div");
                 this.contrastEl.className = "glint-color-contrast";
                 this.contrastEl.setAttribute("aria-live", "polite");
@@ -8262,12 +10426,19 @@
             }
 
             // ── Hazır palet (düz dizi VEYA gruplu {name,colors[]}) ──
-            if (this.cfg.presets && this.cfg.presets.length) {
+            // v1.7 — sabit çekirdek: presets verilmemiş/boş bırakılmışsa
+            // varsayılan palete geri düşülür; bilinçli kapatmanın tek yolu
+            // açık `presets: false`.
+            const presetSrc = this.cfg.presets === false
+                ? null
+                : ((Array.isArray(this.cfg.presets) && this.cfg.presets.length)
+                    ? this.cfg.presets : DEFAULT_PRESETS);
+            if (presetSrc) {
                 // Tek presets kabı: gruplar başlıklı alt-satırlar üretir.
                 this.presetsWrap = document.createElement("div");
                 this.presetsWrap.className = "glint-color-presets-wrap";
                 // Geriye uyum: düz dizi → başlıklı tek grup (presetsTitle)
-                const groups = this._normalizePresetGroups(this.cfg.presets, L.presetsTitle);
+                const groups = this._normalizePresetGroups(presetSrc, L.presetsTitle);
                 // Tüm preset swatch'larını ortak referansta tut (_renderPresetActive)
                 this.presetsEl = this.presetsWrap; // querySelectorAll kapsayıcısı
                 groups.forEach(grp => {
@@ -8294,8 +10465,41 @@
                 this.popover.appendChild(this.presetsWrap);
             }
 
-            // ── Son kullanılanlar ──
-            if (this.cfg.showRecents) {
+            // ── v1.7: Kayıtlı Renkler (data-swatch-save — manuel kaydet) ──
+            if (this.savedKey) {
+                const savedTitle = document.createElement("div");
+                savedTitle.className = "glint-color-section-title";
+                savedTitle.textContent = L.savedTitle;
+                this.popover.appendChild(savedTitle);
+
+                this.savedEl = document.createElement("div");
+                this.savedEl.className = "glint-color-saved";
+
+                // Grid'in İLK hücresi: kalıcı "+" kaydet butonu
+                this.saveBtn = document.createElement("button");
+                this.saveBtn.type = "button";
+                this.saveBtn.className = "glint-color-save-btn";
+                this.saveBtn.setAttribute("aria-label", L.saveAria);
+                this.saveBtn.innerHTML = '<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9"/></svg>';
+                this.saveBtn.addEventListener("click", () => this._pushSaved(this._currentStoreHex()));
+                this.savedEl.appendChild(this.saveBtn);
+                this.popover.appendChild(this.savedEl);
+
+                // Klavye: odaktaki kayıtlı swatch Delete/Backspace ile silinir
+                this.savedEl.addEventListener("keydown", (e) => {
+                    if (e.key !== "Delete" && e.key !== "Backspace") return;
+                    const cell = e.target.closest && e.target.closest(".glint-color-saved-cell");
+                    if (!cell) return;
+                    e.preventDefault();
+                    this._removeSaved(cell.dataset.color);
+                });
+
+                this._renderSaved();
+            }
+
+            // ── Son kullanılanlar — v1.7: gerçek opt-in (constructor'daki
+            // _wantRecents: data-recents-key VEYA global showRecents:true) ──
+            if (this._wantRecents) {
                 this.recentsTitle = document.createElement("div");
                 this.recentsTitle.className = "glint-color-section-title";
                 this.recentsTitle.textContent = L.recentsTitle;
@@ -8370,7 +10574,7 @@
         // ── Mod (RGB/HSL) geçişi ───────────────────────────────────
         _setMode(mode) {
             if (mode !== "rgb" && mode !== "hsl") return;
-            if (mode === "rgb" && !this.cfg.showRgb) return;
+            // v1.7 — RGB sabit çekirdek: yalnız HSL isteği koşula bağlı
             if (mode === "hsl" && !this.cfg.showHsl) return;
             this.mode = mode;
             this._applyMode();
@@ -8415,16 +10619,27 @@
                 if (e.key === "Enter") { e.preventDefault(); this._onHexBlur(); }
             });
 
-            // RGB girişleri
-            if (this.cfg.showRgb) {
-                [this.rInput, this.gInput, this.bInput].forEach(inp => {
-                    inp.addEventListener("input", () => this._onRgbInput());
-                    inp.addEventListener("blur", () => this._onRgbBlur());
-                    inp.addEventListener("keydown", (e) => {
-                        if (e.key === "Enter") { e.preventDefault(); this._onRgbBlur(); }
-                        else if (e.key === "ArrowUp") { e.preventDefault(); this._nudgeRgb(inp, +1); }
-                        else if (e.key === "ArrowDown") { e.preventDefault(); this._nudgeRgb(inp, -1); }
-                    });
+            // RGB girişleri — v1.7: sabit çekirdek, her zaman bağlanır
+            [this.rInput, this.gInput, this.bInput].forEach(inp => {
+                inp.addEventListener("input", () => this._onRgbInput());
+                inp.addEventListener("blur", () => this._onRgbBlur());
+                inp.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") { e.preventDefault(); this._onRgbBlur(); }
+                    else if (e.key === "ArrowUp") { e.preventDefault(); this._nudgeRgb(inp, +1); }
+                    else if (e.key === "ArrowDown") { e.preventDefault(); this._nudgeRgb(inp, -1); }
+                });
+            });
+
+            // v1.7 — Alfa: kaydırıcı (drag + klavye) ve A kutusu
+            if (this.hasAlpha) {
+                this._bindAlphaDrag();
+                this._bindAlphaKeyboard();
+                this.aInput.addEventListener("input", () => this._onAlphaInput());
+                this.aInput.addEventListener("blur", () => this._onAlphaBlur());
+                this.aInput.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") { e.preventDefault(); this._onAlphaBlur(); }
+                    else if (e.key === "ArrowUp") { e.preventDefault(); this._nudgeAlpha(+1); }
+                    else if (e.key === "ArrowDown") { e.preventDefault(); this._nudgeAlpha(-1); }
                 });
             }
 
@@ -8514,6 +10729,18 @@
             this._dragArea(this.hue, (cx) => onMove(cx), true);
         }
 
+        // v1.7 — alfa kaydırıcısı: hue ile aynı drag altyapısı (yalnız X)
+        _bindAlphaDrag() {
+            const onMove = (clientX) => {
+                const rect = this.alphaEl.getBoundingClientRect();
+                const x = clamp(clientX - rect.left, 0, rect.width);
+                this.alpha = rect.width ? Math.round((x / rect.width) * 100) / 100 : 0;
+                this._renderAll();
+                this._commit(false);   // canlı input; change bırakışta
+            };
+            this._dragArea(this.alphaEl, (cx) => onMove(cx), true);
+        }
+
         /**
          * Bir alan için Pointer Events tabanlı drag bağla.
          * horizontalOnly=true → yalnız X kullanılır (hue slider).
@@ -8545,7 +10772,7 @@
                 el.classList.remove("is-dragging");
                 try { el.releasePointerCapture(e.pointerId); } catch (err) { /* yoksay */ }
                 // Drag bitti → değeri son kullanılanlara ekle + bekleyen change
-                this._pushRecent(this._currentHex());
+                this._pushRecent(this._currentStoreHex());
                 this._commit(true);
             };
             el.addEventListener("pointerup", end);
@@ -8571,7 +10798,7 @@
                     e.preventDefault();
                     this._renderAll();
                     this._commit();
-                    this._pushRecent(this._currentHex());
+                    this._pushRecent(this._currentStoreHex());
                 }
             });
         }
@@ -8593,7 +10820,31 @@
                     e.preventDefault();
                     this._renderAll();
                     this._commit();
-                    this._pushRecent(this._currentHex());
+                    this._pushRecent(this._currentStoreHex());
+                }
+            });
+        }
+
+        // v1.7 — alfa kaydırıcısı klavye desteği (hue ile aynı dil)
+        _bindAlphaKeyboard() {
+            this.alphaEl.addEventListener("keydown", (e) => {
+                const step = (e.shiftKey ? 10 : 2) / 100;
+                let handled = true;
+                switch (e.key) {
+                    case "ArrowLeft":
+                    case "ArrowDown":  this.alpha = clamp(this.alpha - step, 0, 1); break;
+                    case "ArrowRight":
+                    case "ArrowUp":    this.alpha = clamp(this.alpha + step, 0, 1); break;
+                    case "Home":       this.alpha = 0; break;
+                    case "End":        this.alpha = 1; break;
+                    default: handled = false;
+                }
+                if (handled) {
+                    e.preventDefault();
+                    this.alpha = Math.round(this.alpha * 100) / 100;
+                    this._renderAll();
+                    this._commit();
+                    this._pushRecent(this._currentStoreHex());
                 }
             });
         }
@@ -8601,7 +10852,10 @@
         // ── HEX / RGB giriş işleyicileri ───────────────────────────
 
         _onHexInput() {
-            const rgb = parseHex(this.hexInput.value);
+            // v1.7 — data-alpha ile #RRGGBBAA da geçerli girdi sayılır
+            const rgb = this.hasAlpha
+                ? parseHexA(this.hexInput.value)
+                : parseHex(this.hexInput.value);
             this.hexInput.classList.toggle("is-invalid", !rgb && this.hexInput.value.trim() !== "");
             if (!rgb) return;
             // Geçerli → HSV güncelle ama hue/SV'yi kayıpsız tut:
@@ -8612,18 +10866,23 @@
                 // siyah/gri → hue koru (yukarıdaki gibi)
             }
             this.hsv = newHsv;
+            // 8 haneli girişte alfa da ayrıştırılır (6 hanelide korunur)
+            if (this.hasAlpha && rgb.a != null) this.alpha = rgb.a;
             // HEX input'una dokunmadan diğer alanları render et
             this._renderSwatch();
             this._renderSv();
             this._renderHue();
             this._renderRgb();
+            this._renderAlpha();
             this._commit();
         }
 
         _onHexBlur() {
-            const rgb = parseHex(this.hexInput.value);
+            const rgb = this.hasAlpha
+                ? parseHexA(this.hexInput.value)
+                : parseHex(this.hexInput.value);
             if (rgb) {
-                this._pushRecent(rgbToHex(rgb.r, rgb.g, rgb.b));
+                this._pushRecent(this._currentStoreHex());
             }
             // Geçersiz ya da değil — kanonik değere geri yaz
             this.hexInput.classList.remove("is-invalid");
@@ -8631,7 +10890,7 @@
         }
 
         _onRgbInput() {
-            if (!this.cfg.showRgb) return;
+            if (!this.rInput) return;
             const r = this._readRgbField(this.rInput);
             const g = this._readRgbField(this.gInput);
             const b = this._readRgbField(this.bInput);
@@ -8643,7 +10902,8 @@
             this._renderSv();
             this._renderHue();
             this._renderHexInput();
-            if (this.cfg.showContrast) this._renderContrast();
+            this._renderAlpha();
+            if (this._wantContrast) this._renderContrast();
             this._commit();
         }
 
@@ -8656,8 +10916,35 @@
         }
 
         _onRgbBlur() {
-            this._pushRecent(this._currentHex());
+            this._pushRecent(this._currentStoreHex());
             this._renderRgb();
+        }
+
+        // ── v1.7: Alfa (A kutusu) giriş işleyicileri ───────────────
+
+        _onAlphaInput() {
+            const v = this.aInput.value.trim();
+            if (v === "" || !/^\d{1,3}$/.test(v)) return;
+            const n = parseInt(v, 10);
+            if (n > 100) return;
+            this.alpha = n / 100;
+            // A kutusuna dokunmadan diğer alanları render et
+            this._renderSwatch();
+            this._renderHexInput();
+            this._renderAlpha();
+            this._commit();
+        }
+
+        _onAlphaBlur() {
+            this._pushRecent(this._currentStoreHex());
+            this._renderAlpha();
+        }
+
+        _nudgeAlpha(delta) {
+            const cur = parseInt(this.aInput.value, 10);
+            const base = isNaN(cur) ? 0 : cur;
+            this.aInput.value = String(clamp(base + delta, 0, 100));
+            this._onAlphaInput();
         }
 
         // ── HSL giriş işleyicileri ─────────────────────────────────
@@ -8686,13 +10973,14 @@
             this._renderHue();
             this._renderHexInput();
             this._renderRgb();
-            if (this.cfg.showContrast) this._renderContrast();
+            this._renderAlpha();
+            if (this._wantContrast) this._renderContrast();
             this._renderPresetActive();
             this._commit();
         }
 
         _onHslBlur() {
-            this._pushRecent(this._currentHex());
+            this._pushRecent(this._currentStoreHex());
             this._renderHsl();
         }
 
@@ -8716,16 +11004,47 @@
             return hsvToHex(this.hsv.h, this.hsv.s, this.hsv.v);
         }
 
-        /** Bir HEX'i doğrudan seç (palet / preset / son kullanılan). */
+        /**
+         * v1.7 — saklama/rozet değeri: alfa aktif ve 1'in altındaysa
+         * #rrggbbaa, değilse #rrggbb. Recents/saved listeleri ve HEX
+         * kutusu görünümü bu biçimi kullanır (alfa kaybolmaz).
+         */
+        _currentStoreHex() {
+            const hex = this._currentHex();
+            if (this.hasAlpha && this.alpha < 1) {
+                return hex + pad2hex(Math.round(this.alpha * 255));
+            }
+            return hex;
+        }
+
+        /** v1.7 — mevcut rengin rgba(...) dizesi (data-raw-name + event detayı) */
+        _currentRgbaString() {
+            const { r, g, b } = hsvToRgb(this.hsv.h, this.hsv.s, this.hsv.v);
+            const a = this.hasAlpha ? this.alpha : 1;
+            return "rgba(" + r + ", " + g + ", " + b + ", " + a + ")";
+        }
+
+        /** v1.7 — gizli rgba ikiz input'unu güncelle (data-raw-name) */
+        _syncRawInput() {
+            if (!this.rawInput) return;
+            this.rawInput.value = this._currentRgbaString();
+        }
+
+        /**
+         * Bir HEX'i doğrudan seç (palet / preset / son kullanılan / kayıtlı).
+         * v1.7 — #rrggbbaa kabul edilir: alfa aktifse 8 haneli kayıtlar
+         * alfalarıyla geri gelir; 6 hanelide mevcut alfa korunur.
+         */
         _pickHex(hex, pushRecent) {
-            const rgb = parseHex(hex);
+            const rgb = parseHexA(hex);
             if (!rgb) return;
             const newHsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
             if (newHsv.s === 0) newHsv.h = this.hsv.h; // hue koru
             this.hsv = newHsv;
+            if (this.hasAlpha && rgb.a != null) this.alpha = rgb.a;
             this._renderAll();
             this._commit();
-            if (pushRecent) this._pushRecent(rgbToHex(rgb.r, rgb.g, rgb.b));
+            if (pushRecent) this._pushRecent(this._currentStoreHex());
         }
 
         /** Dahili durumu native input'a yaz + event yay. */
@@ -8739,26 +11058,52 @@
         _commit(fireChange = true) {
             const hex = this._currentHex();
             this._suppressNative = true;
-            if (this.input.value !== hex) {
+            // v1.7 — alfa yalnız başına da değişebilir (native value aynı
+            // kalır); değişim tespiti hex + alfa üzerinden yapılır.
+            const alphaChanged = this.hasAlpha && this._lastAlpha !== this.alpha;
+            if (this.input.value !== hex || alphaChanged) {
                 this.input.value = hex;
+                if (this.hasAlpha) {
+                    this.input.setAttribute("data-glint-alpha",
+                        String(Math.round(this.alpha * 100) / 100));
+                    this._lastAlpha = this.alpha;
+                }
+                this._syncRawInput();
                 this.input.dispatchEvent(new Event("input", { bubbles: true }));
                 if (fireChange) {
                     this.input.dispatchEvent(new Event("change", { bubbles: true }));
+                    this._emitChange();
                     this._pendingChange = false;
                 } else {
                     this._pendingChange = true;
                 }
             } else if (fireChange && this._pendingChange) {
                 this.input.dispatchEvent(new Event("change", { bubbles: true }));
+                this._emitChange();
                 this._pendingChange = false;
             }
             this._suppressNative = false;
         }
 
+        /**
+         * v1.7 — zengin detaylı marka eventi: native 'change' ile birlikte
+         * yayılır. detail = { hex, rgba, alpha } (alpha yoksa 1).
+         */
+        _emitChange() {
+            this.input.dispatchEvent(new CustomEvent("glint:color-change", {
+                bubbles: true,
+                detail: {
+                    hex: this._currentHex(),
+                    rgba: this._currentRgbaString(),
+                    alpha: this.hasAlpha ? this.alpha : 1
+                }
+            }));
+        }
+
         // ── Son kullanılanlar ──────────────────────────────────────
 
         _pushRecent(hex) {
-            if (!this.cfg.showRecents || !hex) return;
+            if (!this._wantRecents || !hex) return;
             hex = hex.toLowerCase();
             // Tekrarları kaldır, başa ekle, sınırla
             this.recents = this.recents.filter(c => c !== hex);
@@ -8788,12 +11133,105 @@
             catch (_) { /* sessiz */ }
         }
 
+        // ── v1.7: Kayıtlı renkler (data-swatch-save) ───────────────
+        // _loadRecents/_saveRecents ikizi; storage anahtarı
+        // "glint-color:saved:<anahtar>" (recents anahtarlarıyla çakışmaz).
+
+        _loadSaved() {
+            if (!this.savedKey) return;
+            const max = (this.cfg && this.cfg.maxSaved) || 17;
+            try {
+                const raw = localStorage.getItem("glint-color:saved:" + this.savedKey);
+                if (raw) {
+                    const arr = JSON.parse(raw);
+                    if (Array.isArray(arr)) this.saved = arr.filter(c => typeof c === "string").slice(0, max);
+                }
+            } catch (_) { /* gizli mod / kota → sessiz */ }
+        }
+
+        _saveSaved() {
+            if (!this.savedKey) return;
+            try { localStorage.setItem("glint-color:saved:" + this.savedKey, JSON.stringify(this.saved)); }
+            catch (_) { /* sessiz */ }
+        }
+
+        /** "+" butonu: mevcut rengi kaydet (dedupe + başa ekle + sınır) */
+        _pushSaved(hex) {
+            if (!this.savedKey || !hex) return;
+            hex = hex.toLowerCase();
+            const isNew = this.saved.indexOf(hex) === -1;
+            this.saved = this.saved.filter(c => c !== hex);
+            this.saved.unshift(hex);
+            const max = (this.cfg && this.cfg.maxSaved) || 17;
+            if (this.saved.length > max) this.saved.length = max;
+            // Yeni swatch marka pop diliyle scale-in yapar (is-new sınıfı)
+            this._renderSaved(isNew ? hex : null);
+            this._renderPresetActive();   // kaydedilen = mevcut renk → halka
+            this._saveSaved();
+        }
+
+        /** × rozeti / Delete tuşu: kaydı sil (kalanlar FLIP ile kayar) */
+        _removeSaved(hex) {
+            if (!this.savedKey || !hex) return;
+            hex = hex.toLowerCase();
+            if (this.saved.indexOf(hex) === -1) return;
+            this.saved = this.saved.filter(c => c !== hex);
+            this._saveSaved();
+            const cell = this.savedEl &&
+                this.savedEl.querySelector('.glint-color-saved-cell[data-color="' + hex + '"]');
+            const doRemove = () => { if (cell) cell.remove(); };
+            // Kalan swatch'ların kayması marka "taşıma" dili (FLIP)
+            if (window.Glint && typeof window.Glint.flip === "function") {
+                window.Glint.flip(this.savedEl, doRemove);
+            } else {
+                doRemove();
+            }
+            // Odak silinen hücredeydiyse kaybolmasın → "+" butonuna taşı
+            if (this.saveBtn) this.saveBtn.focus();
+        }
+
+        _renderSaved(animateHex) {
+            if (!this.savedEl) return;
+            // "+" butonu kalıcı ilk hücre — yalnız swatch hücrelerini tazele
+            this.savedEl.querySelectorAll(".glint-color-saved-cell").forEach(c => c.remove());
+            this.saved.forEach(hex => {
+                const cell = document.createElement("div");
+                cell.className = "glint-color-saved-cell";
+                cell.dataset.color = hex;
+                if (animateHex && hex === animateHex) cell.classList.add("is-new");
+
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "glint-color-preset";
+                btn.dataset.color = hex;
+                btn.style.setProperty("--glint-color-preset-bg", hex);
+                btn.setAttribute("aria-label", hex);
+                btn.addEventListener("click", () => this._pickHex(hex, false));
+
+                const rm = document.createElement("button");
+                rm.type = "button";
+                rm.className = "glint-color-saved-remove";
+                rm.setAttribute("aria-label", this.cfg.labels.removeSavedAria + " " + hex);
+                rm.setAttribute("tabindex", "-1");   // klavye: swatch odaklıyken Delete
+                rm.innerHTML = '<svg viewBox="0 0 8 8" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M1.5 1.5l5 5M6.5 1.5l-5 5"/></svg>';
+                rm.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this._removeSaved(hex);
+                });
+
+                cell.appendChild(btn);
+                cell.appendChild(rm);
+                this.savedEl.appendChild(cell);
+            });
+        }
+
         // ── Render ─────────────────────────────────────────────────
 
         _renderAll() {
             this._renderSwatch();
             this._renderSv();
             this._renderHue();
+            this._renderAlpha();
             this._renderHexInput();
             this._renderRgb();
             this._renderHsl();
@@ -8803,8 +11241,11 @@
 
         _renderSwatch() {
             const hex = this._currentHex();
-            this.swatch.style.setProperty("--glint-color-current", hex);
-            this.valueText.textContent = hex.toUpperCase();
+            // v1.7 — alfa: swatch'ın checkerboard zemini üstüne rgba biner
+            // (v1'den beri hazır duran görsel altyapı), metin HEX8 gösterir.
+            const css = (this.hasAlpha && this.alpha < 1) ? this._currentRgbaString() : hex;
+            this.swatch.style.setProperty("--glint-color-current", css);
+            this.valueText.textContent = this._currentStoreHex().toUpperCase();
         }
 
         _renderSv() {
@@ -8831,16 +11272,36 @@
 
         _renderHexInput() {
             if (document.activeElement === this.hexInput) return;
-            this.hexInput.value = this._currentHex().toUpperCase();
+            // v1.7 — alfa < 1 iken HEX kutusu 8 haneli (#RRGGBBAA) gösterir
+            this.hexInput.value = this._currentStoreHex().toUpperCase();
             this.hexInput.classList.remove("is-invalid");
         }
 
         _renderRgb() {
-            if (!this.cfg.showRgb) return;
+            if (!this.rInput) return;
             const { r, g, b } = hsvToRgb(this.hsv.h, this.hsv.s, this.hsv.v);
             if (document.activeElement !== this.rInput) this.rInput.value = String(r);
             if (document.activeElement !== this.gInput) this.gInput.value = String(g);
             if (document.activeElement !== this.bInput) this.bInput.value = String(b);
+        }
+
+        // ── v1.7: Alfa kaydırıcısı + A kutusu render ───────────────
+        _renderAlpha() {
+            if (!this.hasAlpha) return;
+            const hex = this._currentHex();
+            if (this.alphaEl) {
+                // Şerit gradyanının opak ucu = mevcut renk (satranç zemin CSS'te)
+                this.alphaEl.style.setProperty("--glint-color-alpha-to", hex);
+                this.alphaThumb.style.left = (clamp(this.alpha, 0, 1) * 100) + "%";
+                // Thumb dolgusu mevcut rengin mevcut alfası (mini satranç üstünde)
+                this.alphaThumb.style.setProperty("--glint-color-alpha-fill", this._currentRgbaString());
+                const pct = Math.round(this.alpha * 100);
+                this.alphaEl.setAttribute("aria-valuenow", String(pct));
+                this.alphaEl.setAttribute("aria-valuetext", "%" + pct + " opaklık");
+            }
+            if (this.aInput && document.activeElement !== this.aInput) {
+                this.aInput.value = String(Math.round(this.alpha * 100));
+            }
         }
 
         _renderHsl() {
@@ -8856,7 +11317,7 @@
 
         // ── WCAG kontrast rozetleri ────────────────────────────────
         _renderContrast() {
-            if (!this.cfg.showContrast || !this.contrastEl) return;
+            if (!this._wantContrast || !this.contrastEl) return;
             const L = this.cfg.labels;
             const rgb = hsvToRgb(this.hsv.h, this.hsv.s, this.hsv.v);
             const vsWhite = contrastRatio(rgb, { r: 255, g: 255, b: 255 });
@@ -8906,12 +11367,20 @@
         }
 
         _renderPresetActive() {
-            if (!this.presetsEl) return;
-            const cur = this._currentHex().toLowerCase();
-            this.presetsEl.querySelectorAll(".glint-color-preset").forEach(btn => {
+            // v1.7 — karşılaştırma saklama biçimiyle: alfa < 1 iken 8 haneli
+            // değer 6 haneli opak preset'le eşleşmez (semantik olarak doğru);
+            // kayıtlı 8 haneli swatch'lar da aktif halkasını alır.
+            const cur = this._currentStoreHex().toLowerCase();
+            const mark = btn => {
                 const match = (btn.dataset.color || "").toLowerCase() === cur;
                 btn.classList.toggle("is-active", match);
-            });
+            };
+            if (this.presetsEl) {
+                this.presetsEl.querySelectorAll(".glint-color-preset").forEach(mark);
+            }
+            if (this.savedEl) {
+                this.savedEl.querySelectorAll(".glint-color-preset").forEach(mark);
+            }
         }
 
         _renderRecents() {
@@ -9074,7 +11543,7 @@
         // Global API + dönüşüm yardımcıları (test/entegrasyon için açık)
         Glint.Color = GlintColor;
         Glint.Color.config = Glint.Color.config || null;
-        Glint.Color.utils = { parseHex, rgbToHex, rgbToHsv, hsvToRgb, hsvToHex, hueToHex, rgbToHsl, hslToRgb, relLuminance, contrastRatio, contrastLevel };
+        Glint.Color.utils = { parseHex, parseHexA, rgbToHex, rgbToHsv, hsvToRgb, hsvToHex, hueToHex, rgbToHsl, hslToRgb, relLuminance, contrastRatio, contrastLevel };
     }
 
     if (window.Glint && window.Glint.defineComponent) {
@@ -9095,7 +11564,7 @@
                 };
                 scan(document);
                 window.Glint.Color = GlintColor;
-                window.Glint.Color.utils = { parseHex, rgbToHex, rgbToHsv, hsvToRgb, hsvToHex, hueToHex, rgbToHsl, hslToRgb, relLuminance, contrastRatio, contrastLevel };
+                window.Glint.Color.utils = { parseHex, parseHexA, rgbToHex, rgbToHsv, hsvToRgb, hsvToHex, hueToHex, rgbToHsl, hslToRgb, relLuminance, contrastRatio, contrastLevel };
             }
         });
     }
@@ -9184,7 +11653,12 @@
 (function () {
     "use strict";
 
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // v1.7 — CANLI hareket kapısı: mount anında dondurulmaz; her çağrıda
+    // çekirdeğin tek kaynağından okunur (Glint.configure / OS değişimi
+    // remount gerektirmeden anında etkir). Bkz. Glint.motion / reducedMotion.
+    const prefersReduced = () => (window.Glint && window.Glint.reducedMotion)
+        ? window.Glint.reducedMotion()
+        : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     // ══════════════════════════════════════════════════════════════
     //  LOCALE
@@ -9202,6 +11676,19 @@
         clear: "Temizle",
         ok: "Tamam",
         rangeSep: "–", // başlangıç – bitiş ayracı
+        // v1.7 — 12h (AM/PM) görünümü metinleri: iç anahtar HER ZAMAN
+        // "AM"/"PM" kalır (bkz. _hourTo24 / _setMeridiem karşılaştırmaları);
+        // bunlar yalnız GÖRÜNEN düğme metni + display eki + aria etiketi.
+        // İngilizce proje locale override'ında am:"AM", pm:"PM" verilebilir.
+        am: "ÖÖ",
+        pm: "ÖS",
+        amAria: "Öğleden önce",
+        pmAria: "Öğleden sonra",
+        // v1.7 — saat aralığı (type=time + data-range): sütun mini
+        // başlıkları + gece aşımı ("+1") rozetinin erişilebilirlik metni
+        startLabel: "Başlangıç",
+        endLabel: "Bitiş",
+        nextDay: "ertesi gün",
         // Range preset etiketleri (data-presets etkinse sol/üst dikey liste)
         presets: {
             today: "Bugün",
@@ -9275,6 +11762,18 @@
         return `${formatDisplayDate(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
     }
 
+    /** v1.7 — Display saat: 24h "14:45" veya 12h "02:45 ÖS" (etiket
+     *  locale'den — popover'daki AM/PM rozetiyle otomatik tutarlı).
+     *  YALNIZ görüntü formatı; native ISO değer her zaman 24h kalır. */
+    function formatDisplayTime(d, is12h, locale) {
+        const h = d.getHours(), m = d.getMinutes();
+        if (!is12h) return formatISOTime(h, m);
+        const h12 = h % 12 === 0 ? 12 : h % 12;
+        const mer = h >= 12 ? ((locale && locale.pm) || "PM")
+                            : ((locale && locale.am) || "AM");
+        return `${pad2(h12)}:${pad2(m)} ${mer}`;
+    }
+
     /** Bir ay grid'ini hesapla — 6 satır × 7 sütun.
      *  Önceki ay/sonraki ay overflow günleri (is-outside) dahil. */
     function buildMonthGrid(year, month, weekStart) {
@@ -9342,6 +11841,155 @@
 
 
     // ══════════════════════════════════════════════════════════════
+    //  v1.7 — DOĞAL DİL AYRIŞTIRICI (data-natural)
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * Türkçe doğal dil tarih/saat ifadesini ayrıştırır — SAF fonksiyon
+     * (DOM/global durum yok; node üzerinde tek başına test edilebilir,
+     * dışa açık: Glint.Picker.parseNaturalTR).
+     *
+     * Desteklenen ifadeler:
+     *   • "bugün" / "yarın" / "dün" / "öbür gün"
+     *   • "N gün|hafta|ay|yıl sonra|önce"          → 3 gün sonra, 2 hafta önce
+     *   • "haftaya", "gelecek|önümüzdeki hafta|ay|yıl"
+     *   • hafta günü adı ("pazartesi".."pazar")    → bugünden SONRAKİ ilk
+     *     eşleşen gün (bugün o günse → haftaya); "gelecek salı" önekleri kabul
+     *   • "ayın N'i"                               → içinde bulunulan ayın N'i
+     *   • "N <ay adı> [YYYY]"                      → ay adları LOCALE'den
+     *     (tam ad veya ≥3 harflik TEKİL önek: "15 oca" = 15 Ocak)
+     *   • "dd.mm.yyyy" / "dd.mm" ("/" ayracı ve 2 haneli yıl da kabul)
+     *   • Saat: "HH:MM" metnin herhangi bir yerinde ("yarın 09:00",
+     *     "saat 14:30"); tek başına saat → bugünün tarihi.
+     *
+     * @param {string}   text    kullanıcı metni
+     * @param {Date}     [ref]   referans "şimdi" (varsayılan: new Date())
+     * @param {string[]} [months] locale ay adları (varsayılan LOCALE_TR.months)
+     * @returns {{date: Date, hasDate: boolean, hasTime: boolean}|null}
+     *          date: yerel Date (saat yoksa 00:00) — geçersiz/anlaşılmaz
+     *          ifade için null (31.02 gibi taşan tarihler de reddedilir).
+     */
+    function glintParseNaturalTR(text, ref, months) {
+        if (text == null) return null;
+        const M = (months && months.length === 12) ? months : LOCALE_TR.months;
+        const now = (ref instanceof Date && !isNaN(ref)) ? new Date(ref) : new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        // TR-duyarlı normalize: küçük harf (İ→i, I→ı), akıllı apostroflar
+        // düz kesmeye, boşluk sadeleştirme. NOT: \b Türkçe harflerde
+        // güvenilmez (ASCII sınırı) → tüm desenler ^...$ ile çapalanır.
+        let s = String(text).toLocaleLowerCase("tr")
+            .replace(/[’‘`´]/g, "'")
+            .replace(/\s+/g, " ")
+            .trim();
+        if (!s) return null;
+
+        // ── Saat bileşeni: "HH:MM" (metnin herhangi bir yerinde) ──
+        let hasTime = false, th = 0, tm = 0;
+        s = s.replace(/(?:^|\s)(?:saat\s+)?(\d{1,2}):(\d{2})(?=\s|$)/, (m0, hh, mm) => {
+            const H = +hh, Mi = +mm;
+            if (H > 23 || Mi > 59) return m0;   // geçersiz saat → olduğu gibi kalır, tarih da düşer
+            hasTime = true; th = H; tm = Mi;
+            return " ";
+        }).replace(/\s+/g, " ").trim();
+
+        // Gün/ay aritmetiği yardımcıları (taşma kelepçeli)
+        const addDays = (base, n) => {
+            const d2 = new Date(base);
+            d2.setDate(d2.getDate() + n);
+            return d2;
+        };
+        const addMonths = (base, delta) => {
+            // 31 Oca +1 ay → 28/29 Şub (gün taşması kelepçelenir)
+            const day = base.getDate();
+            const d2 = new Date(base.getFullYear(), base.getMonth() + delta, 1);
+            const last = new Date(d2.getFullYear(), d2.getMonth() + 1, 0).getDate();
+            d2.setDate(Math.min(day, last));
+            return d2;
+        };
+        // Gerçek (taşmayan) tarih mi? (31.02 gibi geçersizleri reddet)
+        const mkDate = (y, mo, day) => {
+            const c = new Date(y, mo, day);
+            return (c.getFullYear() === y && c.getMonth() === mo && c.getDate() === day) ? c : null;
+        };
+
+        let d = null;
+        let hasDate = false;
+
+        if (s) {
+            hasDate = true;
+            let m;
+
+            // 1) Sabit anahtar kelimeler
+            if (s === "bugün") d = today;
+            else if (s === "yarın") d = addDays(today, 1);
+            else if (s === "dün") d = addDays(today, -1);
+            else if (s === "öbür gün") d = addDays(today, 2);   // yaygın konuşma dili
+            else if (s === "haftaya" || /^(gelecek|önümüzdeki) hafta$/.test(s)) d = addDays(today, 7);
+            else if (/^(gelecek|önümüzdeki) ay$/.test(s)) d = addMonths(today, 1);
+            else if (/^(gelecek|önümüzdeki) yıl$/.test(s)) d = addMonths(today, 12);
+
+            // 2) "N gün/hafta/ay/yıl sonra|önce"
+            else if ((m = /^(\d+) ?(gün|hafta|ay|yıl) (sonra|önce)$/.exec(s))) {
+                const n = +m[1] * (m[3] === "önce" ? -1 : 1);
+                if (m[2] === "gün") d = addDays(today, n);
+                else if (m[2] === "hafta") d = addDays(today, n * 7);
+                else if (m[2] === "ay") d = addMonths(today, n);
+                else d = addMonths(today, n * 12);
+            }
+
+            // 3) Hafta günü adı — bugünden SONRAKİ ilk eşleşen gün
+            else if ((m = /^(?:(?:gelecek|önümüzdeki|haftaya) )?(pazartesi|salı|çarşamba|perşembe|cuma|cumartesi|pazar)$/.exec(s))) {
+                const WD = { "pazar": 0, "pazartesi": 1, "salı": 2, "çarşamba": 3, "perşembe": 4, "cuma": 5, "cumartesi": 6 };
+                const target = WD[m[1]];
+                let diff = (target - today.getDay() + 7) % 7;
+                if (diff === 0) diff = 7;               // bugün o günse → haftaya
+                d = addDays(today, diff);
+            }
+
+            // 4) "ayın N'i" (ek toleransı: 15'i, 15'inde, 3 ü)
+            else if ((m = /^ayın (\d{1,2})(?: ?' ?[a-zçğıöşü]{1,6}| [a-zçğıöşü]{1,6})?$/.exec(s))) {
+                d = mkDate(today.getFullYear(), today.getMonth(), +m[1]);
+            }
+
+            // 5) "N <ay adı> [YYYY]" — ay adları LOCALE'den
+            else if ((m = /^(\d{1,2}) ([a-zçğıöşüâîû]+)(?: (\d{4}))?$/.exec(s))) {
+                const name = m[2];
+                let idx = -1;
+                for (let i = 0; i < 12; i++) {
+                    if (M[i].toLocaleLowerCase("tr") === name) { idx = i; break; }
+                }
+                // Tam ad değilse: ≥3 harflik TEKİL önek kabul ("15 oca")
+                if (idx < 0 && name.length >= 3) {
+                    let hit = -1, count = 0;
+                    for (let i = 0; i < 12; i++) {
+                        if (M[i].toLocaleLowerCase("tr").indexOf(name) === 0) { hit = i; count++; }
+                    }
+                    if (count === 1) idx = hit;
+                }
+                if (idx >= 0) d = mkDate(m[3] ? +m[3] : today.getFullYear(), idx, +m[1]);
+            }
+
+            // 6) "dd.mm.yyyy" / "dd.mm" ("/" ayracı da kabul; 2 haneli yıl → 2000+)
+            else if ((m = /^(\d{1,2})[./](\d{1,2})(?:[./](\d{2}|\d{4}))?$/.exec(s))) {
+                let y = m[3] ? +m[3] : today.getFullYear();
+                if (m[3] && m[3].length === 2) y += 2000;
+                d = mkDate(y, +m[2] - 1, +m[1]);
+            }
+
+            if (!d) return null;   // tarih kısmı anlaşılamadı / geçersiz
+        } else {
+            if (!hasTime) return null;
+            d = new Date(today);   // yalnız saat → bugünün tarihi
+        }
+
+        const out = new Date(d);
+        out.setHours(hasTime ? th : 0, hasTime ? tm : 0, 0, 0);
+        return { date: out, hasDate, hasTime };
+    }
+
+
+    // ══════════════════════════════════════════════════════════════
     //  GlintPicker
     // ══════════════════════════════════════════════════════════════
 
@@ -9365,6 +12013,9 @@
             // Current state — Date object or null
             // time-only için Date'in tarih kısmı önemsiz, sadece h/m
             this.value = null;
+            // v1.7 — saat aralığı (isTimeRange) bitiş ucu (Date; tarih
+            // kısmı önemsiz — this.value başlangıç ucu olarak kalır)
+            this.valueEnd = null;
             // Range varyantında: başlangıç + bitiş
             this.rangeStart = null;
             this.rangeEnd = null;
@@ -9379,9 +12030,23 @@
             // Glint.Input init'inden ÖNCE set et.
             this._calculateInitialState();
 
+            // v1.7 — display ODOMETER ROLL yönü (bkz. _writeDisplay /
+            // _rollDisplay): son commit edilen değerin anlık görüntüsü +
+            // varsayılan yön. İleri seçim → eski metin yukarı süzülür,
+            // geri seçim → aşağı (semantik odometer).
+            const _dirRef = this.isRange ? (this.rangeEnd || this.rangeStart)
+                : this.isTimeRange ? (this.valueEnd || this.value)
+                : this.value;
+            this._lastCommitVal = _dirRef ? new Date(_dirRef) : null;
+            this._commitDir = 1;      // son kullanılan / varsayılan yön
+            this._commitDirHint = 0;  // spinner oklarından gesture ipucu
+
             this._build();
             this._bindEvents();
             this._renderAll();
+            // v1.7 — inline panel mount anında bir kez 'açılır' ve hep açık
+            // kalır (open/close no-op; bkz. SPEC picker-inline).
+            if (this.isInline) this._openInline();
             group._glintPickerInstance = this;
             window.Glint.register(group, this);
         }
@@ -9438,11 +12103,43 @@
             this.isRange = el.hasAttribute("data-range") &&
                 (this.type === "date" || this.type === "datetime-local");
 
+            // ── v1.7: SAAT ARALIĞI (type=time + data-range) ─────────
+            // Tek popover'da başlangıç–bitiş saati: mevcut saat spinner
+            // UI'sı iki sütuna genellenir ("Başlangıç" / "Bitiş" mini
+            // başlıkları — bkz. _buildTimeRangeSection). isRange (takvim
+            // aralığı) makinesine BİLEREK dokunmaz: bu, saat tabanlı ayrı
+            // bir picker varyantıdır.
+            this.isTimeRange = el.hasAttribute("data-range") && this.type === "time";
+            // data-overnight: gece aşımı serbest — bitiş < başlangıç
+            // "ertesi gün" okunur (panelde ve display'de "+1" rozeti).
+            // Verilmezse katı sıra şartı: bitiş > başlangıç; ihlalde
+            // değişen taraf kelepçelenir + sütun shake'i
+            // (bkz. _enforceTimeRangeOrder).
+            this.isOvernight = this.isTimeRange && el.hasAttribute("data-overnight");
+
             // 12 saat (AM/PM) GÖRÜNÜMÜ — yalnız saat içeren tiplerde anlamlı.
             // İç değer (this.value) HER ZAMAN 24h kalır; native ISO çıktı
             // (formatISOTime / formatISODateTime) bozulmaz. Sadece hourField'in
             // görünür rakamı 1-12'ye çevrilir + AM/PM toggle eklenir.
-            this.is12h = (el.getAttribute("data-hour-cycle") === "12") &&
+            // Varsayılan HER ZAMAN 24h; AM/PM yalnız açık opt-in ile gelir.
+            // v1.7 — data-hour-cycle="auto": tarayıcı dilinin saat düzeni
+            // Intl ile çözümlenir (tr-TR → 24h, en-US → 12h). Intl tarayıcı
+            // yerleşiği olduğundan sıfır-bağımlılık ilkesi korunur; hata /
+            // eksik destekte güvenli düşüş 24h. NOT: is12h build anında donar
+            // (hourField min/max, beforeinput >max guard'ı, blur clamp'i ve
+            // meridiem toggle kuruluşta bu değere göre belirlenir) → "auto"
+            // yalnız init'te çözümlenir, çalışma anında mod değişmez.
+            const hc = el.getAttribute("data-hour-cycle");
+            let want12 = hc === "12";
+            if (hc === "auto") {
+                try {
+                    want12 = !!new Intl.DateTimeFormat(navigator.language, { hour: "numeric" })
+                        .resolvedOptions().hour12;
+                } catch (e) { want12 = false; }
+            }
+            // v1.7 — saat aralığında 12h yok sayılır (iki sütun iki ayrı
+            // meridiem toggle'ı gerektirirdi — kapsam dışı; her zaman 24h).
+            this.is12h = want12 && !this.isTimeRange &&
                 (this.type === "time" || this.type === "datetime-local");
             // Geçerli meridiem ("AM"/"PM") — _renderTime iç saatten yeniden türetir.
             // Başlangıç "AM" yalnız placeholder; ilk _renderAll → _renderMeridiem
@@ -9482,6 +12179,41 @@
                     }
                 }
             }
+
+            // ── v1.7: INLINE MOD (data-inline) ─────────────────────
+            // Popover yerine KALICI panel: grubun içine akış-içi render
+            // edilir; konumlama/clip-path/backdrop/dış-tık/bottom-sheet
+            // mantığının tamamı baypas edilir (bkz. _openInline, open/close
+            // guard'ları). data-inline="bare" → yalnız takvim: alan kutusu
+            // (display+label+border) gizlenir, native hidden input form
+            // gönderiminde yaşamaya devam eder.
+            this.isInline = el.hasAttribute("data-inline");
+            this.inlineBare = (el.getAttribute("data-inline") || "") === "bare";
+
+            // ── v1.7: DOĞAL DİL GİRİŞİ (data-natural) ──────────────
+            // Display yazılabilir olur; Enter/blur'da Türkçe doğal dil
+            // ifadesi ayrıştırılır (bkz. glintParseNaturalTR + _commitNatural).
+            this.isNatural = el.hasAttribute("data-natural");
+
+            // ── v1.7: GÜN ROZETLERİ (data-badges / data-badges-from) ──
+            // "YYYY-MM-DD" → {label, tone}; tone: success|warning|error|info
+            // (durum token renkleri). Değer düz string ise etiket sayılır.
+            // data-badges-from: window altındaki bir nesnenin nokta-yolu
+            // (AĞ İSTEĞİ YOK — yalnız sayfada hazır duran veri okunur).
+            this.badges = null;
+            const bAttr = el.getAttribute("data-badges");
+            if (bAttr) {
+                try { this._normalizeBadges(JSON.parse(bAttr)); }
+                catch (e) { /* bozuk JSON → sessizce rozetsiz */ }
+            }
+            const bFrom = el.getAttribute("data-badges-from");
+            if (bFrom) {
+                try {
+                    const obj = bFrom.replace(/^window\./, "").split(".")
+                        .reduce((o, k) => (o == null ? o : o[k]), window);
+                    if (obj && typeof obj === "object") this._normalizeBadges(obj);
+                } catch (e) { /* çözülemeyen yol → rozetsiz */ }
+            }
         }
 
         /** Bir tarih seçilebilir mi? (min/max + disabled gün/hafta günü) */
@@ -9520,11 +12252,37 @@
             return null;
         }
 
+        /** v1.7 — {h,m} → bugünün tarihiyle Date (saat tiplerinin iç temsili) */
+        _timeToDate(t) {
+            const d = new Date();
+            d.setHours(t.h, t.m, 0, 0);
+            return d;
+        }
+
         /** Native input value'sundan state hesapla — DOM dokunmaz */
         _calculateInitialState() {
             let raw = this.nativeInput.value;
             // v1.6 — ay modunda "YYYY-MM" → "YYYY-MM-01" normalize edilir
             if (this.isMonth && /^\d{4}-\d{2}/.test(raw)) raw = raw.slice(0, 7) + "-01";
+
+            // v1.7 — saat aralığı: native type=time "HH:MM/HH:MM" çiftini
+            // TUTAMAZ (tarayıcının değer temizleme algoritması geçersiz
+            // stringi boşaltır) → ham çift content attribute'tan okunur
+            // (getAttribute sanitize edilmez); tekil geçerli "HH:MM"
+            // değeri başlangıç sayılır.
+            if (this.isTimeRange) {
+                const rawPair = this.nativeInput.getAttribute("value") || raw || "";
+                const parts = rawPair.split("/");
+                const ts = parseISOTime((parts[0] || "").trim());
+                const te = parseISOTime((parts[1] || "").trim());
+                this.value = ts ? this._timeToDate(ts) : null;
+                this.valueEnd = te ? this._timeToDate(te) : null;
+                const ref = new Date();
+                this.viewYear = ref.getFullYear();
+                this.viewMonth = ref.getMonth();
+                this.focusDate = this._defaultFocus();
+                return;
+            }
 
             if (this.isRange) {
                 // "YYYY-MM-DD/YYYY-MM-DD" veya tek tarih
@@ -9574,14 +12332,19 @@
         /** Display input için ilk formatlanmış değeri döndür */
         _initialDisplayValue() {
             if (this.isRange) return this._formatRangeDisplay();
+            if (this.isTimeRange) return this._formatTimeRangeDisplay();
             if (!this.value) return "";
             if (this.type === "date") {
                 return this.isMonth
                     ? (this.locale.months[this.value.getMonth()] + " " + this.value.getFullYear())
                     : formatDisplayDate(this.value);
             }
-            if (this.type === "time") return formatISOTime(this.value.getHours(), this.value.getMinutes());
-            return formatDisplayDateTime(this.value);
+            // v1.7 — 12h görünümünde ilk değer de commit formatıyla aynı
+            // ("02:45 ÖS"); 24h'de eski davranış birebir.
+            if (this.type === "time") return formatDisplayTime(this.value, this.is12h, this.locale);
+            return this.is12h
+                ? `${formatDisplayDate(this.value)} ${formatDisplayTime(this.value, true, this.locale)}`
+                : formatDisplayDateTime(this.value);
         }
 
         _formatRangeDisplay() {
@@ -9590,6 +12353,22 @@
             if (!s && !e) return "";
             if (s && !e) return `${s} ${this.locale.rangeSep} …`;
             return `${s} ${this.locale.rangeSep} ${e}`;
+        }
+
+        /** v1.7 — saat aralığı görüntüsü: "09:00 – 17:30" (rangeSep
+         *  locale'den). Gece aşımında (data-overnight + bitiş < başlangıç)
+         *  sona " +1" eklenir — panel rozetinin kapalı-durum yankısı.
+         *  Display salt görüntüdür (readonly), geri-parse yolu yok. */
+        _formatTimeRangeDisplay() {
+            const s = this.value
+                ? formatDisplayTime(this.value, this.is12h, this.locale) : "";
+            const e = this.valueEnd
+                ? formatDisplayTime(this.valueEnd, this.is12h, this.locale) : "";
+            if (!s && !e) return "";
+            if (s && !e) return `${s} ${this.locale.rangeSep} …`;
+            if (!s && e) return `… ${this.locale.rangeSep} ${e}`;
+            const plus = this._isOvernightPair() ? " +1" : "";
+            return `${s} ${this.locale.rangeSep} ${e}${plus}`;
         }
 
         // ── DOM Build ─────────────────────────────────────────────
@@ -9606,6 +12385,14 @@
             const typeClass = this.type === "datetime-local" ? "datetime" : this.type;
             this.group.classList.add(`glint-input-group--${typeClass}`);
             if (this.isRange) this.group.classList.add("glint-input-group--range");
+            // v1.7 — saat aralığı işaret sınıfı (CSS/test kancası)
+            if (this.isTimeRange) this.group.classList.add("glint-input-group--timerange");
+            // v1.7 — inline/natural işaret sınıfları (CSS opt-in kancaları)
+            if (this.isInline) {
+                this.group.classList.add("glint-input-group--picker-inline");
+                if (this.inlineBare) this.group.classList.add("glint-input-group--picker-inline-bare");
+            }
+            if (this.isNatural) this.group.classList.add("glint-input-group--picker-natural");
 
             // v2: Bu grubu çekirdek için "sahiplenilmiş" işaretle — base
             // GlintInput yeniden başlatmaya çalışmasın (guard zinciri).
@@ -9622,6 +12409,14 @@
             this.display.autocomplete = "off";
             this.display.inputMode = "none";
             this.display.value = this._initialDisplayValue();
+            // v1.7 — data-natural: display YAZILABİLİR bir alandır (Enter/
+            // blur'da doğal dil ayrıştırılır — bkz. _commitNatural). inputMode
+            // "text": tarih ifadesi serbest biçim ("yarın 09:00") olduğundan
+            // mobilde tam metin klavyesi gerekir.
+            if (this.isNatural) {
+                this.display.readOnly = false;
+                this.display.inputMode = "text";
+            }
 
             // Label asociation — native input'tan id'yi al, display'e ver
             const lbl = this.group.querySelector(".glint-label");
@@ -9636,6 +12431,8 @@
 
             // v2: Range hidden mirror (asp-for için ayrı bitiş alanı)
             this._buildRangeMirror();
+            // v1.7: Saat aralığı — data-raw-name gizli çift taşıyıcısı
+            this._buildRawMirror();
 
             // 4. Toggle button — sağdaki ikon
             this.toggleBtn = document.createElement("button");
@@ -9647,16 +12444,42 @@
             this.toggleBtn.innerHTML = this._getToggleIcon();
             this.group.appendChild(this.toggleBtn);
 
-            // 5. Glint.Input'u display üstünde init et
-            if (window.Glint && window.Glint.Input && !this.group._glintInit) {
-                this.group._glintInit = true;
-                new window.Glint.Input(this.group);
+            // v1.7 — INLINE: alanın TÜM parçaları (native, display, label,
+            // toggle, kullanıcı ekleri) iç bir .glint-input-group
+            // sarmalayıcısına taşınır. Neden: label / default-border /
+            // border-svg / char-overlay MUTLAK konumludur ve en yakın
+            // positioned ataya (grup kutusuna) çapalanır — panel grubun
+            // içine akış-içi girince grup uzar ve alan geometrisi kırılırdı
+            // (label ortaya kayar, border paneli de sarardı). İç sarmalayıcı
+            // gerçek "alan kutusu" olur; çekirdek CSS'i (.glint-input-group
+            // .glint-focused ...) sınıf sayesinde birebir çalışmaya devam
+            // eder. Çekirdek gözcüsü iç grubu İKİNCİ kez sahiplenmesin diye
+            // guard bayrakları elle basılır.
+            this.fieldHost = this.group;
+            if (this.isInline) {
+                const field = document.createElement("div");
+                field.className = "glint-input-group glint-picker-inline__field";
+                field._glintPickerInit = true;   // picker bileşeni iç grubu almasın
+                field._glintClaimed = true;      // base input bileşeni de almasın
+                while (this.group.firstChild) field.appendChild(this.group.firstChild);
+                this.group.appendChild(field);
+                this.fieldHost = field;
+                this.group._glintInit = true;    // dış grup base-init'e kapalı
             }
 
-            // 6. Popover — body'ye eklenir
+            // 5. Glint.Input'u display üstünde init et. bare inline'da alan
+            //    kutusu tamamen gizli (display:none) — overlay/border kurulumu
+            //    anlamsız ölçümlerle uğraşmasın diye atlanır.
+            if (window.Glint && window.Glint.Input && !this.fieldHost._glintInit &&
+                !(this.isInline && this.inlineBare)) {
+                this.fieldHost._glintInit = true;
+                new window.Glint.Input(this.fieldHost);
+            }
+
+            // 6. Popover — body'ye eklenir (inline: grubun içine, akışta)
             this._buildPopover();
-            // 7. Backdrop — mobile bottom-sheet için
-            this._buildBackdrop();
+            // 7. Backdrop — mobile bottom-sheet için (inline'da sheet yok)
+            if (!this.isInline) this._buildBackdrop();
         }
 
         /** Range: harici hedef yoksa ama model adı verildiyse, bitişi taşıyan
@@ -9671,6 +12494,30 @@
             this.rangeEndMirror.name = this.rangeEndMirrorName;
             this.rangeEndMirror.value = this.rangeEnd ? formatISODate(this.rangeEnd) : "";
             this.nativeInput.insertAdjacentElement("afterend", this.rangeEndMirror);
+        }
+
+        /** v1.7 — Saat aralığı: data-raw-name verildiyse "HH:MM/HH:MM"
+         *  çiftini taşıyan gizli input (phone/card'ın data-raw-name deseni).
+         *  Native type=time tek geçerli "HH:MM" tutabildiğinden (tarayıcı
+         *  değer temizleme) çiftin form binding'i bu opt-in alandan yapılır. */
+        _buildRawMirror() {
+            if (!this.isTimeRange) return;
+            const name = this.nativeInput.getAttribute("data-raw-name");
+            if (!name) return;
+            this.rawInput = document.createElement("input");
+            this.rawInput.type = "hidden";
+            this.rawInput.name = name;
+            this.rawInput.value = this._timeRangeRaw();
+            this.nativeInput.insertAdjacentElement("afterend", this.rawInput);
+        }
+
+        /** v1.7 — ham çift: iki uç doluysa "HH:MM/HH:MM", tek uç → "HH:MM", boş → "" */
+        _timeRangeRaw() {
+            const s = this.value
+                ? formatISOTime(this.value.getHours(), this.value.getMinutes()) : "";
+            const e = this.valueEnd
+                ? formatISOTime(this.valueEnd.getHours(), this.valueEnd.getMinutes()) : "";
+            return s && e ? `${s}/${e}` : (s || "");
         }
 
         _getToggleIcon() {
@@ -9694,10 +12541,28 @@
         _buildPopover() {
             this.popover = document.createElement("div");
             this.popover.className = "glint-picker-popover";
-            this.popover.setAttribute("role", "dialog");
-            this.popover.setAttribute("aria-modal", "false");
+            if (this.isInline) {
+                // v1.7 — INLINE panel: akış-içi ve her zaman açık. Konumlama /
+                // clip-path / genişlik ölçümü baypas — geometriyi tamamen CSS
+                // --inline bloğu yönetir. Kalıcı bir yüzey olduğundan dialog
+                // değil group semantiği taşır.
+                this.popover.classList.add("glint-picker-popover--inline");
+                this.popover.setAttribute("role", "group");
+            } else {
+                // v1.7 — kapalı kutu emniyeti: ilk açılışa dek inline genişlik
+                // olmadığından nowrap çoklu-ay içerikli kutu shrink-to-fit ile
+                // max-width clamp'ine dayanıp dar masaüstünde sayfaya hayalet
+                // yatay scrollbar verebilirdi. Küçük başlangıç genişliği kutuyu
+                // güvenli tutar (görünmezdir; taşan içerik CSS'te kapalı-durum
+                // overflow:hidden ile kırpılır); open() gerçek genişliği ölçüp
+                // yazar, mobil bottom-sheet ise !important ile kendini korur.
+                this.popover.style.width = "240px";
+                this.popover.setAttribute("role", "dialog");
+                this.popover.setAttribute("aria-modal", "false");
+            }
             this.popover.setAttribute("aria-label",
-                this.isRange ? "Tarih aralığı seçici" : "Tarih seçici");
+                this.isTimeRange ? "Saat aralığı seçici"
+                    : this.isRange ? "Tarih aralığı seçici" : "Tarih seçici");
 
             // Preset aralık sidebar'ı varsa popover'ı yatay düzene al:
             // [ presets | ana sütun (takvim + saat) ] + altta footer.
@@ -9726,12 +12591,17 @@
             // Footer (her zaman popover'ın doğrudan altında — tam genişlik)
             this._buildFooter(this.popover);
 
-            // Body'ye ekle
-            document.body.appendChild(this.popover);
+            // Body'ye ekle (inline: grubun sonuna — alan sarmalayıcısının altına)
+            if (this.isInline) this.group.appendChild(this.popover);
+            else document.body.appendChild(this.popover);
 
             this.popover.addEventListener("mousedown", (e) => {
+                // v1.7 — saat aralığının bitiş sütunu alanları da gerçek
+                // odak alabilmeli (preventDefault odak vermeyi engellerdi)
                 const isTimeField = e.target === this.hourField?.input
-                                 || e.target === this.minuteField?.input;
+                                 || e.target === this.minuteField?.input
+                                 || e.target === this.hourFieldEnd?.input
+                                 || e.target === this.minuteFieldEnd?.input;
                 if (!isTimeField) e.preventDefault();
                 e.stopPropagation();
             });
@@ -9918,6 +12788,12 @@
         }
 
         _buildTimeSection(parent) {
+            // v1.7 — saat aralığı: spinner UI'sı iki sütuna genellenir
+            if (this.isTimeRange) {
+                this._buildTimeRangeSection(parent);
+                return;
+            }
+
             const t = document.createElement("div");
             t.className = "glint-picker-time";
 
@@ -9940,6 +12816,98 @@
             }
 
             parent.appendChild(t);
+        }
+
+        /**
+         * v1.7 — SAAT ARALIĞI panosu (type=time + data-range): iki
+         * .glint-picker-time sütunu yan yana, "Başlangıç" / "Bitiş" mini
+         * başlıklarıyla; bitiş başlığında gece aşımı "+1" rozeti
+         * (data-overnight — bkz. _renderPlus1). Alanlar _buildTimeField ile
+         * tek-saat spinner dilini birebir paylaşır. Başlangıç çifti
+         * this.hourField/minuteField adlarını KORUR (okBtn onayı, popover
+         * mousedown guard'ı ve _renderTime'ın mevcut referansları), bitiş
+         * çifti hourFieldEnd/minuteFieldEnd olarak eklenir.
+         */
+        _buildTimeRangeSection(parent) {
+            const wrap = document.createElement("div");
+            wrap.className = "glint-picker-timerange";
+
+            const L = this.locale;
+            const startLbl = (L && L.startLabel) || "Başlangıç";
+            const endLbl = (L && L.endLabel) || "Bitiş";
+
+            const mkCol = (side, label) => {
+                const col = document.createElement("div");
+                col.className = "glint-picker-timerange__col glint-picker-timerange__col--" + side;
+                const head = document.createElement("div");
+                head.className = "glint-picker-timerange__label";
+                const txt = document.createElement("span");
+                txt.textContent = label;
+                head.appendChild(txt);
+                col.appendChild(head);
+                return { col, head };
+            };
+
+            const start = mkCol("start", startLbl);
+            const end = mkCol("end", endLbl);
+            this._trStartCol = start.col;
+            this._trEndCol = end.col;
+
+            // "+1" rozeti — yalnız data-overnight'ta gece aşımı aktifken
+            // görünür ("bitiş ertesi güne sarkıyor" işareti).
+            this.plus1Badge = document.createElement("span");
+            this.plus1Badge.className = "glint-picker-timerange__plus1";
+            this.plus1Badge.textContent = "+1";
+            this.plus1Badge.title = (L && L.nextDay) || "ertesi gün";
+            this.plus1Badge.setAttribute("aria-label",
+                "+1 — " + ((L && L.nextDay) || "ertesi gün"));
+            this.plus1Badge.hidden = true;
+            end.head.appendChild(this.plus1Badge);
+
+            // Sütun başına saat satırı — tek-saat UI'sının birebir dili
+            const mkTime = (hf, mf) => {
+                const t = document.createElement("div");
+                t.className = "glint-picker-time";
+                const sep = document.createElement("span");
+                sep.className = "glint-picker-time__sep";
+                sep.textContent = ":";
+                t.appendChild(hf.wrap);
+                t.appendChild(sep);
+                t.appendChild(mf.wrap);
+                return t;
+            };
+
+            // Saat aralığı her zaman 24h (bkz. _readConstraints is12h notu)
+            this.hourField = this._buildTimeField("hour", 0, 23);
+            this.minuteField = this._buildTimeField("minute", 0, 59);
+            this.hourFieldEnd = this._buildTimeField("hour", 0, 23);
+            this.minuteFieldEnd = this._buildTimeField("minute", 0, 59);
+
+            // Erişilebilirlik: dört alan / sekiz düğme hangi uca ait belli olsun
+            const relabel = (f, role, prefix) => {
+                f.input.setAttribute("aria-label",
+                    prefix + " " + (role === "hour" ? "saati" : "dakikası"));
+                f.up.setAttribute("aria-label",
+                    prefix + (role === "hour" ? " saatini artır" : " dakikasını artır"));
+                f.down.setAttribute("aria-label",
+                    prefix + (role === "hour" ? " saatini azalt" : " dakikasını azalt"));
+            };
+            relabel(this.hourField, "hour", startLbl);
+            relabel(this.minuteField, "minute", startLbl);
+            relabel(this.hourFieldEnd, "hour", endLbl);
+            relabel(this.minuteFieldEnd, "minute", endLbl);
+
+            start.col.appendChild(mkTime(this.hourField, this.minuteField));
+            end.col.appendChild(mkTime(this.hourFieldEnd, this.minuteFieldEnd));
+
+            wrap.appendChild(start.col);
+            wrap.appendChild(end.col);
+            parent.appendChild(wrap);
+
+            // pk1 genişlik sistemi: çift sütun "panel = input genişliği"
+            // hızlı yoluna sığmayabilir → popover'ın max-content doğal
+            // ölçümüne katıl (_contentMinWidth'teki ileriye dönük kanca).
+            this._needsNaturalWidth = true;
         }
 
         _buildTimeField(role, min, max) {
@@ -9987,20 +12955,26 @@
             seg.setAttribute("role", "group");
             seg.setAttribute("aria-label", "AM/PM seçimi");
 
-            const mk = (val) => {
+            // v1.7 — görünen metin + aria LOCALE'den gelir (LOCALE_TR: ÖÖ/ÖS);
+            // dataset.meridiem ve _setMeridiem anahtarları İngilizce "AM"/"PM"
+            // olarak KALIR — iç karşılaştırmalar (_hourTo24, _renderMeridiem)
+            // ve tıklama handler'ları anahtar üzerinden yürür, kırılmaz.
+            const mk = (key, label, aria) => {
                 const b = document.createElement("button");
                 b.type = "button";
                 b.className = "glint-picker-meridiem__btn";
-                b.dataset.meridiem = val;
-                b.textContent = val;
+                b.dataset.meridiem = key;
+                b.textContent = label;
                 b.setAttribute("aria-pressed", "false");
-                b.setAttribute("aria-label", val === "AM" ? "Öğleden önce" : "Öğleden sonra");
+                b.setAttribute("aria-label", aria);
                 seg.appendChild(b);
                 return b;
             };
 
-            this.amBtn = mk("AM");
-            this.pmBtn = mk("PM");
+            this.amBtn = mk("AM", (this.locale && this.locale.am) || "AM",
+                (this.locale && this.locale.amAria) || "Öğleden önce");
+            this.pmBtn = mk("PM", (this.locale && this.locale.pm) || "PM",
+                (this.locale && this.locale.pmAria) || "Öğleden sonra");
             this.meridiemSeg = seg;
             parent.appendChild(seg);
         }
@@ -10172,24 +13146,57 @@
                 e.stopPropagation();
                 this.toggle();
             };
-            this.display.addEventListener("click", openHandler);
+            // v1.7 — natural modda display gerçek bir yazı alanıdır: tık
+            // odak/imleç içindir; panel yalnız toggle butonundan (veya
+            // ArrowDown ile) açılır.
+            if (!this.isNatural) this.display.addEventListener("click", openHandler);
             this.toggleBtn.addEventListener("click", openHandler);
 
-            // Klavye: display'e tab ile geldiğinde Enter/Space/ArrowDown ile aç
-            this.display.addEventListener("keydown", (e) => {
-                if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
-                    e.preventDefault();
-                    if (!this.isOpen) this.open();
-                } else if (e.key === "Escape" && this.isOpen) {
-                    e.preventDefault();
-                    this.close();
-                } else if (/^[0-9]$/.test(e.key) && this.type !== "time" && !this.isMonth) {
-                    // Numarik klavyeyle tarih yaz: gerekiyorsa aç, rakamı işle (DDMMYYYY)
-                    e.preventDefault();
-                    if (!this.isOpen) this.open();
-                    this._typeDate(e.key);
-                }
-            });
+            if (this.isNatural) {
+                // v1.7 — doğal dil girişi: Enter = ayrıştır+commit, blur =
+                // aynısı, ArrowDown = paneli aç, Escape = açıksa kapat /
+                // kapalıysa yazımı son geçerli görüntüye geri al.
+                this.display.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        this._commitNatural();
+                    } else if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        if (!this.isOpen) this.open();
+                    } else if (e.key === "Escape") {
+                        if (this.isOpen) {
+                            e.preventDefault();
+                            this.close();
+                        } else {
+                            const cur = this._initialDisplayValue();
+                            if (this.display.value !== cur) {
+                                e.preventDefault();
+                                // Overlay senkronu için gerçek event zinciri
+                                this.display.dispatchEvent(new Event("beforeinput", { bubbles: true, cancelable: true }));
+                                this.display.value = cur;
+                                this.display.dispatchEvent(new Event("input", { bubbles: true }));
+                            }
+                        }
+                    }
+                });
+                this.display.addEventListener("blur", () => this._commitNatural());
+            } else {
+                // Klavye: display'e tab ile geldiğinde Enter/Space/ArrowDown ile aç
+                this.display.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+                        e.preventDefault();
+                        if (!this.isOpen) this.open();
+                    } else if (e.key === "Escape" && this.isOpen) {
+                        e.preventDefault();
+                        this.close();
+                    } else if (/^[0-9]$/.test(e.key) && this.type !== "time" && !this.isMonth) {
+                        // Numarik klavyeyle tarih yaz: gerekiyorsa aç, rakamı işle (DDMMYYYY)
+                        e.preventDefault();
+                        if (!this.isOpen) this.open();
+                        this._typeDate(e.key);
+                    }
+                });
+            }
 
             // Calendar nav
             if (this.prevBtn) {
@@ -10213,6 +13220,9 @@
             // Time field events
             if (this.hourField) this._bindTimeField(this.hourField, "hour");
             if (this.minuteField) this._bindTimeField(this.minuteField, "minute");
+            // v1.7 — saat aralığının bitiş sütunu (side="end")
+            if (this.hourFieldEnd) this._bindTimeField(this.hourFieldEnd, "hour", "end");
+            if (this.minuteFieldEnd) this._bindTimeField(this.minuteFieldEnd, "minute", "end");
 
             // AM/PM toggle olayları (yalnız 12h). Düğmeler popover içinde olduğu
             // için destroy()'daki this.popover.remove() ile birlikte sökülür
@@ -10230,6 +13240,9 @@
                     // v1.5.1 — klavyeyle yazılmış saat onay anında step
                     // ızgarasına oturtulur (13:33 → step=5'te 13:35).
                     if (this.hourField && this.minuteField) this._commitTimeFromInputs(true);
+                    // v1.7 — saat aralığı: bitiş çifti de onay anında
+                    // snap + sıra kelepçesinden geçer.
+                    if (this.isTimeRange && this.hourFieldEnd) this._commitTimeFromInputs(true, "end");
                     this.close();   // odak restorasyonu close() içinde merkezi
                 });
             }
@@ -10241,7 +13254,6 @@
                 if (this.popover.contains(e.target)) return;
                 this.close();
             };
-            document.addEventListener("mousedown", this._outsideClickHandler);
 
             // Esc → close (global)
             this._keyHandler = (e) => {
@@ -10250,10 +13262,6 @@
                     this.close();   // v1.5.1 — odak restorasyonu close() içinde
                 }
             };
-            document.addEventListener("keydown", this._keyHandler);
-
-            // Backdrop click (mobile) → close
-            this.backdrop.addEventListener("click", () => this.close());
 
             // Reposition on resize/scroll (sadece desktop)
             this._reposHandler = () => {
@@ -10261,8 +13269,18 @@
                     this._positionPopover();
                 }
             };
-            window.addEventListener("resize", this._reposHandler);
-            window.addEventListener("scroll", this._reposHandler, { capture: true, passive: true });
+
+            // v1.7 — INLINE: panel kalıcı açık; dış-tık / global Esc /
+            // backdrop / scroll-resize takibi anlamsız → hiç bağlanmaz
+            // (destroy'daki removeEventListener çağrıları zararsız no-op).
+            if (!this.isInline) {
+                document.addEventListener("mousedown", this._outsideClickHandler);
+                document.addEventListener("keydown", this._keyHandler);
+                // Backdrop click (mobile) → close
+                this.backdrop.addEventListener("click", () => this.close());
+                window.addEventListener("resize", this._reposHandler);
+                window.addEventListener("scroll", this._reposHandler, { capture: true, passive: true });
+            }
 
             // Native input dışarıdan programmatic değiştirilirse sync
             this._nativeChangeHandler = () => {
@@ -10400,11 +13418,13 @@
             if (cell) cell.focus();
         }
 
-        _bindTimeField(field, role) {
+        /** side (v1.7): "end" = saat aralığının bitiş ucu; falsy = başlangıç
+         *  (tek-saat picker'ında her zaman falsy — davranış birebir eski). */
+        _bindTimeField(field, role, side) {
             const { input, up, down, min, max } = field;
 
-            this._wireSpinnerButton(up, () => this._adjustTime(role, +1));
-            this._wireSpinnerButton(down, () => this._adjustTime(role, -1));
+            this._wireSpinnerButton(up, () => this._adjustTime(role, +1, side));
+            this._wireSpinnerButton(down, () => this._adjustTime(role, -1, side));
 
             input.addEventListener("beforeinput", (e) => {
                 if (!e.inputType || !e.inputType.startsWith("insert")) return;
@@ -10430,7 +13450,7 @@
             });
 
             input.addEventListener("input", () => {
-                this._commitTimeFromInputs();
+                this._commitTimeFromInputs(false, side);
             });
 
             input.addEventListener("blur", () => {
@@ -10443,16 +13463,16 @@
                 // ("değer zaten formatlıysa dokunma") 13:33'ün step=5'te
                 // 13:35'e oturmasını atlıyordu. Snap sonrası _renderTime
                 // alanları güncel değerle yeniden boyar.
-                this._commitTimeFromInputs(true);
+                this._commitTimeFromInputs(true, side);
             });
 
             input.addEventListener("keydown", (e) => {
                 if (e.key === "ArrowUp") {
                     e.preventDefault();
-                    this._adjustTime(role, +1);
+                    this._adjustTime(role, +1, side);
                 } else if (e.key === "ArrowDown") {
                     e.preventDefault();
-                    this._adjustTime(role, -1);
+                    this._adjustTime(role, -1, side);
                 } else if (e.key === "Enter") {
                     e.preventDefault();
                     input.blur();
@@ -10493,6 +13513,17 @@
 
         /** Native input value'sundan internal state'i yenile */
         _syncFromNative() {
+            // v1.7 — saat aralığı: native tek geçerli "HH:MM" tutabildiği
+            // için dış programatik değişim yalnız BAŞLANGICI günceller
+            // (bitiş korunur; çift programatik kurulum için başlangıçta
+            // value attribute'u "HH:MM/HH:MM" verilebilir).
+            if (this.isTimeRange) {
+                const t = parseISOTime(this.nativeInput.value);
+                this.value = t ? this._timeToDate(t) : null;
+                this._renderAll();
+                return;
+            }
+
             if (this.isRange) {
                 const raw = this.nativeInput.value;
                 const parts = raw.split("/");
@@ -10536,6 +13567,11 @@
                 this._commitRange();
                 return;
             }
+            // v1.7 — saat aralığının kendi commit yolu var
+            if (this.isTimeRange) {
+                this._commitTimeRange();
+                return;
+            }
 
             const d = this.value;
             let nativeVal = "";
@@ -10550,10 +13586,16 @@
                         : formatDisplayDate(d);
                 } else if (this.type === "time") {
                     nativeVal = formatISOTime(d.getHours(), d.getMinutes());
-                    displayVal = nativeVal;
+                    // v1.7 — 12h görünümünde display popover rozetiyle tutarlı
+                    // ("02:45 ÖS"); native ISO 24h kalır (form/model bozulmaz).
+                    displayVal = this.is12h
+                        ? formatDisplayTime(d, true, this.locale)
+                        : nativeVal;
                 } else if (this.type === "datetime-local") {
                     nativeVal = formatISODateTime(d);
-                    displayVal = formatDisplayDateTime(d);
+                    displayVal = this.is12h
+                        ? `${formatDisplayDate(d)} ${formatDisplayTime(d, true, this.locale)}`
+                        : formatDisplayDateTime(d);
                 }
             }
 
@@ -10561,6 +13603,21 @@
             this.nativeInput.value = nativeVal;
             this.nativeInput.dispatchEvent(new Event("change", { bubbles: true }));
             this._suppressNativeSync = false;
+
+            // v1.7 — odometer roll yönü: spinner oklarından gesture ipucu
+            // geldiyse o kazanır (23→00 sarmalında semantik karşılaştırma
+            // ters yön verirdi); yoksa yeni/eski commit değeri karşılaştırılır.
+            let dir = this._commitDirHint || 0;
+            this._commitDirHint = 0;
+            if (!dir) {
+                const prev = this._lastCommitVal;
+                dir = (d && prev)
+                    ? (d.getTime() > prev.getTime() ? 1
+                        : (d.getTime() < prev.getTime() ? -1 : (this._commitDir || 1)))
+                    : 1;
+            }
+            this._commitDir = dir;
+            this._lastCommitVal = d ? new Date(d) : null;
 
             this._writeDisplay(displayVal);
         }
@@ -10591,18 +13648,172 @@
             }
             this._suppressNativeSync = false;
 
+            // v1.7 — roll yönü: aralıkta referans uç (bitiş > başlangıç
+            // önceliği) önceki referansla karşılaştırılır.
+            const refNew = e || s;
+            const prevRef = this._lastCommitVal;
+            this._commitDir = (refNew && prevRef)
+                ? (refNew.getTime() >= prevRef.getTime() ? 1 : -1)
+                : 1;
+            this._lastCommitVal = refNew ? new Date(refNew) : null;
+
             this._writeDisplay(this._formatRangeDisplay());
         }
 
-        /** Display input'a yeni değeri Glint.Input animasyon zinciriyle yaz */
+        /**
+         * v1.7 — Saat aralığı commit'i: native (başlangıç "HH:MM") +
+         * data-raw-name gizli çifti + glint:picker-change eventi + display.
+         * Native type=time "HH:MM/HH:MM" çiftini TUTAMAZ (tarayıcı değer
+         * temizleme algoritması geçersiz stringi boşaltır — date-range'in
+         * "start/end" tek-alan hilesi burada çalışmaz); çift, opt-in
+         * _buildRawMirror gizli input'unda taşınır.
+         */
+        _commitTimeRange() {
+            const s = this.value
+                ? formatISOTime(this.value.getHours(), this.value.getMinutes()) : "";
+            const e = this.valueEnd
+                ? formatISOTime(this.valueEnd.getHours(), this.valueEnd.getMinutes()) : "";
+
+            this._suppressNativeSync = true;
+            this.nativeInput.value = s;
+            this.nativeInput.dispatchEvent(new Event("change", { bubbles: true }));
+            this._suppressNativeSync = false;
+
+            if (this.rawInput) this.rawInput.value = this._timeRangeRaw();
+
+            // Dış dünyaya birleşik değişim eventi: {start, end, overnight}
+            this.group.dispatchEvent(new CustomEvent("glint:picker-change", {
+                bubbles: true,
+                detail: {
+                    start: s || null,
+                    end: e || null,
+                    overnight: this._isOvernightPair()
+                }
+            }));
+
+            // Odometer roll yönü: spinner ok ipucu > uç karşılaştırması
+            let dir = this._commitDirHint || 0;
+            this._commitDirHint = 0;
+            const refNew = this.valueEnd || this.value;
+            if (!dir) {
+                const prev = this._lastCommitVal;
+                dir = (refNew && prev)
+                    ? (refNew.getTime() >= prev.getTime() ? 1 : -1)
+                    : 1;
+            }
+            this._commitDir = dir;
+            this._lastCommitVal = refNew ? new Date(refNew) : null;
+
+            this._writeDisplay(this._formatTimeRangeDisplay());
+        }
+
+        /**
+         * Display input'a yeni değeri yaz.
+         * v1.7 — çekirdeğin karakter-düzeyi sil/yaz zinciri (generic
+         * prefix/suffix diff'i "Ocak 2026"→"Şubat 2026" geçişini harf harf
+         * ameliyat ediyordu) yerine TÜM picker tipleri için tek-blok
+         * ODOMETER ROLL: eski değer bütün halinde yönlü süzülüp çıkar,
+         * yeni değer ters yönden gelir (stepper _odometer deseninin blok
+         * varyantı; _skipNextAnim kancası çekirdek animasyonunu susturur,
+         * senkron işler — rebuildSpans/label/sayaç — aynen çalışır).
+         */
         _writeDisplay(displayVal) {
-            if (this.display.value !== displayVal) {
+            if (this.display.value === displayVal) return;
+            // v1.7 — inline modda iç GlintInput örneği alan sarmalayıcısında
+            // (fieldHost) kayıtlıdır; legacy'de fieldHost === group.
+            const inst = (this.fieldHost || this.group)._glintInstance;
+            const oldVal = this.display.value;
+            // Overlay/charTrack yoksa VEYA reduced canlı açıksa roll yolu
+            // kapalı: eski senkron yol (sentetik beforeinput) kullanılır —
+            // eski reduced davranışıyla birebir. (v1.7 — reduced kapısı çağrı
+            // anında; onInput'un işlevsel yolu bayrağı artık kendisi de
+            // temizliyor ama reduced'ta hiç set etmemek en temizi.)
+            const roll = !!(inst && inst.charTrack && inst.overlay && !prefersReduced());
+            if (roll) {
+                // Stepper emsali (_nudge): sentetik beforeinput yerine
+                // snapshot'ı ELLE tetikle — değer değişmeden ÖNCE, tek kez.
+                try { inst.onBeforeInput(); } catch (e) { }
+                inst._skipNextAnim = true;
+            } else {
+                // Eski senkron yol (dış dinleyiciler için davranış korunur)
                 this.display.dispatchEvent(new Event("beforeinput", {
                     bubbles: true, cancelable: true
                 }));
-                this.display.value = displayVal;
-                this.display.dispatchEvent(new Event("input", { bubbles: true }));
             }
+            this.display.value = displayVal;
+            this.display.dispatchEvent(new Event("input", { bubbles: true }));
+            if (roll) this._rollDisplay(inst, oldVal, this._commitDir || 1);
+        }
+
+        /**
+         * v1.7 — ODOMETER ROLL: display metni tek blok 'takvim yaprağı'
+         * olarak değişir. İleri seçimde (dir=1) eski metin yukarı süzülüp
+         * solar, yeni metin alttan gelir; geri seçimde ayna. Eski metin
+         * savedRects[0] çapasında TEK ghost'tur (karakter karakter değil);
+         * yeni span'lar mikro kademeyle (i*8ms) blok hissini bozmadan girer.
+         * Span'lar charTrack yerine tek tek oynatılır: charTrack.style
+         * .transform scroll-sync polling'in malıdır (çakışmasın).
+         */
+        _rollDisplay(inst, oldStr, dir) {
+            if (prefersReduced() || !inst || !inst.overlay || !inst.charTrack) return;
+            // Sık commit'li yollar (saat okları, AM/PM, preset) üst üste
+            // binmesin: önceki roll iptal edilir, ghost'u temizlenir.
+            if (this._rollAnims) {
+                this._rollAnims.forEach(a => { try { a.cancel(); } catch (e) { } });
+            }
+            if (this._rollGhost) {
+                try { this._rollGhost.remove(); } catch (e) { }
+                this._rollGhost = null;
+            }
+            this._rollAnims = [];
+
+            const contRect = inst.overlay.getBoundingClientRect();
+            const outY = dir >= 0 ? "-70%" : "70%";
+            const inY = dir >= 0 ? "70%" : "-70%";
+
+            // ESKİ değer — tek blok ghost (çok karakterli run-ghost emsali).
+            const rects = inst.savedRects;
+            const r0 = rects && rects[0];
+            if (oldStr && r0) {
+                const relLeft = r0.left - contRect.left;
+                const rL = rects[rects.length - 1] || r0;
+                const relRight = (rL.left + rL.width) - contRect.left;
+                // Clip guard (stepper odometer emsali): eski blok görünür
+                // alanın tamamen dışındaysa ghost üretme (yatay scroll
+                // edilmiş uzun range metinlerinde çapa dışarı düşebilir).
+                if (relRight > 0 && relLeft < contRect.width) {
+                    const ghost = inst._makeGhost(oldStr, relLeft, r0.top - contRect.top);
+                    this._rollGhost = ghost;
+                    const a = ghost.animate([
+                        { transform: "translateY(0)", opacity: 1, filter: "blur(0px)" },
+                        { transform: "translateY(" + outY + ")", opacity: 0, filter: "blur(2px)" }
+                    ], { // --glint-dur-3 / --glint-ease-in
+                        duration: 180,
+                        easing: "cubic-bezier(0.4, 0, 0.7, 0.2)",
+                        fill: "forwards"
+                    });
+                    const drop = () => {
+                        try { ghost.remove(); } catch (e) { }
+                        if (this._rollGhost === ghost) this._rollGhost = null;
+                    };
+                    a.finished.then(drop).catch(drop);
+                    this._rollAnims.push(a);
+                }
+            }
+
+            // YENİ değer — span'lar ters yönden blok halinde girer.
+            inst.charSpans.forEach((span, i) => {
+                const a = span.animate([
+                    { transform: "translateY(" + inY + ")", opacity: 0 },
+                    { transform: "translateY(0)", opacity: 1 }
+                ], { // --glint-dur-4 / --glint-ease-out
+                    duration: 240,
+                    delay: 40 + i * 8,
+                    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                    fill: "backwards"
+                });
+                this._rollAnims.push(a);
+            });
         }
 
         // ── Calendar render ───────────────────────────────────────
@@ -10834,6 +14045,11 @@
                 }
                 cell.setAttribute("aria-selected", isSel ? "true" : "false");
 
+                // v1.7 — gün rozeti (data-badges): ton noktası + title/aria
+                // metni. Render hücreleri her seferinde sıfırdan kurduğu için
+                // ay değişiminde rozetler kendiliğinden yeniden uygulanır.
+                if (this.badges) this._applyBadge(cell, d);
+
                 // Roving tabindex — odaklı güne 0, diğerlerine -1. Disabled hücreye
                 // 0 VERME (DOM odağı alamaz). assignedRoving paneller arası TEK 0
                 // garantisi: aynı tarih iki panelde belirebilir (biri dış-ay).
@@ -10869,6 +14085,19 @@
             // AM/PM otomatik flip). Hour input odaktayken bile rozet doğru kalsın
             // diye guard dışında çağrılır.
             if (this.is12h) this._renderMeridiem();
+
+            // v1.7 — saat aralığı: bitiş sütununu boya + gece aşımı rozeti.
+            // Odaktaki alan ezilmez (başlangıç sütunuyla aynı guard felsefesi).
+            if (this.isTimeRange && this.hourFieldEnd) {
+                const de = this.valueEnd;
+                if (document.activeElement !== this.hourFieldEnd.input) {
+                    this.hourFieldEnd.input.value = pad2(de ? de.getHours() : 0);
+                }
+                if (document.activeElement !== this.minuteFieldEnd.input) {
+                    this.minuteFieldEnd.input.value = pad2(de ? de.getMinutes() : 0);
+                }
+                this._renderPlus1();
+            }
         }
 
         // ── Actions ───────────────────────────────────────────────
@@ -10963,7 +14192,7 @@
          * yeniden çizildiği için sınıf YENİ seçili hücreye basılır.
          */
         _rippleSelected() {
-            if (prefersReduced || !this.daysGrid) return;
+            if (prefersReduced() || !this.daysGrid) return;
             const cell = this.daysGrid.querySelector(".glint-picker-day.is-selected");
             if (!cell) return;
             cell.classList.add("glint-day-ripple");
@@ -10998,16 +14227,240 @@
             // gözden geçirip düzeltebilir (kırılmaz akış).
         }
 
+        // ── v1.7: GÜN ROZETLERİ (data-badges) ─────────────────────
+
+        /** Rozet haritasını normalize et → { "YYYY-MM-DD": {label, tone} }.
+         *  Değer düz string ise etiket sayılır (varsayılan ton: info).
+         *  Geçersiz anahtar/değer sessizce atlanır; boş harita = rozetsiz. */
+        _normalizeBadges(map) {
+            const TONES = { success: 1, warning: 1, error: 1, info: 1 };
+            const out = {};
+            let n = 0;
+            if (map && typeof map === "object") {
+                for (const k of Object.keys(map)) {
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) continue;
+                    const v = map[k];
+                    let label = "", tone = "info";
+                    if (typeof v === "string") label = v;
+                    else if (v && typeof v === "object") {
+                        label = v.label != null ? String(v.label) : "";
+                        if (TONES[v.tone]) tone = v.tone;
+                    } else continue;
+                    out[k] = { label, tone };
+                    n++;
+                }
+            }
+            this.badges = n ? out : null;
+        }
+
+        /** Public API — Glint.Picker.get(el).setBadges(map): rozet haritasını
+         *  değiştirir ve görünür takvimi hemen yeniden boyar. null/boş harita
+         *  tüm rozetleri kaldırır. */
+        setBadges(map) {
+            this._normalizeBadges(map);
+            this._renderCalendar();
+        }
+
+        /** Gün hücresine rozeti işle: hücre altında 4px ton noktası +
+         *  title / aria-label metni (minimal dokunuş — hücre DOM'una tek
+         *  span eklenir; seçili/bugün stilleri bozulmaz, bkz. CSS). */
+        _applyBadge(cell, d) {
+            const b = this.badges[formatISODate(d)];
+            if (!b) return;
+            cell.classList.add("has-badge");
+            const dot = document.createElement("span");
+            dot.className = "glint-picker-day__badge glint-picker-day__badge--" + b.tone;
+            dot.setAttribute("aria-hidden", "true");
+            cell.appendChild(dot);
+            if (b.label) {
+                // Disabled hücrede mevcut ipucu korunur, rozet metni eklenir
+                cell.title = cell.title ? cell.title + " — " + b.label : b.label;
+                cell.setAttribute("aria-label",
+                    d.getDate() + " " + this.locale.months[d.getMonth()] + " " +
+                    d.getFullYear() + ", " + b.label);
+            }
+        }
+
+        // ── v1.7: DOĞAL DİL GİRİŞİ (data-natural) ─────────────────
+
+        /** Enter/blur'da display metnini doğal dil olarak ayrıştır.
+         *  Başarı → mevcut _commit akışı (native sync + odometer roll) +
+         *  alt kenarda onay kıvılcımı; başarısızlık → shake + eski görüntü. */
+        _commitNatural() {
+            if (!this.isNatural) return;
+            const txt = (this.display.value || "").trim();
+            const cur = (this._initialDisplayValue() || "").trim();
+            if (txt === cur) return;                     // değişiklik yok
+            if (!txt) { this._clear(); return; }         // boş → temizle (mevcut akış)
+
+            const ok = this.isRange ? this._applyNaturalRange(txt)
+                     : this.isTimeRange ? this._applyNaturalTimeRange(txt)
+                     : this._applyNaturalSingle(txt);
+            if (ok) {
+                this._naturalFlash();
+                return;
+            }
+            // Başarısız: eski görüntüye dönüş (overlay senkronu için gerçek
+            // event zinciri) + marka shake'i (çekirdeğin shake deseni).
+            this.display.dispatchEvent(new Event("beforeinput", { bubbles: true, cancelable: true }));
+            this.display.value = cur;
+            this.display.dispatchEvent(new Event("input", { bubbles: true }));
+            const inst = (this.fieldHost || this.group)._glintInstance;
+            if (inst && typeof inst.shake === "function") {
+                inst.shake();
+            } else if (!prefersReduced()) {
+                const host = this.fieldHost || this.group;
+                host.classList.remove("glint-error-shake");
+                void host.offsetWidth;
+                host.classList.add("glint-error-shake");
+                host.addEventListener("animationend",
+                    () => host.classList.remove("glint-error-shake"), { once: true });
+            }
+        }
+
+        /** Doğal dil (tekil): ayrıştır → tipe göre state'e uygula → commit.
+         *  true = başarı (display'i _commit normalize eder). */
+        _applyNaturalSingle(txt) {
+            const res = glintParseNaturalTR(txt, new Date(), this.locale.months);
+            if (!res) return false;
+            const p = res.date;
+
+            // Saat tipi: yalnız saat bileşeni anlamlı; okBtn akışıyla aynı
+            // şekilde step ızgarasına oturtulur.
+            if (this.type === "time") {
+                if (!res.hasTime) return false;
+                const nd = this.value ? new Date(this.value) : new Date();
+                nd.setHours(p.getHours(), p.getMinutes(), 0, 0);
+                this._snapToStep(nd);
+                this.value = nd;
+                this._renderTime();
+                this._commit();
+                return true;
+            }
+
+            // Tarih tipinde yalnız saat yazmak geçersiz
+            if (!res.hasDate && this.type === "date") return false;
+
+            // Ay modu: gün her zaman 1 — _pickMonth akışının kapatmasız eşdeğeri
+            // (commit'teki odometer roll görüntü geçişini üstlenir).
+            if (this.isMonth) {
+                const nd = new Date(p.getFullYear(), p.getMonth(), 1);
+                this.value = nd;
+                this.focusDate = new Date(nd);
+                this.viewYear = nd.getFullYear();
+                this.viewMonth = nd.getMonth();
+                this._renderCalendar();
+                this._commit();
+                return true;
+            }
+
+            // date / datetime-local
+            const nd = res.hasDate ? new Date(p) : new Date(this.value || p);
+            nd.setHours(0, 0, 0, 0);
+            if (!this._isSelectable(nd)) return false;   // min/max/disabled reddi
+
+            if (this.type === "datetime-local") {
+                // Saat: yazılan > mevcut değerinki > 00:00
+                if (res.hasTime) nd.setHours(p.getHours(), p.getMinutes(), 0, 0);
+                else if (this.value) nd.setHours(this.value.getHours(), this.value.getMinutes(), 0, 0);
+                this._snapToStep(nd);
+                this._clampTimeToBounds(nd);
+            }
+
+            this.value = nd;
+            this.focusDate = new Date(nd.getFullYear(), nd.getMonth(), nd.getDate());
+            this.viewYear = nd.getFullYear();
+            this.viewMonth = nd.getMonth();
+            this._renderAll();
+            this._commit();
+            return true;
+        }
+
+        /** Doğal dil (aralık): "ifade – ifade" — iki yan ayrı ayrıştırılır.
+         *  Ayraç: – / — serbest, düz tire yalnız boşluklarla ("3-5" gibi
+         *  metinlerle çakışmasın). */
+        _applyNaturalRange(txt) {
+            const parts = txt.split(/\s*[–—]\s*|\s+-\s+/);
+            if (parts.length !== 2) return false;
+            const a = glintParseNaturalTR(parts[0], new Date(), this.locale.months);
+            const b = glintParseNaturalTR(parts[1], new Date(), this.locale.months);
+            if (!a || !b || !a.hasDate || !b.hasDate) return false;
+            let s = new Date(a.date); s.setHours(0, 0, 0, 0);
+            let e = new Date(b.date); e.setHours(0, 0, 0, 0);
+            if (!this._isSelectable(s) || !this._isSelectable(e)) return false;
+            if (dayBefore(e, s)) { const t = s; s = e; e = t; }
+            this.rangeStart = s;
+            this.rangeEnd = e;
+            this._hoverDate = null;
+            this.focusDate = new Date(s);
+            this.viewYear = s.getFullYear();
+            this.viewMonth = s.getMonth();
+            this._renderAll();
+            this._commit();
+            return true;
+        }
+
+        /** v1.7 — doğal dil (saat aralığı): "9:00 - 17:30", "09:00 – 17:30".
+         *  İki yan ayrı ayrıştırılır; ikisinde de saat bileşeni zorunlu.
+         *  Overnight kapalıyken bitiş ≤ başlangıç = parse reddi (doğal
+         *  girişin standart "shake + eski görüntüye dönüş" akışı devralır). */
+        _applyNaturalTimeRange(txt) {
+            const parts = txt.split(/\s*[–—]\s*|\s+-\s+/);
+            if (parts.length !== 2) return false;
+            const a = glintParseNaturalTR(parts[0], new Date(), this.locale.months);
+            const b = glintParseNaturalTR(parts[1], new Date(), this.locale.months);
+            if (!a || !b || !a.hasTime || !b.hasTime) return false;
+            const s = new Date();
+            s.setHours(a.date.getHours(), a.date.getMinutes(), 0, 0);
+            this._snapToStep(s);
+            const e = new Date();
+            e.setHours(b.date.getHours(), b.date.getMinutes(), 0, 0);
+            this._snapToStep(e);
+            if (!this.isOvernight) {
+                const sm = s.getHours() * 60 + s.getMinutes();
+                const em = e.getHours() * 60 + e.getMinutes();
+                if (em <= sm) return false;
+            }
+            this.value = s;
+            this.valueEnd = e;
+            this._renderTime();
+            this._commit();
+            return true;
+        }
+
+        /** Başarı geri bildirimi: alan alt kenarında kısa aksan kıvılcımı
+         *  (CSS one-shot; border-draw diliyle akraba). */
+        _naturalFlash() {
+            if (prefersReduced()) return;
+            const host = this.fieldHost || this.group;
+            host.classList.remove("glint-picker-natural-flash");
+            void host.offsetWidth;                       // animasyonu yeniden tetikle
+            const off = (e) => {
+                if (e && e.animationName !== "glint-picker-natural-spark") return;
+                host.classList.remove("glint-picker-natural-flash");
+                host.removeEventListener("animationend", off);
+            };
+            host.addEventListener("animationend", off);
+            host.classList.add("glint-picker-natural-flash");
+        }
+
         _getMinuteStep() {
             if (this._minStep == null) {
-                const v = parseInt(this.group.getAttribute("data-minute-step"), 10);
+                // v1.7 — data-minute-step (grupta) öncelikli; saat aralığı
+                // spec'indeki data-step (input'ta, dakika cinsinden) eşanlamlı
+                // kabul edilir. Adım tek kaynaktan geldiği için aralığın İKİ
+                // ucuna da otomatik uygulanır (_adjustTime/_snapToStep ortak).
+                let v = parseInt(this.group.getAttribute("data-minute-step"), 10);
+                if (isNaN(v)) v = parseInt(this.nativeInput.getAttribute("data-step"), 10);
                 this._minStep = (!isNaN(v) && v > 0 && v < 60) ? v : 1;
             }
             return this._minStep;
         }
 
-        _adjustTime(role, delta) {
-            const d = this.value || new Date();
+        /** side (v1.7): "end" = saat aralığının bitiş ucu; falsy = başlangıç. */
+        _adjustTime(role, delta, side) {
+            const isEnd = side === "end";
+            const d = (isEnd ? this.valueEnd : this.value) || new Date();
             let h = d.getHours();
             let m = d.getMinutes();
             if (role === "hour") {
@@ -11026,8 +14479,15 @@
             const newDate = new Date(d);
             newDate.setHours(h, m, 0, 0);
             this._clampTimeToBounds(newDate);
-            this.value = newDate;
+            if (isEnd) this.valueEnd = newDate;
+            else this.value = newDate;
+            // v1.7 — saat aralığı sıra şartı: spinner adımı ANINDA doğrulanır
+            // (kelepçe + sütun shake'i; overnight modunda serbest).
+            if (this.isTimeRange) this._enforceTimeRangeOrder(isEnd ? "end" : "start");
             this._renderTime();
+            // v1.7 — odometer roll yönü ok yönünü izler (23→00 gün sarmalı
+            // dahil: semantik karşılaştırma orada ters yön verirdi).
+            this._commitDirHint = delta > 0 ? 1 : -1;
             this._commit();
         }
 
@@ -11047,25 +14507,118 @@
             return d;
         }
 
-        _commitTimeFromInputs(snap) {
-            let h = parseInt(this.hourField.input.value, 10);
-            const m = parseInt(this.minuteField.input.value, 10);
+        /** side (v1.7): "end" = saat aralığının bitiş çifti; falsy = başlangıç
+         *  (this.hourField/minuteField — tek-saat picker'ında tek çift). */
+        _commitTimeFromInputs(snap, side) {
+            const isEnd = side === "end";
+            const hf = isEnd ? this.hourFieldEnd : this.hourField;
+            const mf = isEnd ? this.minuteFieldEnd : this.minuteField;
+            if (!hf || !mf) return;
+            let h = parseInt(hf.input.value, 10);
+            const m = parseInt(mf.input.value, 10);
             if (isNaN(h) || isNaN(m)) return;
             // 12h görünümünde input 1-12 tutar → mevcut meridiem ile 24h'e çevir.
             if (this.is12h) h = this._hourTo24(h, this.meridiem);
-            const d = this.value || new Date();
+            const d = (isEnd ? this.valueEnd : this.value) || new Date();
             const newDate = new Date(d);
             newDate.setHours(h, m, 0, 0);
             if (snap) this._snapToStep(newDate);
             this._clampTimeToBounds(newDate);
-            this.value = newDate;
+            if (isEnd) this.valueEnd = newDate;
+            else this.value = newDate;
+            // v1.7 — saat aralığı sıra şartı YALNIZ commit anlarında (blur/
+            // Enter/onay: snap=true) kelepçelenir — canlı yazım bozulmaz
+            // (snap ile aynı felsefe; "1" yazıp "17" hedeflerken araya girme).
+            if (this.isTimeRange && snap) this._enforceTimeRangeOrder(isEnd ? "end" : "start");
             // Snap değeri değiştirmiş olabilir → alanlar yeniden boyanır
             // (canlı yazımda snap=false olduğundan yazım hiç bozulmaz).
             if (snap) this._renderTime();
             this._commit();
         }
 
+        // ── v1.7: SAAT ARALIĞI yardımcıları ───────────────────────
+
+        /** Gece aşımı çifti mi? (data-overnight + bitiş < başlangıç → ertesi gün) */
+        _isOvernightPair() {
+            if (!this.isTimeRange || !this.isOvernight || !this.value || !this.valueEnd) return false;
+            const s = this.value.getHours() * 60 + this.value.getMinutes();
+            const e = this.valueEnd.getHours() * 60 + this.valueEnd.getMinutes();
+            return e < s;
+        }
+
+        /**
+         * Sıra şartı: data-overnight YOKSA bitiş > başlangıç olmalı.
+         * İhlalde DEĞİŞEN taraf kelepçelenir (bitiş → başlangıç+step,
+         * başlangıç → bitiş−step; gün sınırında karşı uç da itilir) ve
+         * ilgili sütun marka shake'iyle reddi hissettirir. Overnight
+         * modunda kelepçe yok — bitiş < başlangıç "ertesi gün" demektir.
+         * @returns {boolean} true = ihlal vardı, kelepçe uygulandı
+         */
+        _enforceTimeRangeOrder(changedSide) {
+            if (!this.isTimeRange || this.isOvernight) return false;
+            if (!this.value || !this.valueEnd) return false;
+            let sMin = this.value.getHours() * 60 + this.value.getMinutes();
+            let eMin = this.valueEnd.getHours() * 60 + this.valueEnd.getMinutes();
+            if (eMin > sMin) return false;
+            const step = Math.max(1, this._getMinuteStep());
+            if (changedSide === "start") {
+                sMin = eMin - step;
+                if (sMin < 0) { sMin = 0; eMin = Math.min(1439, step); }
+            } else {
+                eMin = sMin + step;
+                if (eMin > 1439) { eMin = 1439; sMin = Math.max(0, 1439 - step); }
+            }
+            const sd = new Date(this.value);
+            sd.setHours(Math.floor(sMin / 60), sMin % 60, 0, 0);
+            this.value = sd;
+            const ed = new Date(this.valueEnd);
+            ed.setHours(Math.floor(eMin / 60), eMin % 60, 0, 0);
+            this.valueEnd = ed;
+            this._shakeTimeRangeCol(changedSide);
+            return true;
+        }
+
+        /** Reddedilen sütunda kısa marka shake'i (reduced-motion'da hiç). */
+        _shakeTimeRangeCol(side) {
+            if (prefersReduced()) return;
+            const col = side === "start" ? this._trStartCol : this._trEndCol;
+            if (!col) return;
+            col.classList.remove("glint-picker-timerange__col--reject");
+            void col.offsetWidth;   // animasyonu yeniden tetikle
+            col.classList.add("glint-picker-timerange__col--reject");
+            col.addEventListener("animationend",
+                () => col.classList.remove("glint-picker-timerange__col--reject"),
+                { once: true });
+        }
+
+        /** "+1" rozetinin görünürlüğü — açılış anında pop mikrosuyla girer. */
+        _renderPlus1() {
+            if (!this.plus1Badge) return;
+            const on = this._isOvernightPair();
+            if (on === !this.plus1Badge.hidden) return;   // durum değişmedi
+            this.plus1Badge.hidden = !on;
+            if (on && !prefersReduced()) {
+                this.plus1Badge.classList.remove("is-pop");
+                void this.plus1Badge.offsetWidth;
+                this.plus1Badge.classList.add("is-pop");
+            }
+        }
+
         _setToToday() {
+            // v1.7 — saat aralığı: "Bugün" = şu an (step'e oturmuş) başlangıç
+            // olur, bitiş sıfırlanır (date-range'in start=bugün, end=null
+            // akışıyla ayna — kullanıcı ardından bitişi kurar).
+            if (this.isTimeRange) {
+                const now = new Date();
+                now.setSeconds(0, 0);
+                this._snapToStep(now);
+                this.value = now;
+                this.valueEnd = null;
+                this._renderAll();
+                this._commit();
+                return;
+            }
+
             const t = new Date();
             t.setSeconds(0, 0);
             if (this.type === "date") {
@@ -11098,6 +14651,7 @@
 
         _clear() {
             this.value = null;
+            this.valueEnd = null;   // v1.7 — saat aralığının bitiş ucu
             this.rangeStart = null;
             this.rangeEnd = null;
             this._hoverDate = null;
@@ -11112,7 +14666,26 @@
 
         // ── Open / Close ──────────────────────────────────────────
 
+        /**
+         * v1.7 — INLINE mod: panel mount'ta BİR kez 'açılır' ve hep açık
+         * kalır. Konumlama/backdrop/odak tuzağı yok; kenarlık çizimi (SVG)
+         * bir kez akar ve söner. Odak ÇALINMAZ — panel sayfa akışında bir
+         * bileşendir, form doldurma sırası bozulmaz.
+         */
+        _openInline() {
+            this.isOpen = true;
+            this._view = this.isMonth ? "months" : "days";
+            this._hoverDate = null;
+            this._renderAll();
+            this.popover.classList.add("is-open");
+            this.toggleBtn.setAttribute("aria-expanded", "true");
+            // Kenarlık çizimi: layout otursun diye çift rAF sonrası tek sefer
+            requestAnimationFrame(() =>
+                requestAnimationFrame(() => this._drawPanelBorder()));
+        }
+
         open() {
+            if (this.isInline) return;   // v1.7 — inline panel zaten/daima açık
             if (this.isOpen) return;
             this.isOpen = true;
             // v1.6 — ay modunda birincil yüzey AY IZGARASIDIR
@@ -11126,13 +14699,18 @@
                 this._prevBodyOverflow = document.body.style.overflow;
                 document.body.style.overflow = "hidden";
             } else {
+                // v1.7 — içerik ölçümü her açılışta tazelenir (görünüm/
+                // içerik değişmiş olabilir); açıkken cache'ten okunur.
+                this._naturalW = null;
                 this._positionPopover();
             }
 
             requestAnimationFrame(() => {
                 this.popover.classList.add("is-open");
-                // v1.6 — panel kenarlığı input ile aynı sol üst köşeden
-                // çapraz çizilir (masaüstü; mobil sheet kendi dilinde).
+                // v1.7 — panel 'pinlenmiş maske + kayma' ile input'un alt
+                // kenarının arkasından süzülür (CSS); kenarlık çizimi perde
+                // kısmen açıldıktan sonra başlar (masaüstü; mobil sheet
+                // kendi dilinde).
                 if (!isMobile) this._drawPanelBorder();
                 // Takvim varsa odaklı hücreye fokus ver (klavye nav hazır);
                 // ay modunda odak seçili/ilk ay hücresine gider.
@@ -11153,6 +14731,7 @@
         }
 
         close() {
+            if (this.isInline) return;   // v1.7 — spec: inline'da close() no-op
             if (!this.isOpen) return;
             this.isOpen = false;
             // v1.5.1 — Odak restorasyonu MERKEZİ: odak popover'ın içindeyse
@@ -11183,17 +14762,42 @@
          * ikisi sağ alt köşede AYNI anda buluşur.
          */
         _drawPanelBorder() {
-            if (prefersReduced) return;
+            if (prefersReduced()) return;
             if (this._panelSvg) { this._panelSvg.remove(); this._panelSvg = null; }
             const W = this.popover.offsetWidth, H = this.popover.offsetHeight;
             if (!W || !H) return;
             const NS = "http://www.w3.org/2000/svg";
-            const R = Math.min(parseFloat(getComputedStyle(this.popover).borderRadius) || 14, W / 2, H / 2);
-            const S = 1;
+            // v1.7 EK-1 — geometri TEK doğruluk kaynağından: panelin GERÇEK
+            // kenarlığının computed stili (kalınlık + dört köşe ayrı ayrı,
+            // '0px' meşru) + çekirdekle ORTAK roundedRectPaths (gerçek daire
+            // yayı köşeler). Aksan böylece 1150ms sönme bitince altta kalan
+            // border'la piksel-birebir aynı çizgidir — 'çizilen çerçeve ile
+            // kalan çerçeve farklı' algısı biter. Kalınlık tek kaynağı:
+            // --glint-picker-bw token'ı (CSS'te hem border hem stroke onu okur).
+            const geoUtil = (window.Glint || {})._borderGeo;
+            if (!geoUtil) return;   // çekirdek yüklenmeden panel çizimi (salt süs) atlanır
+            const cs = getComputedStyle(this.popover);
+            const bwn = parseFloat(cs.borderTopWidth);
+            const bw = Number.isFinite(bwn) && bwn > 0 ? bwn : 1;
+            const radii = {
+                tl: geoUtil.resolveRadius(cs.borderTopLeftRadius, W, H),
+                tr: geoUtil.resolveRadius(cs.borderTopRightRadius, W, H),
+                br: geoUtil.resolveRadius(cs.borderBottomRightRadius, W, H),
+                bl: geoUtil.resolveRadius(cs.borderBottomLeftRadius, W, H)
+            };
+            const dd = geoUtil.roundedRectPaths(W, H, bw, radii, "diagonal");
             const svg = document.createElementNS(NS, "svg");
             svg.setAttribute("class", "glint-picker-border-svg");
             svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
             svg.setAttribute("preserveAspectRatio", "none");
+            // v1.7 EK-1 — PADDING-BOX OFSETİ DÜZELTMESİ: absolute çocuğun
+            // içerme bloğu popover'ın padding-box'ıdır (popover kendi border'ını
+            // taşır) — SVG bw kadar dışa taşınıp W×H'ye sabitlenerek viewBox
+            // border-box ile birebir hizalanır (CSS'teki inset:0/100% inline
+            // ile ezilir; çekirdekte bu ofset yok çünkü group border taşımaz).
+            svg.style.top = svg.style.left = (-bw) + "px";
+            svg.style.width = W + "px";
+            svg.style.height = H + "px";
             const mk = (d) => {
                 const p = document.createElementNS(NS, "path");
                 p.setAttribute("d", d);
@@ -11201,16 +14805,8 @@
                 svg.appendChild(p);
                 return p;
             };
-            const p1 = mk([
-                `M ${S} ${R + S}`,
-                `Q ${S} ${S} ${R + S} ${S}`, `L ${W - R - S} ${S}`,
-                `Q ${W - S} ${S} ${W - S} ${R + S}`, `L ${W - S} ${H - R - S}`,
-                `Q ${W - S} ${H - S} ${W - R - S} ${H - S}`
-            ].join(" "));
-            const p2 = mk([
-                `M ${S} ${R + S}`, `L ${S} ${H - R - S}`,
-                `Q ${S} ${H - S} ${R + S} ${H - S}`, `L ${W - R - S} ${H - S}`
-            ].join(" "));
+            const p1 = mk(dd.d1);
+            const p2 = mk(dd.d2);
             this.popover.appendChild(svg);
             this._panelSvg = svg;
             [p1, p2].forEach(p => {
@@ -11219,8 +14815,12 @@
                 p.style.strokeDasharray = len;
                 p.style.strokeDashoffset = len;
                 try {
+                    // v1.7 — 90ms gecikme: 'pinlenmiş maske + kayma' perdesi
+                    // ~%40 açıldıktan sonra çizim başlar → 'panel doğarken
+                    // kenarı çiziliyor' okunur. (Gecikme boyunca inline
+                    // strokeDashoffset=len çizgiyi gizli tutar.)
                     p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
-                        { duration: 480, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" });
+                        { duration: 480, delay: 90, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" });
                 } catch (e) { p.style.strokeDashoffset = 0; }
             });
             svg.animate(
@@ -11238,40 +14838,84 @@
         // ── Positioning (desktop) ─────────────────────────────────
 
         /**
-         * v1.6 — Varyantın gerçekten ihtiyaç duyduğu taban genişlik.
-         * Kural: panel = input genişliği; yalnız çoklu-ay ve preset'li
-         * range daha geniş olabilir (sol kenar hizası korunur — çapraz
-         * çizim ortak köşeden başlar). 240px mutlak alt sınır, aşırı dar
-         * inputlarda saat/aksiyon satırının ezilmesini önler.
+         * v1.7 — İÇERİK TABANLI doğal genişlik ölçümü.
+         * Eski sabit tahminler (420 / 520 / 740) iki sınıf hataya açıktı:
+         * (1) kutu modeli açığı — sabitler border-box TOPLAM genişlikti ama
+         *     CSS iç minimumları (krom 34 + presets 116 + gap 12 + main 296
+         *     = 458; dual'da panel 232×N + gap 18×(N-1)) toplamı aşıyordu →
+         *     takvim popover kenarından dışarı taşıyordu;
+         * (2) kombinasyon körlüğü — presets ve çoklu-ay genişlikleri
+         *     Math.max ile "alternatif" sayılıyordu, oysa yan yana duran
+         *     sütunlar olarak TOPLANMALIYDI (presets + 2 ay = 682px).
+         * Çözüm: popover'a geçici width:max-content basıp offsetWidth oku —
+         * DOM'da ne varsa (preset sütunu, hafta numaraları, 2-3 ay, saat
+         * bölümü, gelecekteki eklentiler) doğal satır genişliğine
+         * kendiliğinden dahil olur. clip-path layout'u etkilemediğinden
+         * kapalı/görünmez popover'da ölçüm güvenlidir (css yorumu bunu
+         * garanti eder); open() başına tek senkron reflow, maliyet düşük.
          */
         _contentMinWidth() {
-            let w = 240;
-            if (this.popover.classList.contains("glint-picker-popover--with-presets")) {
-                w = Math.max(w, 420);
-            }
+            // Düz (preset'siz, tek-ay/saat) picker: v1.6 "panel = input
+            // genişliği" kuralı AYNEN korunur — ölçüm yapılmaz, 240px mutlak
+            // alt sınır aşırı dar inputlarda saat/aksiyon satırının
+            // ezilmesini önler. (Ölçüm burada kullanılsaydı max-content,
+            // ızgaranın TERCİH ettiği genişliği verir ve panel input'tan
+            // genişlerdi; içerik 1fr hücrelerle input genişliğine zaten
+            // sorunsuz sıkışıyor.) Gelecek varyantlar (ör. saat-aralığı çift
+            // sütunu) yapım aşamasında this._needsNaturalWidth = true set
+            // ederek ölçüme katılabilir.
+            const hasPresets = this.popover.classList.contains("glint-picker-popover--with-presets");
             const dual = this.popover.querySelector(".glint-picker-calendar--dual");
-            if (dual) {
-                const months = dual.querySelectorAll(".glint-picker-panel").length;
-                w = Math.max(w, months >= 3 ? 740 : 520);
-            }
-            return w;
+            if (!hasPresets && !dual && !this._needsNaturalWidth) return 240;
+
+            const st = this.popover.style;
+            const prev = { width: st.width, minWidth: st.minWidth, maxWidth: st.maxWidth };
+            // Ölçüm durumu: doğal genişlik; CSS max-width clamp'i (100vw-24)
+            // gerçek ihtiyacı gizlemesin diye geçici olarak kaldırılır.
+            st.width = "max-content";
+            st.minWidth = "0";
+            st.maxWidth = "none";
+            // Çoklu-ay takviminin wrap'sız gerçek satır genişliği ölçülsün.
+            // Masaüstü CSS'i v1.7'de zaten nowrap; inline garanti ileriye
+            // dönük emniyet kemeri (biri wrap'i geri eklerse ölçüm bozulmaz).
+            const prevWrap = dual ? dual.style.flexWrap : "";
+            if (dual) dual.style.flexWrap = "nowrap";
+            const natural = this.popover.offsetWidth;
+            st.width = prev.width;
+            st.minWidth = prev.minWidth;
+            st.maxWidth = prev.maxWidth;
+            if (dual) dual.style.flexWrap = prevWrap;
+            return Math.max(240, natural);
         }
 
         _positionPopover() {
+            if (this.isInline) return;   // v1.7 — inline panel akışta, konumlanmaz
             const rect = this.group.getBoundingClientRect();
             this.popover.classList.remove("glint-picker-popover--flip-up");
 
-            // v1.6 — genişlik input ile EŞİT (varyant tabanı daha genişse o);
-            // ölçümden ÖNCE uygulanmalı ki flip/clamp matematiği doğru olsun.
-            // CSS min-width tabanları inline min-width:0 ile etkisizleştirilir
-            // (mobil bottom-sheet bloğu !important ile kendi genişliğini korur).
+            // v1.7 — genişlik = clamp(doğal içerik, input genişliği, vp-32):
+            // panel en az input kadar geniş durur (sol kenar hizası + çapraz
+            // çizimin ortak köşesi korunur), içerik daha genişse içerik
+            // kazanır, viewport (16px sol + 16px sağ kenar payı) her ikisini
+            // de sınırlar. Ölçümden ÖNCE uygulanmalı ki flip/clamp matematiği
+            // doğru olsun. CSS min-width tabanları inline min-width:0 ile
+            // etkisizleştirilir (mobil bottom-sheet !important ile kendini korur).
+            const vpW = window.innerWidth;
+            const maxW = vpW - 32;
+            // Doğal genişlik open() başına BİR kez ölçülür (cache) — scroll/
+            // resize repozisyonları her karede senkron reflow tetiklemesin.
+            if (this._naturalW == null) this._naturalW = this._contentMinWidth();
+            const naturalW = this._naturalW;
             this.popover.style.minWidth = "0";
-            this.popover.style.width = Math.max(rect.width, this._contentMinWidth()) + "px";
+            this.popover.style.width = Math.min(Math.max(rect.width, naturalW), maxW) + "px";
+            // Viewport degradasyonu: doğal genişlik sığmıyorsa çoklu-ay
+            // takvimi sarmak (çirkin 2+1 düzeni) yerine CSS katmanındaki
+            // yatay scroll-snap fallback'i devreye girer.
+            this.popover.classList.toggle("glint-picker-popover--overflow", naturalW > maxW);
 
             const popH = this.popover.offsetHeight || 320;
             const popW = this.popover.offsetWidth || 296;
             const vpH = window.innerHeight;
-            const vpW = window.innerWidth;
             // v1.6 — "hemen altına": panel input'a daha yakın durur; çapraz
             // çizim ortak köşeden aktığı için ikisi tek parça okunur.
             const margin = 4;
@@ -11304,6 +14948,9 @@
             if (this.isOpen) { try { this.close(); } catch (e) { } }
             // Basılı-tut spinner interval'leri (varsa) durdur — destroy-mid-hold sızıntısı
             if (this._spinnerStops) this._spinnerStops.forEach(s => { try { s(); } catch (e) {} });
+            // v1.7 — yarıda kalan odometer roll'u temizle (ghost sızıntısı olmasın)
+            if (this._rollAnims) this._rollAnims.forEach(a => { try { a.cancel(); } catch (e) { } });
+            if (this._rollGhost) { try { this._rollGhost.remove(); } catch (e) { } this._rollGhost = null; }
             document.removeEventListener("mousedown", this._outsideClickHandler);
             document.removeEventListener("keydown", this._keyHandler);
             window.removeEventListener("resize", this._reposHandler);
@@ -11317,12 +14964,12 @@
             // çekirdek teardown ona hiç ulaşamıyordu: odaklı bir picker DOM'dan
             // kaldırılınca onFocus'un rAF scroll-poll döngüsü 60fps'te sonsuza
             // dek dönüyordu. Burada açıkça yıkılır.
-            const inner = this.group._glintInstance;
+            const inner = (this.fieldHost || this.group)._glintInstance;
             if (inner && typeof inner.destroy === "function") {
                 try { inner.destroy(); } catch (e) { }
             }
             this.popover.remove();
-            this.backdrop.remove();
+            if (this.backdrop) this.backdrop.remove();   // v1.7 — inline'da backdrop yok
             // v1.5.1 — Görsel katman sökülür, native input ESKİ haline döner:
             // eskiden display/toggle DOM'da kalıyor, native input hidden +
             // aria-hidden + tabIndex=-1 + claim bayrağıyla kalıcı ölü
@@ -11330,6 +14977,18 @@
             this.display?.remove();
             this.toggleBtn?.remove();
             this.rangeEndMirror?.remove();
+            this.rawInput?.remove();   // v1.7 — saat aralığı ham çift taşıyıcısı
+            // v1.7 — inline alan sarmalayıcısı çözülür: kalan çocuklar
+            // (native input, label, kullanıcı ekleri) gruba geri taşınır,
+            // sarmalayıcı silinir ve dış grup base-init'e yeniden açılır.
+            if (this.isInline && this.fieldHost && this.fieldHost !== this.group) {
+                while (this.fieldHost.firstChild) {
+                    this.group.insertBefore(this.fieldHost.firstChild, this.fieldHost);
+                }
+                this.fieldHost.remove();
+                this.fieldHost = this.group;
+                this.group._glintInit = false;
+            }
             this.nativeInput.hidden = false;
             this.nativeInput.removeAttribute("tabindex");
             this.nativeInput.removeAttribute("aria-hidden");
@@ -11340,7 +14999,12 @@
             this.group.classList.remove(
                 "glint-input-group--picker", "glint-input-group--date",
                 "glint-input-group--time", "glint-input-group--datetime",
-                "glint-input-group--range", "glint-picker-open"
+                "glint-input-group--range", "glint-input-group--timerange",
+                "glint-picker-open",
+                // v1.7 — inline / natural işaretleri + one-shot geri bildirimler
+                "glint-input-group--picker-inline", "glint-input-group--picker-inline-bare",
+                "glint-input-group--picker-natural", "glint-picker-natural-flash",
+                "glint-error-shake"
             );
             delete this.group._glintPickerInit;
             delete this.group._glintPickerInstance;
@@ -11397,6 +15061,22 @@
     window.Glint.Picker.LOCALE_TR = LOCALE_TR;
     // Programatik tarama yardımcısı (dinamik içerik için)
     window.Glint.Picker.scan = fallbackScan;
+    // v1.7 — örnek erişimi: bir input/grup/torun elemanından picker örneğini
+    // bul (ör. Glint.Picker.get(el).setBadges(map)). Inline modda iç alan
+    // sarmalayıcısı da .glint-input-group taşır → örnek taşıyan en yakın
+    // ÜST gruba kadar tırmanılır.
+    window.Glint.Picker.get = function (el) {
+        if (typeof el === "string") el = document.querySelector(el);
+        if (!el || !el.closest) return null;
+        let g = (el.classList && el.classList.contains("glint-input-group"))
+            ? el : el.closest(".glint-input-group");
+        while (g && !g._glintPickerInstance) {
+            g = g.parentElement && g.parentElement.closest(".glint-input-group");
+        }
+        return (g && g._glintPickerInstance) || null;
+    };
+    // v1.7 — doğal dil ayrıştırıcı (saf fonksiyon; test / yeniden kullanım)
+    window.Glint.Picker.parseNaturalTR = glintParseNaturalTR;
 
     if (window.Glint && window.Glint.defineComponent) {
         register();
@@ -11737,7 +15417,7 @@ window.Glint.phoneData = [
  *      --bs-primary · --glint-phone-pop-* · --glint-phone-trigger-*
  *  • Davranış AYARLARI (markup)      → data-country · data-flags ·
  *      data-priority-countries · data-lang · data-raw-name · data-strict ·
- *      data-auto-error
+ *      data-auto-error · data-remember (v1.7 — son seçilen ülkeler)
  * ════════════════════════════════════════════════════════════════════════ */
 
 /**
@@ -11765,6 +15445,14 @@ window.Glint.phoneData = [
  *                                            ({iso2} → küçük harf kod; <img
  *                                            loading="lazy"> ile).
  *        data-priority-countries="TR,DE,NL"  listede en üste sabitlenir
+ *        data-remember="checkout"            v1.7 SALT OPT-IN: son seçilen
+ *                                            ülkeler (max 4) localStorage'a
+ *                                            yazılır ("glint-phone:recents:
+ *                                            <anahtar>") ve listenin en
+ *                                            üstünde "Son seçilenler" bölümü
+ *                                            olarak gösterilir. Verilmezse
+ *                                            HİÇBİR ŞEY yazılmaz (e-posta
+ *                                            hafızasıyla aynı sözleşme).
  *        data-lang="tr"                      tr|en görünen ad; arama HER İKİ
  *                                            dilde de eşleşir
  *        data-raw-name="PhoneE164"           OPT-IN gizli input: E.164 değeri
@@ -11823,8 +15511,10 @@ window.Glint.phoneData = [
  *   p.destroy()          → DOM'u eski haline döndürür
  *
  * Animasyon imzası (kontrat):
- *   easing  cubic-bezier(0.22, 1, 0.36, 1) — yalnız transform/opacity
- *   popover scale-in (scale .95 + opacity 0 → 1)
+ *   easing  var(--glint-ease-out/in) · süreler --glint-dur-* token'ları
+ *   popover v1.7 — picker'ın imza perdesi: trigger ile ortak köşeden
+ *   çapraz clip-path açılışı + arama kutusu altında border-draw aksanı;
+ *   mobil (≤768px) bottom-sheet (translateY) + backdrop.
  *   :active scale(0.97) · prefers-reduced-motion → hareket kalkar.
  */
 
@@ -11895,6 +15585,46 @@ window.Glint.phoneData = [
               stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/>
               <path d="M21 21l-4.3-4.3"/></svg>`;
 
+    // v1.7 — ✓ ikonu BİR KEZ parse edilir; 242 satır ucuz cloneNode alır
+    // (innerHTML parse'ı satır başına ~pahalı; ilk açılış jank'ını kırpar).
+    let _checkTpl = null;
+    function checkIconNode() {
+        if (!_checkTpl) {
+            const s = document.createElement("span");
+            s.innerHTML = ICON_CHECK;
+            _checkTpl = s.firstElementChild;
+        }
+        return _checkTpl.cloneNode(true);
+    }
+
+    /**
+     * v1.7 — Eşleşen alt-dizgiyi <mark class="glint-select-hl"> ile vurgula.
+     * Combobox._highlight'ın modül içi kopyası: düğüm tabanlı kurulum
+     * (textContent + createTextNode) — innerHTML'e ham veri BASILMAZ.
+     * NFD/ı dönüşümleri index kaydırabildiği için orijinal → normalize
+     * karakter haritası kurulur.
+     */
+    function highlightName(labelEl, original, nq) {
+        if (!nq) { labelEl.textContent = original; return; }
+        let norm = "";
+        const map = [];
+        for (let oi = 0; oi < original.length; oi++) {
+            const n = normalize(original[oi]);
+            for (let k = 0; k < n.length; k++) { norm += n[k]; map.push(oi); }
+        }
+        const pos = norm.indexOf(nq);
+        if (pos < 0) { labelEl.textContent = original; return; }
+        const s = map[pos];
+        const e = (pos + nq.length < map.length) ? map[pos + nq.length] : original.length;
+        labelEl.textContent = "";
+        if (s > 0) labelEl.appendChild(document.createTextNode(original.slice(0, s)));
+        const mark = document.createElement("mark");
+        mark.className = "glint-select-hl";
+        mark.textContent = original.slice(s, e);
+        labelEl.appendChild(mark);
+        if (e < original.length) labelEl.appendChild(document.createTextNode(original.slice(e)));
+    }
+
     // i18n metinleri (data-lang="tr"|"en")
     const TEXT = {
         tr: {
@@ -11902,6 +15632,7 @@ window.Glint.phoneData = [
             searchAria: "Ülkelerde ara",
             empty: "Sonuç yok",
             chooseCountry: "Ülke seç: ",
+            recent: "Son seçilenler",
             invalid: "Telefon numarası eksik veya geçersiz"
         },
         en: {
@@ -11909,6 +15640,7 @@ window.Glint.phoneData = [
             searchAria: "Search countries",
             empty: "No results",
             chooseCountry: "Choose country: ",
+            recent: "Recently used",
             invalid: "Phone number is incomplete or invalid"
         }
     };
@@ -12112,6 +15844,13 @@ window.Glint.phoneData = [
             this.priorityIso = (group.getAttribute("data-priority-countries") || "")
                 .split(",").map(s => s.trim().toUpperCase()).filter(Boolean);
 
+            // v1.7 — SALT OPT-IN son seçilenler hafızası (renk seçici
+            // recents deseniyle bire bir): data-remember verilmeden
+            // localStorage'a HİÇBİR ŞEY yazılmaz. Çıplak `data-remember`
+            // → "default" anahtarı.
+            const rem = group.getAttribute("data-remember");
+            this.rememberKey = rem === null ? null : (rem.trim() || "default");
+
             // ── başlangıç ülkesi ──────────────────────────────────
             const wanted = (group.getAttribute("data-country") || "auto").trim();
             let initialReason = "api";
@@ -12132,6 +15871,11 @@ window.Glint.phoneData = [
             this._lastValidity = { complete: false, tooShort: false, tooLong: false };
             this._composing = false;
             this._layoutQueued = false;
+            this._optSeq = 0;          // v1.7 — benzersiz satır id sayacı
+            this._reordered = false;   // v1.7 — arama dizilimi DOM'u taşıdı mı
+            this._activeEl = null;     // v1.7 — O(1) is-active toggle'ı
+            this._recentEls = [];      // v1.7 — recents bölümünün DOM düğümleri
+            this._recentDecor = [];    // v1.7 — recents etiket + ayraç (aramada gizlenir)
 
             this._ac = new AbortController();
 
@@ -12155,6 +15899,23 @@ window.Glint.phoneData = [
                 requestAnimationFrame(() => {
                     if (this._ac) this._emitCountryChange("auto");
                 });
+            }
+
+            // v1.7 — Isınma: 242 satırlık liste boş zamanda kurulur; ilk
+            // açılış maliyeti perde animasyonuyla çakışmaz (_buildList
+            // idempotent — open() yolu değişmez). url bayrak modunda
+            // ATLANIR: 242 <img loading="lazy"> düğümü erken yaratılmasın.
+            // requestIdleCallback Safari'de yok → setTimeout fallback.
+            if (this.flagMode !== "url") {
+                const warm = () => {
+                    this._idleWarm = null;
+                    if (this._ac) this._buildList();   // destroy sonrası çağrılmaz
+                };
+                if (typeof window.requestIdleCallback === "function") {
+                    this._idleWarm = { idle: true, id: window.requestIdleCallback(warm, { timeout: 2000 }) };
+                } else {
+                    this._idleWarm = { idle: false, id: setTimeout(warm, 300) };
+                }
             }
         }
 
@@ -12248,11 +16009,20 @@ window.Glint.phoneData = [
 
             this.emptyEl = document.createElement("li");
             this.emptyEl.className = "glint-phone-empty";
+            // v1.7 — listbox altında rolsüz li ARIA ağacında geçersiz çocuk;
+            // ayraçla aynı sözleşme (role=presentation).
+            this.emptyEl.setAttribute("role", "presentation");
             this.emptyEl.textContent = this.t.empty;
             this.emptyEl.style.display = "none";
             this.list.appendChild(this.emptyEl);
 
             document.body.appendChild(this.popover);
+
+            // v1.7 — Mobil sheet backdrop'u (masaüstünde display:none;
+            // kapalıyken pointer-events:none → dokunuşları yutmaz).
+            this.backdrop = document.createElement("div");
+            this.backdrop.className = "glint-phone-backdrop";
+            document.body.appendChild(this.backdrop);
 
             this._renderTrigger();
         }
@@ -12322,6 +16092,20 @@ window.Glint.phoneData = [
                 if (inst && typeof inst.rebuildSVG === "function") {
                     try { inst.rebuildSVG(); } catch (_) { }
                 }
+                // v1.7 — 'Settle' turu: hover genişlemesi input padding'ini
+                // CSS geçişiyle (dur-2 = 140ms) oynatır; yukarıdaki rebuildSVG
+                // computed padding'i geçişin ORTASINDA okumuş olabilir. Geçiş
+                // bitince son değeri bir kez daha oku — overlay ara değere
+                // çakılı kalmasın (overlay'in kendi left/width geçişi bu
+                // düzeltmeyi yumuşak kaydırır).
+                clearTimeout(this._settleTimer);
+                this._settleTimer = setTimeout(() => {
+                    if (!this._ac) return;
+                    const inst2 = this.group._glintInstance;
+                    if (inst2 && typeof inst2.rebuildSVG === "function") {
+                        try { inst2.rebuildSVG(); } catch (_) { }
+                    }
+                }, 190);
             }));
         }
 
@@ -12387,6 +16171,11 @@ window.Glint.phoneData = [
                 if (this.group.contains(e.target) || this.popover.contains(e.target)) return;
                 this.close();
             }, sig);
+
+            // v1.7 — Sheet backdrop dokunuşu da kapatır (mousedown yolunun
+            // kapsamadığı senaryolara karşı açık sözleşme; çifte close()
+            // zararsız — ikinci çağrı no-op).
+            this.backdrop.addEventListener("click", () => this.close(), sig);
 
             // Reposition — rAF-throttle (select deseni)
             this._reposScheduled = false;
@@ -12592,6 +16381,10 @@ window.Glint.phoneData = [
             this._items = [];
             const frag = document.createDocumentFragment();
 
+            // v1.7 — Son seçilenler EN üstte (SALT OPT-IN: data-remember)
+            const rfrag = this.rememberKey ? this._buildRecentsFrag() : null;
+            if (rfrag) frag.appendChild(rfrag);
+
             // Öncelikli ülkeler üstte, ayraçla
             const prio = this.priorityIso.map(i => byIso(i)).filter(Boolean);
             prio.forEach(c => frag.appendChild(this._buildOption(c, true)));
@@ -12609,13 +16402,127 @@ window.Glint.phoneData = [
             sorted.forEach(c => frag.appendChild(this._buildOption(c, false)));
 
             this.list.insertBefore(frag, this.emptyEl);
+            // v1.7 — Orijinal diziliş (arama sonrası geri dönüş için)
+            this._snapshotOrder();
             this._syncSelected();
+        }
+
+        /** v1.7 — Arama dizilimi bozulunca geri dönülecek DOM sırası. */
+        _snapshotOrder() {
+            this._orderEls = Array.prototype.filter.call(
+                this.list.children, el => el !== this.emptyEl);
+        }
+
+        /**
+         * v1.7 — "Son seçilenler" bölümü fragmenti (mini başlık + max 4
+         * satır + ayraç). Öncelikli listeyle kesişenler ATLANIR (zaten
+         * üstteler — mükerrer satır olmasın). Satırlar isPriority=true
+         * kurulur: arama sırasında priority yolundan otomatik gizlenirler.
+         */
+        _buildRecentsFrag() {
+            this._recentEls = [];
+            this._recentDecor = [];
+            const prioSet = new Set(this.priorityIso);
+            const recs = this._loadRecents()
+                .map(i => byIso(i))
+                .filter(Boolean)
+                .filter(c => !prioSet.has(c.iso2));
+            if (!recs.length) return null;
+
+            const frag = document.createDocumentFragment();
+
+            const label = document.createElement("li");
+            label.className = "glint-phone-sec-label";
+            label.setAttribute("role", "presentation");
+            label.setAttribute("aria-hidden", "true");
+            label.textContent = this.t.recent;
+            frag.appendChild(label);
+            this._recentEls.push(label);
+            this._recentDecor.push(label);
+
+            for (const c of recs) {
+                const li = this._buildOption(c, true);
+                li._phItem.isRecent = true;
+                frag.appendChild(li);
+                this._recentEls.push(li);
+            }
+
+            const sep = document.createElement("li");
+            sep.className = "glint-phone-sep";
+            sep.setAttribute("role", "presentation");
+            sep.setAttribute("aria-hidden", "true");
+            frag.appendChild(sep);
+            this._recentEls.push(sep);
+            this._recentDecor.push(sep);
+
+            return frag;
+        }
+
+        /**
+         * v1.7 — Seçim sonrası recents bölümünü DOM'da tazele (liste bir
+         * kez kurulduğundan — _items guard'ı — yeni seçim aksi halde ancak
+         * sayfa yenilenince görünürdü). Eski blok sökülür, güncel blok
+         * listenin başına kurulur.
+         */
+        _refreshRecents() {
+            if (!this._items || !this.rememberKey) return;
+            // Arama dizilimi aktifken çağrılmış olabilir (seçim anında sorgu
+            // doluydu): önce ORİJİNAL dizilişe dön ki aşağıdaki snapshot
+            // temiz (alfabetik) sırayı yakalasın; sondaki _filter gerekirse
+            // arama dizilimini yeniden uygular.
+            if (this._reordered && this._orderEls) {
+                const f = document.createDocumentFragment();
+                for (const el of this._orderEls) f.appendChild(el);
+                this.list.insertBefore(f, this.emptyEl);
+                this._reordered = false;
+            }
+            for (const el of this._recentEls) el.remove();
+            this._items = this._items.filter(it => !it.isRecent);
+            this._recentEls = [];
+            this._recentDecor = [];
+            const frag = this._buildRecentsFrag();
+            if (frag) this.list.insertBefore(frag, this.list.firstChild);
+            this._snapshotOrder();
+            this._syncSelected();
+            // Açıkken görünür küme/diziliş tutarlı kalsın
+            if (this.isOpen) this._filter(this.search.value);
+        }
+
+        /** v1.7 — localStorage'dan son seçilen ISO2 listesi (max 4). */
+        _loadRecents() {
+            if (!this.rememberKey) return [];
+            try {
+                const raw = localStorage.getItem("glint-phone:recents:" + this.rememberKey);
+                if (raw) {
+                    const arr = JSON.parse(raw);
+                    if (Array.isArray(arr)) {
+                        return arr.filter(s => typeof s === "string")
+                            .map(s => s.toUpperCase()).slice(0, 4);
+                    }
+                }
+            } catch (_) { /* gizli mod / kota → sessiz */ }
+            return [];
+        }
+
+        /** v1.7 — Seçimi hafızaya yaz: dedupe + başa ekle + 4 sınırı. */
+        _pushRecent(iso2) {
+            if (!this.rememberKey) return;
+            iso2 = String(iso2 || "").toUpperCase();
+            if (!iso2) return;
+            const arr = this._loadRecents().filter(i => i !== iso2);
+            arr.unshift(iso2);
+            if (arr.length > 4) arr.length = 4;
+            try {
+                localStorage.setItem("glint-phone:recents:" + this.rememberKey, JSON.stringify(arr));
+            } catch (_) { /* sessiz */ }
         }
 
         _buildOption(c, isPriority) {
             const li = document.createElement("li");
             li.className = "glint-phone-option";
-            li.id = this.listId + "-opt-" + this._items.length;
+            // v1.7 — id sayaçtan: recents tazelenince satırlar söküldüğü
+            // için _items.length id çakışması üretebilirdi.
+            li.id = this.listId + "-opt-" + (this._optSeq++);
             li.setAttribute("role", "option");
             li.setAttribute("aria-selected", "false");
 
@@ -12639,10 +16546,11 @@ window.Glint.phoneData = [
             const check = document.createElement("span");
             check.className = "glint-phone-option__check";
             check.setAttribute("aria-hidden", "true");
-            check.innerHTML = ICON_CHECK;
+            check.appendChild(checkIconNode());   // v1.7 — tek parse, ucuz clone
             li.appendChild(check);
 
-            const item = { c, el: li, isPriority };
+            // ord: kuruluş sırası (arama dizilişinde eş-rank tiebreak'i)
+            const item = { c, el: li, isPriority, nameEl: name, ord: this._items.length, hl: false };
             li._phItem = item;
             this._items.push(item);
             return li;
@@ -12663,7 +16571,12 @@ window.Glint.phoneData = [
         /**
          * Türkçe-duyarlı arama: TR ad + EN ad + ISO2 + dial rakamları
          * ("90", "turkey", "tr" hepsi Türkiye'yi bulur). Arama sırasında
-         * öncelikli (sabit) bölüm gizlenir — mükerrer sonuç olmasın.
+         * öncelikli/recents (sabit) bölüm gizlenir — mükerrer sonuç olmasın.
+         * v1.7 — Eşleşme vurgusu (<mark>) + sıralama: tam ISO2(0) <
+         * ad-prefix(1) < dial-prefix(2) < substring(3); eşitlikte kuruluş
+         * (alfabetik) sırası. Görünür satırlar DOM'da emptyEl önüne bu
+         * sırayla taşınır; sorgu boşalınca orijinal diziliş tek fragment'la
+         * geri gelir (sorgu boşken sıralamaya hiç girilmez).
          */
         _filter(q) {
             if (!this._items) return;
@@ -12679,17 +16592,49 @@ window.Glint.phoneData = [
                 else if (it.isPriority) show = false;
                 else {
                     const c = it.c;
-                    show = c.normTr.indexOf(nq) !== -1 ||
-                        c.normEn.indexOf(nq) !== -1 ||
-                        c.iso2.toLowerCase().indexOf(nq) !== -1 ||
-                        (!!qDigits && c.dial.indexOf(qDigits) === 0);
+                    const iTr = c.normTr.indexOf(nq);
+                    const iEn = c.normEn.indexOf(nq);
+                    const isoIdx = c.iso2.toLowerCase().indexOf(nq);
+                    const dialHit = !!qDigits && c.dial.indexOf(qDigits) === 0;
+                    show = iTr !== -1 || iEn !== -1 || isoIdx !== -1 || dialHit;
+                    if (show) {
+                        if (c.iso2.toLowerCase() === nq) it.rank = 0;
+                        else if (iTr === 0 || iEn === 0) it.rank = 1;
+                        else if (dialHit) it.rank = 2;
+                        else it.rank = 3;
+                    }
                 }
                 it.el.classList.toggle("is-hidden", !show);
+                // Vurgu — yalnız durumu değişen satırlara dokunulur (gizli
+                // satırların textContent'i sıfırlanır, tekrar tekrar değil).
+                if (hasQ && show) {
+                    highlightName(it.nameEl, this._name(it.c), nq);
+                    it.hl = true;
+                } else if (it.hl) {
+                    it.nameEl.textContent = this._name(it.c);
+                    it.hl = false;
+                }
                 if (show) { this._visible.push(it); any = true; }
             }
 
             if (this._sepEl) this._sepEl.classList.toggle("is-hidden", hasQ);
+            for (const d of this._recentDecor) d.classList.toggle("is-hidden", hasQ);
             this.emptyEl.style.display = any ? "none" : "block";
+
+            if (hasQ) {
+                // Prefix öne: rank artan; eş-rank'ta alfabetik (ord)
+                this._visible.sort((a, b) => (a.rank - b.rank) || (a.ord - b.ord));
+                const frag = document.createDocumentFragment();
+                for (const it of this._visible) frag.appendChild(it.el);
+                this.list.insertBefore(frag, this.emptyEl);   // tek reflow
+                this._reordered = true;
+            } else if (this._reordered) {
+                // Orijinal diziliş geri — tek fragment, tek reflow
+                const frag = document.createDocumentFragment();
+                for (const el of (this._orderEls || [])) frag.appendChild(el);
+                this.list.insertBefore(frag, this.emptyEl);
+                this._reordered = false;
+            }
 
             // Aktif satır: seçili ülke görünüyorsa o; değilse ilk satır
             let idx = this._visible.findIndex(it => it.c === this._country);
@@ -12700,9 +16645,14 @@ window.Glint.phoneData = [
         _setActive(visIndex, scroll) {
             this.activeIndex = visIndex;
             const active = this._visible[visIndex] || null;
-            for (const it of (this._items || [])) {
-                it.el.classList.toggle("is-active", it === active);
+            // v1.7 — O(1) toggle: 242 elemanlı sınıf döngüsü yerine yalnız
+            // önceki + yeni aktif satıra dokun (mousemove sıcak yolu).
+            const el = active ? active.el : null;
+            if (this._activeEl && this._activeEl !== el) {
+                this._activeEl.classList.remove("is-active");
             }
+            if (el) el.classList.add("is-active");
+            this._activeEl = el;
             if (active) {
                 this.search.setAttribute("aria-activedescendant", active.el.id);
                 this.trigger.setAttribute("aria-activedescendant", active.el.id);
@@ -12732,6 +16682,17 @@ window.Glint.phoneData = [
                     break;
                 case "Escape":
                     if (this.isOpen) { e.preventDefault(); this.close(); }
+                    break;
+                default:
+                    // v1.7 — Type-ahead: yazdırılabilir tek karakter popover'ı
+                    // açar ve aramaya tohum olur (yerleşik <select>'in 'harf
+                    // bas → o harfe atla' alışkanlığı). IME kompozisyonu ve
+                    // kısayol kombinasyonları elenir.
+                    if (!this.isOpen && e.key && e.key.length === 1 &&
+                        !e.ctrlKey && !e.metaKey && !e.altKey && !e.isComposing) {
+                        e.preventDefault();
+                        this.open(e.key);
+                    }
                     break;
             }
         }
@@ -12775,6 +16736,12 @@ window.Glint.phoneData = [
         _choose(item) {
             if (!item) return;
             this.setCountry(item.c.iso2, "user");
+            // v1.7 — SALT OPT-IN hafıza: data-remember verildiyse seçim
+            // localStorage'a yazılır + listedeki recents bölümü tazelenir.
+            if (this.rememberKey) {
+                this._pushRecent(item.c.iso2);
+                this._refreshRecents();
+            }
             this.close();
             // Kullanıcı numara yazmaya hemen devam edebilsin
             this.input.focus({ preventScroll: true });
@@ -12782,23 +16749,52 @@ window.Glint.phoneData = [
 
         // ── POPOVER: AÇ / KAPAT / KONUMLANDIR ───────────────────────
 
-        open() {
+        /**
+         * v1.7 — `seed`: type-ahead tohumu; verilirse arama kutusuna yazılıp
+         * liste onunla filtrelenmiş açılır (trigger'da harf basımı).
+         */
+        open(seed) {
             if (this.isOpen || this.trigger.disabled) return;
             this._buildList();
             this.isOpen = true;
             this.group.classList.add("glint-phone-open");
             this.trigger.setAttribute("aria-expanded", "true");
+            this.backdrop.classList.add("is-open");
 
-            this.search.value = "";
-            this._filter("");
+            this.search.value = seed || "";
+            this._filter(this.search.value);
             this._position();
 
             requestAnimationFrame(() => {
                 if (!this.isOpen) return;
                 this.popover.classList.add("is-open");
+                // v1.7 — İlk açılış konumu: seçili satır liste ORTASINA gelir
+                // (önceki/sonraki ülkeler bağlam olarak görünür). scrollTop
+                // elle hesaplanır: scrollIntoView({block:'center'}) scrollable
+                // ATALARI da (sayfayı) kaydırabilirdi. Klavye gezinmesindeki
+                // 'nearest' (_setActive) korunur.
                 const it = this._visible[this.activeIndex];
-                if (it) it.el.scrollIntoView({ block: "nearest" });
-                this.search.focus();
+                if (it) {
+                    // Rect farkı ile hesap: offsetTop kullanılamaz — listenin
+                    // `contain: content`'i ul'u offsetParent yapar (popover
+                    // değil) ve karışık referanslar merkezi ~50px kaydırırdı.
+                    const l = this.list;
+                    const lr = l.getBoundingClientRect();
+                    const sr = it.el.getBoundingClientRect();
+                    l.scrollTop = Math.max(0, l.scrollTop + (sr.top - lr.top) -
+                        (l.clientHeight - sr.height) / 2);
+                }
+                // v1.7 — Odak politikası: coarse pointer'da (mobil) otomatik
+                // odak YOK — klavye ancak kullanıcı arama kutusuna dokununca
+                // açılır; sheet ~70vh olduğundan liste parmakla kaydırılır.
+                if (!window.matchMedia("(pointer: coarse)").matches) {
+                    this.search.focus();
+                    if (this.search.value) {
+                        const n = this.search.value.length;
+                        try { this.search.setSelectionRange(n, n); } catch (_) { }
+                    }
+                }
+                this._drawSearchAccent();
             });
         }
 
@@ -12806,10 +16802,56 @@ window.Glint.phoneData = [
             if (!this.isOpen) return;
             this.isOpen = false;
             this.popover.classList.remove("is-open");
+            this.backdrop.classList.remove("is-open");
             this.group.classList.remove("glint-phone-open");
             this.trigger.setAttribute("aria-expanded", "false");
             this.trigger.removeAttribute("aria-activedescendant");
             this.search.removeAttribute("aria-activedescendant");
+            if (this._accentSvg) { this._accentSvg.remove(); this._accentSvg = null; }
+        }
+
+        /**
+         * v1.7 — Açılış töreni: arama kutusunun altında ince aksan çizgisi
+         * soldan sağa border-draw ile akar, görevini yapıp zarifçe söner
+         * (picker'ın _drawPanelBorder dilinin küçültülmüş kopyası).
+         */
+        _drawSearchAccent() {
+            const G = window.Glint;
+            if (G && typeof G.reducedMotion === "function" && G.reducedMotion()) return;
+            if (this._accentSvg) { this._accentSvg.remove(); this._accentSvg = null; }
+            const wrap = this.search.parentElement;
+            if (!wrap) return;
+            const W = wrap.offsetWidth - 12;   // CSS: left 6px + width calc(100% - 12px)
+            if (W <= 0) return;
+            const NS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(NS, "svg");
+            svg.setAttribute("class", "glint-phone-search-accent");
+            svg.setAttribute("viewBox", "0 0 " + W + " 2");
+            svg.setAttribute("preserveAspectRatio", "none");
+            const p = document.createElementNS(NS, "path");
+            p.setAttribute("d", "M 1 1 L " + (W - 1) + " 1");
+            svg.appendChild(p);
+            wrap.appendChild(svg);
+            this._accentSvg = svg;
+            const len = W - 2;
+            p.style.strokeDasharray = len;
+            p.style.strokeDashoffset = len;
+            try {
+                // 60ms gecikme: perde ~%35 açıldıktan sonra çizim başlar
+                p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+                    { duration: 360, delay: 60, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" });
+            } catch (_) { p.style.strokeDashoffset = 0; }
+            try {
+                svg.animate(
+                    [{ opacity: 1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }],
+                    { duration: 900, easing: "ease-out", fill: "forwards" }
+                ).finished.then(() => {
+                    if (this._accentSvg === svg) { svg.remove(); this._accentSvg = null; }
+                }).catch(() => { });
+            } catch (_) {
+                svg.remove();
+                if (this._accentSvg === svg) this._accentSvg = null;
+            }
         }
 
         toggle() { this.isOpen ? this.close() : this.open(); }
@@ -12820,6 +16862,14 @@ window.Glint.phoneData = [
          * kısıtlanır (mobil klavye açıkken taşma olmasın).
          */
         _position() {
+            // v1.7 — Bottom-sheet modu (≤768px): konum/ölçü tamamen CSS'te
+            // (fixed + bottom 0 + !important); inline ölçüler temizlenir ki
+            // sheet CSS'i kazansın ve gereksiz hesap yapılmasın.
+            if (window.matchMedia("(max-width: 768px)").matches) {
+                this.list.style.maxHeight = "";
+                this.popover.style.width = "";
+                return;
+            }
             const rect = this.group.getBoundingClientRect();
             const vv = window.visualViewport;
             const vpH = vv ? vv.height : window.innerHeight;
@@ -12905,7 +16955,19 @@ window.Glint.phoneData = [
             if (this._ac) { this._ac.abort(); this._ac = null; }
             if (this._ro) { this._ro.disconnect(); this._ro = null; }
 
+            // v1.7 — bekleyen ısınma / settle zamanlayıcıları
+            if (this._idleWarm) {
+                if (this._idleWarm.idle && typeof window.cancelIdleCallback === "function") {
+                    window.cancelIdleCallback(this._idleWarm.id);
+                } else if (!this._idleWarm.idle) {
+                    clearTimeout(this._idleWarm.id);
+                }
+                this._idleWarm = null;
+            }
+            clearTimeout(this._settleTimer);
+
             if (this.popover) { this.popover.remove(); this.popover = null; }
+            if (this.backdrop) { this.backdrop.remove(); this.backdrop = null; }
             if (this.trigger) { this.trigger.remove(); this.trigger = null; }
             if (this.hidden) { this.hidden.remove(); this.hidden = null; }
 
@@ -13066,6 +17128,12 @@ window.Glint.phoneData = [
     /** Benzersiz id üretici (aria-controls / option id'leri için). */
     function uid(prefix) { return (prefix || "glint") + "-" + (++_uid) + "-" + Date.now().toString(36); }
 
+    // v1.7.1 — CANLI hareket kapısı (çekirdeğin tek kaynağı; çağrı anında
+    // değerlendirilir — Glint.configure({reducedMotion}) remount istemez).
+    const prefersReduced = () => (window.Glint && window.Glint.reducedMotion)
+        ? window.Glint.reducedMotion()
+        : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     /**
      * "Türkçe duyarlı" küçültme — filtre eşleştirmesi için.
      * toLocaleLowerCase("tr") → İ→i doğru; açık ı→i; NFD ayrıştırması
@@ -13151,6 +17219,21 @@ window.Glint.phoneData = [
             this.maxItems = (!isNaN(mi) && mi > 0) ? mi : 8;
             this.emptyText = group.getAttribute("data-empty-text") || "Sonuç yok";
 
+            // v1.7.1 — ÇOKLU SEÇİM (data-multiple, kullanıcı isteği):
+            // seçimler grubun hemen ALTINDAKİ chip tepsisinde birikir (Tags
+            // görsel dili); input SERBEST ARAMA metni olarak kalır. Form
+            // binding: her değer için gizli input (name = data-hidden-name,
+            // yoksa inputun name'i chip'lere DEVREDİLİR — arama metni submit
+            // edilmez; MVC'de List<string> bağlanır). Enter vurgusuz + metin
+            // doluyken serbest metni chip yapar; Backspace boş inputta son
+            // chip'i siler; seçili satıra tekrar tıklamak seçimi kaldırır.
+            this.multiple = group.hasAttribute("data-multiple");
+            this._values = [];        // [{value, label}] — sıralı seçimler
+            this._chipsEl = null;     // chip tepsisi (grubun kardeşi, akışta)
+            this._hiddenName = group.getAttribute("data-hidden-name") ||
+                (this.multiple ? (input.getAttribute("name") || "") : "");
+            this._nameMoved = false;
+
             // (c) opsiyonel async adaptör — KULLANICI fonksiyonu.
             // Kütüphane fetch/XHR YAPMAZ; async yalnız bu fonksiyonla olur.
             const fnPath = group.getAttribute("data-source-fn");
@@ -13181,6 +17264,25 @@ window.Glint.phoneData = [
 
             this._collectOptions();
             this._bind();
+            if (this.multiple) {
+                this._buildChips();
+                // Arama metni form'a gitmesin: name gizli inputlara devredilir
+                // (data-hidden-name verilmişse inputun name'ine DOKUNULMAZ).
+                if (!group.getAttribute("data-hidden-name") && this._nameMoved === false &&
+                    this._hiddenName && input.getAttribute("name") === this._hiddenName) {
+                    input.removeAttribute("name");
+                    this._nameMoved = true;
+                }
+                // Başlangıç seçimleri: grupta data-value="a,b" (opsiyonel)
+                const init = group.getAttribute("data-value");
+                if (init) {
+                    init.split(",").map(s => s.trim()).filter(Boolean)
+                        .forEach(v => {
+                            const opt = this.options.find(o => o.value === v);
+                            this._addValue(v, opt ? opt.label : v, false);
+                        });
+                }
+            }
             // DİKKAT: grup WeakMap anahtarı GlintInput'a ait (register(group)).
             // Çakışmamak için stepper deseniyle INPUT üzerinden kaydoluruz;
             // paylaşılan teardown observer'ı input kaldırılınca destroy() çağırır.
@@ -13265,7 +17367,15 @@ window.Glint.phoneData = [
         _onKey(e) {
             if (e.key === "ArrowDown") {
                 e.preventDefault();
-                if (!this._open) this._lookup();  // kapalıyken ↓ = listeyi aç
+                if (!this._open) {
+                    // v1.7.1 çoklu mod (yerel kaynak): boş/eşik-altı sorguda da
+                    // ↓ tam listeyi açar (Select-multi hissi); tekli modda ve
+                    // async kaynakta eşik kuralları geçerli kalır.
+                    if (this.multiple && !this.sourceFn &&
+                        this.input.value.trim().length < this.minChars) {
+                        this._show(this._localFilter(""), "");
+                    } else this._lookup();
+                }
                 else this._move(1);
                 return;
             }
@@ -13277,7 +17387,20 @@ window.Glint.phoneData = [
                 // Vurgulu satır varsa seç; yoksa SERBEST METİN olduğu gibi
                 // kalır (combobox sözleşmesi) — form submit engellenmez.
                 if (this._open && this._idx > -1) { e.preventDefault(); this._choose(this._idx); }
+                else if (this.multiple && this.input.value.trim()) {
+                    // v1.7.1 çoklu mod: vurgusuz Enter serbest metni chip yapar
+                    e.preventDefault();
+                    this._select(this.input.value.trim(), this.input.value.trim());
+                }
                 else if (this._open) this._close();
+                return;
+            }
+            if (e.key === "Backspace") {
+                // v1.7.1 çoklu mod: boş inputta Backspace son chip'i siler
+                if (this.multiple && !this.input.value && this._values.length) {
+                    e.preventDefault();
+                    this._removeValue(this._values[this._values.length - 1].value);
+                }
                 return;
             }
             if (e.key === "Escape") {
@@ -13361,6 +17484,7 @@ window.Glint.phoneData = [
             const ul = document.createElement("ul");
             ul.className = "glint-combobox__list";
             ul.setAttribute("role", "listbox");
+            if (this.multiple) ul.setAttribute("aria-multiselectable", "true"); // v1.7.1
             const labEl = this.group.querySelector(".glint-label");
             ul.setAttribute("aria-label",
                 ((labEl && labEl.textContent.trim()) || this.input.name || "Öneriler"));
@@ -13407,7 +17531,11 @@ window.Glint.phoneData = [
                 li.className = "glint-combobox__item";
                 li.id = this._popId + "-opt-" + i;
                 li.setAttribute("role", "option");
-                li.setAttribute("aria-selected", "false");
+                // v1.7.1 çoklu mod: aria-selected SEÇİMİ anlatır (aktiflik
+                // aria-activedescendant'ta); seçili satır işaretlenir.
+                const sel = this.multiple && this._values.some(v => v.value === o.value);
+                li.setAttribute("aria-selected", sel ? "true" : "false");
+                if (sel) li.classList.add("is-selected");
                 this._highlight(li, o.label, nq);
                 this.list.appendChild(li);
                 this.items.push({ value: o.value, label: o.label, el: li });
@@ -13476,7 +17604,15 @@ window.Glint.phoneData = [
             this.pop.style.width = rect.width + "px";
             const popH = this.pop.offsetHeight || 200;
             const margin = 6;
-            let top = rect.bottom + margin;
+            // v1.7.1 çoklu mod: chip tepsisi grubun altında yaşar — popover
+            // TEPSİNİN altına demirlenir ki seçimler liste açıkken de görünsün
+            // (aksi halde popover chip'leri örter; × butonu tıklanamaz olur).
+            let anchorBottom = rect.bottom;
+            if (this.multiple && this._chipsEl && this._values.length) {
+                const tr = this._chipsEl.getBoundingClientRect();
+                if (tr.bottom > anchorBottom) anchorBottom = tr.bottom;
+            }
+            let top = anchorBottom + margin;
             let flip = false;
             if (top + popH > window.innerHeight - 12 && rect.top - margin - popH > 12) {
                 top = rect.top - popH - margin;
@@ -13493,18 +17629,19 @@ window.Glint.phoneData = [
 
         // ── Klavye vurgusu & seçim ────────────────────────────────
 
-        /** Vurguyu dir kadar oynat (döngüsel; aria-activedescendant). */
+        /** Vurguyu dir kadar oynat (döngüsel; aria-activedescendant).
+         *  v1.7.1: çoklu modda aria-selected SEÇİME aittir — vurgu onu ezmez. */
         _move(dir) {
             const n = this.items.length;
             if (!n) return;
             if (this._idx > -1 && this.items[this._idx]) {
                 this.items[this._idx].el.classList.remove("is-active");
-                this.items[this._idx].el.setAttribute("aria-selected", "false");
+                if (!this.multiple) this.items[this._idx].el.setAttribute("aria-selected", "false");
             }
             this._idx = (this._idx + dir + n) % n;
             const it = this.items[this._idx];
             it.el.classList.add("is-active");
-            it.el.setAttribute("aria-selected", "true");
+            if (!this.multiple) it.el.setAttribute("aria-selected", "true");
             it.el.scrollIntoView({ block: "nearest" });
             this.input.setAttribute("aria-activedescendant", it.el.id);
         }
@@ -13515,8 +17652,26 @@ window.Glint.phoneData = [
             this._select(it.value, it.label);
         }
 
-        /** Seçimi input'a yaz; input+change + glint:combobox-select yayınla. */
+        /** Seçimi işle. Tekli: input'a yaz + kapat. Çoklu (v1.7.1): chip'e
+         *  ekle/çıkar (toggle), arama metnini temizle, liste açık kalır. */
         _select(value, label) {
+            if (this.multiple) {
+                const existed = this._values.some(v => v.value === value);
+                if (existed) this._removeValue(value);
+                else this._addValue(value, label, true);
+                // Arama metnini temizle (overlay senkron kalsın)
+                this._silent = true;
+                this.input.value = "";
+                this.input.dispatchEvent(new Event("input", { bubbles: true }));
+                this._silent = false;
+                if (!existed) this._emit("glint:combobox-select", { value, label });
+                this.input.focus();
+                // Yerel kaynakta liste açık kalır ve tam listeyi gösterir
+                // (Select-multi hissi); async kaynakta yeni sorgu beklenir.
+                if (!this.sourceFn) this._show(this._localFilter(""), "");
+                else this._close();
+                return;
+            }
             this._silent = true;   // kendi input event'imiz filtreyi tetiklemesin
             this.input.value = value;
             // GlintInput overlay'i + form binding senkronize kalsın
@@ -13526,6 +17681,88 @@ window.Glint.phoneData = [
             this._emit("glint:combobox-select", { value, label });
             this._close();
             this.input.focus();
+        }
+
+        // ── v1.7.1: çoklu seçim — chip tepsisi + gizli inputlar ──
+
+        /** Chip tepsisini grubun HEMEN ALTINA (kardeş, normal akış) kur.
+         *  Grubun İÇİNE konmaz: çizilen border/overlay alanı büyümesin. */
+        _buildChips() {
+            const el = document.createElement("div");
+            el.className = "glint-combobox-chips";
+            el.setAttribute("data-glint-created", "");
+            el.setAttribute("role", "list");
+            const labEl = this.group.querySelector(".glint-label");
+            el.setAttribute("aria-label",
+                ((labEl && labEl.textContent.trim()) || "Seçimler") + " — seçilenler");
+            this.group.insertAdjacentElement("afterend", el);
+            this._chipsEl = el;
+            el.addEventListener("click", (e) => {
+                const btn = e.target.closest(".glint-combobox-chip__remove");
+                if (!btn) return;
+                this._removeValue(btn.getAttribute("data-value"));
+                this.input.focus();
+            }, { signal: this._ac.signal });
+        }
+
+        _addValue(value, label, animate) {
+            if (!value || this._values.some(v => v.value === value)) return;
+            this._values.push({ value, label: label || value });
+            this._renderChips(animate ? value : null);
+            this._emit("glint:combobox-change", { values: this._values.map(v => v.value) });
+        }
+
+        _removeValue(value) {
+            const i = this._values.findIndex(v => v.value === value);
+            if (i === -1) return;
+            this._values.splice(i, 1);
+            this._renderChips(null);
+            // Açık listede seçim işaretini tazele
+            if (this._open && this.items.length) {
+                this.items.forEach(it => {
+                    const sel = this._values.some(v => v.value === it.value);
+                    it.el.classList.toggle("is-selected", sel);
+                    it.el.setAttribute("aria-selected", sel ? "true" : "false");
+                });
+            }
+            this._emit("glint:combobox-change", { values: this._values.map(v => v.value) });
+        }
+
+        /** Chip'leri + gizli inputları yeniden çiz (tek doğruluk: _values). */
+        _renderChips(animValue) {
+            const box = this._chipsEl;
+            if (!box) return;
+            box.textContent = "";
+            const frag = document.createDocumentFragment();
+            this._values.forEach(({ value, label }) => {
+                const chip = document.createElement("span");
+                chip.className = "glint-combobox-chip";
+                chip.setAttribute("role", "listitem");
+                if (animValue === value && !prefersReduced()) chip.classList.add("is-entering");
+                const txt = document.createElement("span");
+                txt.className = "glint-combobox-chip__label";
+                txt.textContent = label;                    // textContent → XSS'e kapalı
+                chip.appendChild(txt);
+                const rm = document.createElement("button");
+                rm.type = "button";
+                rm.className = "glint-combobox-chip__remove";
+                rm.setAttribute("data-value", value);
+                rm.setAttribute("aria-label", "Kaldır: " + label);
+                rm.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+                chip.appendChild(rm);
+                frag.appendChild(chip);
+                if (this._hiddenName) {
+                    const h = document.createElement("input");
+                    h.type = "hidden";
+                    h.name = this._hiddenName;
+                    h.value = value;
+                    frag.appendChild(h);
+                }
+            });
+            box.appendChild(frag);
+            box.classList.toggle("is-empty", this._values.length === 0);
+            // Tepsi yüksekliği değişti — açık popover yeni tabana otursun
+            if (this._open) this._position();
         }
 
         _emit(name, detail) {
@@ -13541,6 +17778,23 @@ window.Glint.phoneData = [
         open() { this._lookup(); }
         /** Listeyi kapat. */
         close() { this._close(); }
+
+        /** v1.7.1 — çoklu mod: seçili değerler (kopya dizi). */
+        get values() { return this._values.map(v => v.value); }
+
+        /** v1.7.1 — çoklu mod: seçimleri programatik kur (fire=false → event yok). */
+        setValues(arr, fire) {
+            if (!this.multiple) return;
+            this._values = [];
+            (Array.isArray(arr) ? arr : []).forEach(v => {
+                const val = String(v).trim();
+                if (!val || this._values.some(x => x.value === val)) return;
+                const opt = this.options.find(o => o.value === val);
+                this._values.push({ value: val, label: opt ? opt.label : val });
+            });
+            this._renderChips(null);
+            if (fire !== false) this._emit("glint:combobox-change", { values: this.values });
+        }
 
         /** Yaşam döngüsü teardown — tam temizlik. */
         destroy() {
@@ -13560,6 +17814,14 @@ window.Glint.phoneData = [
             }
             // autocomplete'i biz eklediysek kaldır (kullanıcınınkine dokunma)
             if (this._autoOff) { this.input.removeAttribute("autocomplete"); this._autoOff = false; }
+            // v1.7.1 çoklu mod temizliği: chip tepsisi (gizli inputlar içinde)
+            // kaldırılır; devredilen name inputa iade edilir.
+            if (this._chipsEl) { this._chipsEl.remove(); this._chipsEl = null; }
+            if (this._nameMoved && this._hiddenName) {
+                this.input.setAttribute("name", this._hiddenName);
+                this._nameMoved = false;
+            }
+            this._values = [];
             // Guard reset → element yeniden mount olabilir (SPA/partial view)
             this.group._glintComboInit = false;
             this.group._glintComboInstance = null;
@@ -14352,6 +18614,4341 @@ window.Glint.phoneData = [
 
     // Güvenli yükleme-sırası guard'ı: çekirdek (glint-input.js) önce
     // yüklenmiş olmalı. Değilse DOMContentLoaded'da tekrar dene.
+    if (window.Glint && window.Glint.defineComponent) {
+        register();
+    } else {
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.Glint && window.Glint.defineComponent) register();
+        });
+    }
+
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+ *  13) IBAN — Uluslararası banka hesap numarası girişi
+ *     (v1.7'de ana dosyaya birleştirildi — kaynak paket: src-v17/iban.js)
+ * ════════════════════════════════════════════════════════════════════════ */
+/**
+ * Glint IBAN
+ * ─────────────────────────────────────────────────────────────
+ * glint-input.js çekirdeğinin (Glint.defineComponent) uzantısı.
+ * Saf vanilla, sıfır bağımlılık, AĞ İSTEĞİ YOK.
+ *
+ * API:       window.Glint.Iban
+ * Selector:  input[data-glint-iban]   (.glint-input-group içinde)
+ *            Grup CLAIM EDİLİR (picker deseni): IBAN modülü input'u
+ *            biçimlemeye hazırladıktan SONRA GlintInput'u KENDİSİ başlatır
+ *            (`group._glintInit` guard'ı) → overlay/border ilk andan
+ *            biçimli değeri okur (kartın rAF-resync ihtiyacı doğmaz).
+ *            Çekirdek bizden önce davranmışsa (dinamik ekleme: observer
+ *            sırası input-group → iban) zenginleştirme moduna düşülür
+ *            ve overlay kart desenindeki gibi resync edilir.
+ * Events:    glint:iban-complete {valid, country, iban, formatted}
+ *            (grup üzerinde, bubbles — kartın glint:card-complete deseni)
+ * Örnek API: inst = Glint.Iban.get(input)  →  .iban / .country / .isValid
+ *            / .value (setter biçimleyici hattan geçer) / .destroy()
+ *
+ * Davranış özeti:
+ *   • Otomatik BÜYÜK HARF + canlı 4'lü gruplama: "TR12 3456 …".
+ *   • Yapıştırma normalizasyonu: boşluk/tire/nokta vb. ayıklanır.
+ *   • Caret koruması: anlamlı-karakter (harf+rakam) sayım deseni
+ *     (telefon/karttaki Glint.format.restoreCaret hattı).
+ *   • Doğrulama ISO 7064 mod-97: BigInt YOK — string üzerinde parça
+ *     parça mod alınır. ~60 ülkelik resmi uzunluk tablosu gömülü
+ *     (TR=26 öncelikli); bilinmeyen ülke = yalnız mod-97.
+ *   • Tam uzunlukta: geçerli → yeşil kenar (.glint-iban-valid) +
+ *     glint:iban-complete; geçersiz → GlintInput.setError (kart deseni).
+ *     Silmeye başlayınca durum/hata temizlenir.
+ *   • data-raw-name → gizli input'a BOŞLUKSUZ IBAN (asp-for/binding).
+ *   • data-countries="TR" (veya "TR,DE") → yalnız listedeki ülke
+ *     kodlarıyla başlayan IBAN girilebilir; ret mikro-sarsıntıyla anlatılır.
+ *   • data-copy → sağda kopyalama aksiyon butonu (biçimli değeri kopyalar,
+ *     onayda ikon fade-swap + aria-live duyurusu).
+ *
+ * ── DEMO (saf HTML) ─────────────────────────────────────────────
+ *   <link rel="stylesheet" href="glint-input.css">
+ *   <div class="glint-input-group" data-raw-name="IbanRaw">
+ *     <input class="glint-input" type="text" id="iban" name="Iban"
+ *            data-glint-iban data-copy>
+ *     <label class="glint-label" for="iban">IBAN</label>
+ *   </div>
+ *   <script src="glint-input.js"></script>
+ *   <script>
+ *     document.addEventListener("glint:iban-complete", (e) => {
+ *       console.log("iban:", e.detail.valid, e.detail.country, e.detail.iban);
+ *     });
+ *   </script>
+ *
+ * ── Razor (ASP.NET Core MVC) ────────────────────────────────────
+ *   @* Iban görüntü değeri; IbanRaw boşluksuz elektronik biçim (binding) *@
+ *   <div class="glint-input-group" data-raw-name="IbanRaw">
+ *     <input asp-for="Iban" class="glint-input" data-glint-iban
+ *            data-countries="TR" data-copy>
+ *     <label asp-for="Iban" class="glint-label">IBAN</label>
+ *   </div>
+ */
+
+(function () {
+    "use strict";
+
+    // ── SABİTLER ──
+
+    /**
+     * IBAN uzunluk tablosu (ISO 13616 kayıt defteri, ülke kodu → toplam
+     * uzunluk). TR=26 ÖNCELİKLİ (ana pazar); geri kalanı yaygın kullanım
+     * sırasına değil alfabetik okunabilirliğe göre. Tabloda OLMAYAN ülke
+     * kodu → uzunluk bilinmez, yalnız mod-97 doğrulanır (spec kuralı).
+     */
+    const IBAN_LENGTHS = {
+        TR: 26,
+        AD: 24, AE: 23, AL: 28, AT: 20, AZ: 28, BA: 20, BE: 16, BG: 22,
+        BH: 22, BR: 29, CH: 21, CY: 28, CZ: 24, DE: 22, DK: 18, EE: 20,
+        EG: 29, ES: 24, FI: 18, FO: 18, FR: 27, GB: 22, GE: 22, GI: 23,
+        GL: 18, GR: 27, HR: 21, HU: 28, IE: 22, IL: 23, IS: 26, IT: 27,
+        JO: 30, KW: 30, KZ: 20, LB: 28, LI: 21, LT: 20, LU: 20, LV: 21,
+        MC: 27, MD: 24, ME: 22, MK: 19, MT: 31, NL: 18, NO: 15, PK: 24,
+        PL: 28, PT: 25, QA: 29, RO: 24, RS: 22, SA: 24, SE: 24, SI: 19,
+        SK: 24, SM: 27, UA: 29, VA: 22, XK: 20
+    };
+
+    /** ISO 13616 sınırları: en kısa kayıtlı IBAN 15 (NO), mutlak tavan 34. */
+    const IBAN_MIN = 15;
+    const IBAN_MAX = 34;
+
+    // ── SAF YARDIMCILAR (test edilebilir — Glint.Iban.* olarak da açılır) ──
+
+    /** Girdiyi elektronik biçime indirger: büyük harf + yalnız [A-Z0-9]. */
+    function normalizeIban(s) {
+        return String(s == null ? "" : s).toUpperCase().replace(/[^0-9A-Z]/g, "");
+    }
+
+    /**
+     * ISO 7064 mod-97-10 kalanı. BigInt KULLANILMAZ: ilk 4 karakter sona
+     * taşınır, harfler 2 haneli sayıya (A=10 … Z=35) açılır ve kalan her
+     * adımda 97'ye göre indirgenir (rem her an < 97 → 97*100+35 taşmaz).
+     * Geçerli IBAN'da kalan 1'dir. Geçersiz karakterde -1 döner.
+     */
+    function ibanMod97(iban) {
+        const raw = normalizeIban(iban);
+        if (raw.length < 5) return -1;
+        const s = raw.slice(4) + raw.slice(0, 4);
+        let rem = 0;
+        for (let i = 0; i < s.length; i++) {
+            const c = s.charCodeAt(i);
+            if (c >= 48 && c <= 57) rem = (rem * 10 + (c - 48)) % 97;        // rakam
+            else if (c >= 65 && c <= 90) rem = (rem * 100 + (c - 55)) % 97;  // harf → 2 hane
+            else return -1;
+        }
+        return rem;
+    }
+
+    /**
+     * Tam geçerlilik: yapı ("AA00…") + uzunluk (tabloda varsa birebir,
+     * yoksa 15–34 aralığı) + mod-97 == 1.
+     */
+    function isValidIban(iban) {
+        const raw = normalizeIban(iban);
+        if (!/^[A-Z]{2}[0-9]{2}/.test(raw)) return false;
+        const expected = IBAN_LENGTHS[raw.slice(0, 2)];
+        if (expected ? raw.length !== expected
+                     : (raw.length < IBAN_MIN || raw.length > IBAN_MAX)) return false;
+        return ibanMod97(raw) === 1;
+    }
+
+    /** 4'lü gruplama: "TR330006…" → "TR33 0006 …" (kâğıt biçimi). */
+    function groupIban(raw) {
+        return raw.replace(/(.{4})/g, "$1 ").trim();
+    }
+
+    /** Dizgideki anlamlı (harf/rakam) karakter sayısı — caret matematiği. */
+    function countSig(s) {
+        let n = 0;
+        for (let i = 0; i < s.length; i++) {
+            if (/[0-9a-z]/i.test(s[i])) n++;
+        }
+        return n;
+    }
+
+    /**
+     * Caret koruması — çekirdeğin Glint.format.restoreCaret'i (GlintFormat,
+     * bölüm 4; aynı dosyada — ayrık paketin yerel kopyası merge'de atıldı).
+     * Regex hem eski (henüz küçük harfli olabilir) hem yeni (büyük harfli)
+     * değerde eşleşmeli → /[0-9a-z]/i.
+     */
+    function restoreCaret(oldValue, oldCaret, newValue) {
+        return window.Glint.format.restoreCaret(oldValue, oldCaret, newValue, /[0-9a-z]/i);
+    }
+
+    // ── İKONLAR ──
+    // Kütüphanenin ikon dili: minimal monokrom, stroke tabanlı, currentColor.
+    const ICON_COPY =
+        '<svg class="glint-iban-ic-copy" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<rect x="9" y="9" width="11.5" height="11.5" rx="2.5"/>' +
+        '<path d="M5.5 14.5h-1a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg>';
+    const ICON_CHECK =
+        '<svg class="glint-iban-ic-check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M4.5 12.5l5 5 10-11"/></svg>';
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  GlintIban
+    // ══════════════════════════════════════════════════════════════
+    /**
+     * Kullanım:
+     *   <div class="glint-input-group" data-raw-name="IbanRaw">
+     *     <input class="glint-input" type="text" id="iban"
+     *            data-glint-iban            ← opt-in (zorunlu)
+     *            data-countries="TR"        ← opsiyonel ülke kısıtı ("TR,DE")
+     *            data-copy>                 ← opsiyonel kopyalama butonu
+     *     <label class="glint-label" for="iban">IBAN</label>
+     *   </div>
+     *   data-raw-name / data-countries / data-copy input'ta da grupta da
+     *   verilebilir (input öncelikli).
+     */
+    class GlintIban {
+
+        constructor(input) {
+            if (!input || input._glintIbanInit) return;
+            const group = input.closest && input.closest(".glint-input-group");
+            if (!group) {
+                console.warn("[Glint:iban] input[data-glint-iban] bir .glint-input-group içinde olmalı.");
+                return;
+            }
+            input._glintIbanInit = true;
+            this.input = input;
+            this.group = group;
+
+            // Grubu sahiplen (picker deseni): base input-group taraması bu
+            // grubu atlar; GlintInput'u AŞAĞIDA biz başlatırız. Çekirdek
+            // bizden önce mount ettiyse (dinamik ekleme) zaten geç kalınmıştır
+            // → zenginleştirme moduna düşülür (kart deseni).
+            const G = window.Glint;
+            const coreWasMounted = !!group._glintInit;
+            if (G && typeof G.claimGroup === "function") G.claimGroup(group);
+
+            // — Konfigürasyon (input öncelikli, sonra grup) —
+            const attr = (name) => input.getAttribute(name) != null
+                ? input.getAttribute(name)
+                : group.getAttribute(name);
+            const countriesRawAttr = attr("data-countries");
+            this._allowed = countriesRawAttr
+                ? countriesRawAttr.toUpperCase().split(/[\s,;]+/).filter(c => /^[A-Z]{2}$/.test(c))
+                : null;
+            if (this._allowed && !this._allowed.length) this._allowed = null;
+            this._copyOptIn = input.hasAttribute("data-copy") || group.hasAttribute("data-copy");
+            this._rawName = attr("data-raw-name");
+
+            // — Sonradan eklenen attribute'lar destroy'da geri alınır
+            //   (mevcut olanlar ASLA ezilmez — stepper/kart deseni). —
+            this._addedAttrs = [];
+            this._ensureAttr(input, "autocapitalize", "characters"); // mobil: büyük harf klavye
+            this._ensureAttr(input, "autocomplete", "off");
+            this._ensureAttr(input, "spellcheck", "false");
+            this._ensureAttr(input, "autocorrect", "off");
+
+            // IBAN blokları hizalı aksın: tabular rakamlar hem native input'a
+            // hem (varsa) çekirdek overlay'ine BİRLİKTE uygulanır — tek tarafa
+            // uygulanırsa glif genişlikleri ayrışır ve caret kayar.
+            this._prevFontVariant = input.style.fontVariantNumeric;
+            input.style.fontVariantNumeric = "tabular-nums";
+
+            // — Durum —
+            this._raw = "";
+            this._prevVal = input.value;
+            this._prevRaw = normalizeIban(input.value);
+            this._valid = false;
+            this._errored = false;
+            this._lastCompleteKey = "";   // aynı değer için event tekrarı guard'ı
+            this._nudgeAt = 0;            // ret sarsıntısı gaz kelebeği
+            this._copyTimer = null;
+
+            this._buildRawInput();
+            this._bind();
+
+            // İlk (server-render) değer: biçim + doğrulama + ham senkron.
+            // GlintInput'tan ÖNCE çalışır (claim yolu) → overlay biçimli doğar.
+            this._applyFormat(null);
+
+            // — GlintInput'u display üzerinde init et (picker deseni) —
+            if (G && G.Input && !group._glintInit) {
+                group._glintInit = true;
+                new G.Input(group);
+                // İlk değer hatası GlintInput'tan ÖNCE (asgari yedekle)
+                // basılmış olabilir → şimdi zengin hattan yeniden anlat
+                // (border-path rengi + mesaj + erişilebilirlik bağı).
+                if (this._errored) this._setFieldError(input, this._lastErrorMsg);
+            }
+
+            // — Opsiyonel kopyalama aksiyonu (GlintInput'un kendi aksiyonları
+            //   kurulduktan sonra: mevcutları SAYARAK yuva/padding hesabı) —
+            if (this._copyOptIn) this._buildCopyButton();
+
+            // Overlay tipografi eşitlemesi (yukarıdaki tabular-nums notu).
+            const inst = group._glintInstance;
+            if (inst) {
+                if (inst.overlay) inst.overlay.style.fontVariantNumeric = "tabular-nums";
+                if (inst.charTrack) inst.charTrack.style.fontVariantNumeric = "tabular-nums";
+            }
+
+            // Zenginleştirme modu: çekirdek bizden önce mount ettiyse overlay
+            // biçimsiz ilk değeri okumuş olabilir + buton padding'i değişti
+            // → kartın çift-rAF resync deseni.
+            if (coreWasMounted) this._resyncOverlay(true);
+            else if (this.copyBtn) this._resyncOverlay(false);
+
+            // DİKKAT: grup anahtarı Glint.register'da GlintInput'a ait
+            // (claim yolu dahil — GlintInput kendini grup üzerinden yazar).
+            // Aynı WeakMap kaydını EZMEMEK için IBAN kendini INPUT üzerinden
+            // kaydeder (kart deseni) — teardown ikisini de yıkar.
+            if (G && typeof G.register === "function") G.register(input, this);
+        }
+
+        // ── DOM KURULUM ──
+
+        /** attribute yoksa ekle ve destroy'da geri almak üzere kaydet. */
+        _ensureAttr(el, name, value) {
+            if (!el || el.hasAttribute(name)) return;
+            el.setAttribute(name, value);
+            this._addedAttrs.push([el, name]);
+        }
+
+        /** data-raw-name verildiyse boşluksuz IBAN'ı taşıyan gizli input. */
+        _buildRawInput() {
+            this.rawInput = null;
+            this._rawCreated = false;
+            if (!this._rawName) return;
+            // Varsa yeniden kullan (MVC partial yenileme / yeniden mount).
+            const esc = (window.CSS && CSS.escape) ? CSS.escape(this._rawName) : this._rawName.replace(/"/g, '\\"');
+            this.rawInput = this.group.querySelector('input[type="hidden"][name="' + esc + '"]');
+            if (!this.rawInput) {
+                this.rawInput = document.createElement("input");
+                this.rawInput.type = "hidden";
+                this.rawInput.name = this._rawName;
+                this.group.appendChild(this.rawInput);
+                this._rawCreated = true;
+            }
+        }
+
+        /**
+         * Kopyalama aksiyon butonu — .glint-field__action düzenine uyar.
+         * Grubun MEVCUT aksiyonları sayılır (clearable vb. ile çakışmasın):
+         * n. yuva sola kaydırılır, input sağ padding'i _addAction'ın
+         * formülüyle büyütülür (n>0 iken; n==0'da CSS :has() kuralı yeter).
+         */
+        _buildCopyButton() {
+            const existing = this.group.querySelectorAll(".glint-field__action").length;
+
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "glint-field__action glint-iban-copy";
+            btn.setAttribute("aria-label", "IBAN'ı kopyala");
+            btn.title = "IBAN'ı kopyala";
+            btn.innerHTML = ICON_COPY + ICON_CHECK;
+            if (existing > 0) {
+                btn.style.right = "calc(var(--glint-action-offset) + " + existing +
+                    " * (var(--glint-action-size) + 6px))";
+                this._prevPadRight = this.input.style.paddingRight;
+                this._setPadRight = true;
+                this.input.style.paddingRight =
+                    "calc(var(--glint-action-size) * " + (existing + 1) +
+                    " + var(--glint-action-offset) + " + ((existing + 1) * 8) + "px)";
+            }
+            btn.addEventListener("click", () => this._copy());
+            this.group.appendChild(btn);
+            this.copyBtn = btn;
+            btn.disabled = !this._raw;
+
+            // Ekran okuyucu duyurusu ("Kopyalandı") — görünmez canlı bölge.
+            this.copyLive = document.createElement("span");
+            this.copyLive.className = "glint-sr-only";
+            this.copyLive.setAttribute("aria-live", "polite");
+            this.group.appendChild(this.copyLive);
+        }
+
+        /**
+         * Padding/değer bizden önce mount olmuş GlintInput'un overlay'inde
+         * bayat kalabilir → span'ları ve SVG'yi yeniden kilitle
+         * (kartın _resyncOverlay deseni + span senkronu).
+         */
+        _resyncOverlay(withSpans) {
+            const apply = () => {
+                const inst = (this.group && this.group._glintInstance) || null;
+                if (!inst) return;
+                try {
+                    if (withSpans) {
+                        if (typeof inst.syncOverlay === "function") inst.syncOverlay(false);
+                        if (typeof inst.updateLabelState === "function") inst.updateLabelState();
+                    }
+                    if (typeof inst.rebuildSVG === "function") inst.rebuildSVG();
+                } catch (_) { }
+            };
+            requestAnimationFrame(() => requestAnimationFrame(apply));
+        }
+
+        // ── EVENT BAĞLAMA ──
+
+        _bind() {
+            this._ac = new AbortController();
+            const sig = this._ac.signal;
+
+            // KRİTİK SIRALAMA (kart deseni): BİÇİMLEME grup üzerinde CAPTURE
+            // fazında → GlintInput'un input dinleyicisinden ÖNCE çalışır;
+            // değer aynı turda biçimlenir, overlay biçimli değeri okur.
+            // EK input eventi DISPATCH EDİLMEZ.
+            this.group.addEventListener("beforeinput", (e) => {
+                if (e.target === this.input) this._onBeforeInput(e);
+            }, { signal: sig, capture: true });
+            this.group.addEventListener("input", (e) => {
+                if (e.target === this.input) this._applyFormat(e);
+            }, { signal: sig, capture: true });
+
+            // DOĞRULAMA ise BUBBLE fazında: GlintInput.onInput her değer
+            // değişiminde .glint-error'ı otomatik temizler (yazınca-hata-
+            // silinir çekirdek UX'i) ve hedef-faz dinleyicisi capture'dan
+            // SONRA çalışır — hükmü ondan da sonra vermezsek tam-uzunluk
+            // hatası aynı turda silinirdi.
+            this.group.addEventListener("input", (e) => {
+                if (e.target === this.input) this._evaluate(this._raw, true);
+            }, { signal: sig });
+
+            // Bilinmeyen-uzunluklu ülke: "tam uzunluk" anı yoktur → alandan
+            // çıkış (blur) doğal doğrulama anıdır.
+            this.input.addEventListener("blur", () => this._onBlur(), { signal: sig });
+        }
+
+        // ── BİÇİMLEME ──
+
+        /** Yapısal + ülke kısıtı ön-kontrolü ("TR12…" prefix uyumu). */
+        _prefixAllowed(raw) {
+            for (let i = 0; i < raw.length && i < 4; i++) {
+                const c = raw[i];
+                if (i < 2) { if (c < "A" || c > "Z") return false; }   // ülke kodu: harf
+                else { if (c < "0" || c > "9") return false; }         // kontrol: rakam
+            }
+            if (this._allowed && raw.length) {
+                const head = raw.slice(0, 2);
+                if (!this._allowed.some(cc => cc.indexOf(head) === 0)) return false;
+            }
+            return true;
+        }
+
+        /** Ülkeye göre kapasite: tabloda varsa birebir; kısıt varsa en uzunu; yoksa 34. */
+        _capacity(raw) {
+            const cc = raw.slice(0, 2);
+            if (/^[A-Z]{2}$/.test(cc) && IBAN_LENGTHS[cc]) return IBAN_LENGTHS[cc];
+            if (this._allowed) {
+                let max = 0;
+                for (const c of this._allowed) max = Math.max(max, IBAN_LENGTHS[c] || IBAN_MAX);
+                if (max) return max;
+            }
+            return IBAN_MAX;
+        }
+
+        /** Kapasite üstü / yapıya-kısıta aykırı girişi daha yazılırken reddet. */
+        _onBeforeInput(e) {
+            const t = e.inputType || "";
+            if (t.indexOf("insert") !== 0) return;
+            let data = e.data;
+            if (data == null && e.dataTransfer) {
+                try { data = e.dataTransfer.getData("text/plain"); } catch (_) { data = ""; }
+            }
+            if (!data) return;
+
+            const val = this.input.value;
+            const s = this.input.selectionStart != null ? this.input.selectionStart : val.length;
+            const en = this.input.selectionEnd != null ? this.input.selectionEnd : s;
+            const prospective = normalizeIban(val.slice(0, s) + String(data) + val.slice(en));
+
+            // Yapı (AA00…) veya ülke kısıtı ihlali → ret + mikro-sarsıntı.
+            // (Anlamlı karakter içermeyen girdi ihlal yaratamaz: normalize
+            // zaten ayıklar, biçimleyici sessizce temizler.)
+            if (!this._prefixAllowed(prospective)) {
+                e.preventDefault();
+                this._nudge();
+                return;
+            }
+            // Kapasite: alan zaten doluysa yazma tamamen reddedilir (kart
+            // deseni — kısmi yer varsa izin verilir, taşan _applyFormat'ta
+            // kesilir: uzun paste kırpma).
+            const insSig = countSig(String(data));
+            if (!insSig) return;
+            const keptSig = countSig(val) - countSig(val.slice(s, en));
+            if (keptSig >= this._capacity(prospective)) e.preventDefault();
+        }
+
+        /**
+         * Tek biçimleme noktası. input handler İÇİNDE input.value güncellenir;
+         * ek input eventi dispatch edilmez (kart deseni).
+         */
+        _applyFormat(e) {
+            const input = this.input;
+            const oldVal = input.value;
+            const hasFocus = document.activeElement === input;
+            let caret = input.selectionStart != null ? input.selectionStart : oldVal.length;
+            const t = (e && e.inputType) || "";
+            let raw = normalizeIban(oldVal);
+
+            // — Ayraç silme köprüsü — yalnız boşluk silindiyse (ham değer
+            // değişmedi) bitişik ANLAMLI karakter de silinir; yoksa
+            // biçimleyici boşluğu geri koyar ve kullanıcı kilitlenirdi.
+            if (raw === this._prevRaw && oldVal !== this._prevVal && raw.length) {
+                if (t === "deleteContentBackward") {
+                    const before = countSig(oldVal.slice(0, caret));
+                    if (before > 0) {
+                        raw = raw.slice(0, before - 1) + raw.slice(before);
+                        caret = Math.max(0, caret - 1);
+                    }
+                } else if (t === "deleteContentForward") {
+                    const before = countSig(oldVal.slice(0, caret));
+                    if (before < raw.length) raw = raw.slice(0, before) + raw.slice(before + 1);
+                }
+            }
+
+            // — Ülke kısıtı / yapı emniyet ağı — beforeinput'u atlayan yollar
+            // (programatik set + dispatch, exotic IME) için: aykırı değer
+            // ÖNCEKİ değere geri alınır (kullanıcı asla kilitlenmez).
+            // İlk (mount) geçişte geri alınacak "önceki" yoktur → biçimle,
+            // hüküm _evaluate'te verilir (sunucu değeri kaybolmaz).
+            if (e && !this._prefixAllowed(raw)) {
+                input.value = this._prevVal;
+                if (hasFocus) {
+                    const pos = Math.min(caret, this._prevVal.length);
+                    try { input.setSelectionRange(pos, pos); } catch (_) { }
+                }
+                this._nudge();
+                return;
+            }
+
+            raw = raw.slice(0, this._capacity(raw));
+            const formatted = groupIban(raw);
+
+            if (formatted !== oldVal) {
+                input.value = formatted;
+                if (hasFocus) {
+                    const pos = restoreCaret(oldVal, caret, formatted);
+                    try { input.setSelectionRange(pos, pos); } catch (_) { }
+                }
+            }
+            this._prevVal = input.value;
+            this._prevRaw = raw;
+            this._raw = raw;
+
+            // Ham değer senkronu: attribute + opsiyonel gizli input + buton.
+            input.setAttribute("data-glint-raw", raw);
+            if (this.rawInput) this.rawInput.value = raw;
+            if (this.copyBtn) this.copyBtn.disabled = !raw;
+
+            // Event akışında hüküm BUBBLE dinleyicisine bırakılır (_bind'e
+            // bakınız); yalnız event'siz ilk (mount) geçişte burada verilir.
+            if (!e) this._evaluate(raw, false);
+        }
+
+        // ── DOĞRULAMA ──
+
+        /**
+         * "Tamamlanma" anı: bilinen ülkede tam uzunluk; bilinmeyen ülkede
+         * mod-97'nin tuttuğu an (≥15) veya mutlak tavan (34). Kart deseni:
+         * geçerli → yeşil kenar + event; geçersiz → hata + event(valid:false);
+         * eksilince durum/hata temizlenir.
+         */
+        _evaluate(raw, fromUser) {
+            const structural = /^[A-Z]{2}[0-9]{2}/.test(raw);
+            const cc = structural ? raw.slice(0, 2) : "";
+            const expected = cc ? (IBAN_LENGTHS[cc] || 0) : 0;
+
+            let complete = false;
+            if (structural) {
+                if (expected) complete = raw.length === expected;
+                else complete = (raw.length >= IBAN_MIN && ibanMod97(raw) === 1) ||
+                                raw.length === IBAN_MAX;
+            }
+
+            if (complete) {
+                let ok = isValidIban(raw);
+                let msg = "IBAN geçersiz — karakterleri kontrol edin";
+                // Kısıt: server-render değeri kısıt dışı ülkeyle gelebilir
+                // (yazım guard'ı yalnız kullanıcı girişini korur).
+                if (ok && this._allowed && this._allowed.indexOf(cc) === -1) {
+                    ok = false;
+                    msg = "Yalnız " + this._allowed.join(", ") + " IBAN kabul edilir";
+                }
+                this._valid = ok;
+                if (raw !== this._lastCompleteKey) {
+                    this._lastCompleteKey = raw;
+                    if (ok) {
+                        this._clearIbanError();
+                        this.group.classList.add("glint-iban-valid");
+                    } else {
+                        this.group.classList.remove("glint-iban-valid");
+                        this._setIbanError(msg);
+                    }
+                    this._dispatchComplete(ok, cc, raw);
+                }
+            } else {
+                this._valid = false;
+                this._lastCompleteKey = "";
+                this.group.classList.remove("glint-iban-valid");
+                // Silmeye/yazmaya devam → hata temizlenir (kart deseni).
+                if (this._errored) this._clearIbanError();
+            }
+        }
+
+        /** Bilinmeyen ülke: blur, "tam uzunluk" anının vekilidir. */
+        _onBlur() {
+            const raw = this._raw;
+            if (!raw || this._valid || this._errored) return;
+            const cc = raw.slice(0, 2);
+            const known = /^[A-Z]{2}$/.test(cc) && IBAN_LENGTHS[cc];
+            if (!known && /^[A-Z]{2}[0-9]{2}/.test(raw) && raw.length >= IBAN_MIN) {
+                this._setIbanError("IBAN geçersiz — karakterleri kontrol edin");
+            }
+        }
+
+        _dispatchComplete(valid, country, raw) {
+            this.group.dispatchEvent(new CustomEvent("glint:iban-complete", {
+                bubbles: true,
+                detail: {
+                    valid,
+                    country: country || null,
+                    iban: raw,                 // elektronik biçim (boşluksuz)
+                    formatted: groupIban(raw)  // kâğıt biçimi ("TR33 0006 …")
+                }
+            }));
+        }
+
+        // ── HATA KÖPRÜSÜ (kart deseni) ──
+
+        _setIbanError(msg) {
+            this._errored = true;
+            this._lastErrorMsg = msg;
+            this._setFieldError(this.input, msg);
+        }
+        _clearIbanError() {
+            if (!this._errored) return;
+            this._errored = false;
+            this._clearFieldError(this.input);
+        }
+
+        /** GlintInput'un zengin setError'u varsa onu, yoksa asgari erişilebilir
+         *  yedek (mount sırası: _applyFormat GlintInput'tan ÖNCE koşar). */
+        _setFieldError(inputEl, msg) {
+            if (!inputEl) return;
+            const group = (inputEl.closest && inputEl.closest(".glint-input-group")) || null;
+            if (window.Glint?.Input?.setError && group && group._glintInstance) {
+                window.Glint.Input.setError(inputEl, msg);
+                return;
+            }
+            inputEl.setAttribute("aria-invalid", "true");
+            (group || inputEl).classList.add("glint-error");
+        }
+        _clearFieldError(inputEl) {
+            if (!inputEl) return;
+            const group = (inputEl.closest && inputEl.closest(".glint-input-group")) || null;
+            if (window.Glint?.Input?.clearError && group && group._glintInstance) {
+                window.Glint.Input.clearError(inputEl);
+                return;
+            }
+            inputEl.removeAttribute("aria-invalid");
+            (group || inputEl).classList.remove("glint-error");
+        }
+
+        // ── RET MİKRO-SARSINTISI ──
+        // Hata shake'i (setError) İLE KARIŞTIRILMAZ: bu, "bu karakter buraya
+        // giremez" retinin 2-3px'lik sakin versiyonudur. Gaz kelebeği ile
+        // tuşa basılı tutmada titreşim fırtınası önlenir.
+        _nudge() {
+            // v1.7 CANLI hareket kapısı: mount'ta dondurulmaz, ÇAĞRI anında
+            // çekirdeğin tek kaynağından okunur (OS + config override;
+            // bkz. Glint.motion / reducedMotion).
+            if (window.Glint.reducedMotion()) return;
+            const now = Date.now();
+            if (now - this._nudgeAt < 350) return;
+            this._nudgeAt = now;
+            const g = this.group;
+            g.classList.remove("glint-iban-nudge");
+            void g.offsetWidth;
+            g.classList.add("glint-iban-nudge");
+            g.addEventListener("animationend", () => g.classList.remove("glint-iban-nudge"), { once: true });
+        }
+
+        // ── KOPYALAMA ──
+
+        /**
+         * Biçimli (görünen) değeri panoya yazar. Clipboard API yoksa/reddederse
+         * execCommand yedeği. Başarıda: ikon fade-swap (--glint-dur-2,
+         * --glint-ease-out/snap) + aria-live "IBAN kopyalandı".
+         */
+        _copy() {
+            const text = this.input.value.trim();
+            if (!text) return;
+            const done = () => this._copyFeedback();
+            const fallback = () => { if (this._execCopy(text)) done(); };
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(done, fallback);
+                } else {
+                    fallback();
+                }
+            } catch (_) { fallback(); }
+        }
+
+        /** execCommand("copy") yedeği — geçici, ekran dışı textarea ile. */
+        _execCopy(text) {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            ta.setAttribute("readonly", "");
+            ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+            document.body.appendChild(ta);
+            ta.select();
+            let ok = false;
+            try { ok = document.execCommand("copy"); } catch (_) { ok = false; }
+            ta.remove();
+            return ok;
+        }
+
+        _copyFeedback() {
+            if (!this.copyBtn) return;
+            this.copyBtn.classList.add("is-copied");
+            this.copyBtn.title = "Kopyalandı";
+            if (this.copyLive) this.copyLive.textContent = "IBAN kopyalandı";
+            if (this._copyTimer) clearTimeout(this._copyTimer);
+            this._copyTimer = setTimeout(() => {
+                this._copyTimer = null;
+                if (this.copyBtn) {
+                    this.copyBtn.classList.remove("is-copied");
+                    this.copyBtn.title = "IBAN'ı kopyala";
+                }
+                if (this.copyLive) this.copyLive.textContent = "";
+            }, 1400);
+        }
+
+        // ── PROGRAMATİK API ──
+
+        /** Boşluksuz elektronik IBAN ("TR33000610…"). */
+        get iban() { return this._raw; }
+        /** Kâğıt biçimi ("TR33 0006 10…"). */
+        get formatted() { return groupIban(this._raw); }
+        /** Algılanan ülke kodu ("TR" | null). */
+        get country() {
+            const cc = this._raw.slice(0, 2);
+            return /^[A-Z]{2}$/.test(cc) ? cc : null;
+        }
+        /** Tam uzunlukta ve mod-97 geçerli mi. */
+        get isValid() { return !!this._valid; }
+        /** Görünen değer; setter biçimleyici hattan geçer (phone deseni). */
+        get value() { return this.input.value; }
+        set value(v) {
+            this.input.value = String(v == null ? "" : v);
+            this.input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+
+        /** Yaşam döngüsü teardown — DOM'dan kalkınca çekirdek otomatik çağırır. */
+        destroy() {
+            if (this._ac) { this._ac.abort(); this._ac = null; }
+            if (this._copyTimer) { clearTimeout(this._copyTimer); this._copyTimer = null; }
+
+            // Enjekte edilenler sökülür.
+            this.copyBtn?.remove(); this.copyBtn = null;
+            this.copyLive?.remove(); this.copyLive = null;
+
+            // Hata/durum temizliği (bizim bastıklarımız).
+            this._clearIbanError();
+            this.group?.classList.remove("glint-iban-valid", "glint-iban-nudge");
+
+            // Inline stiller geri (padding/tipografi birikmesin).
+            if (this.input) {
+                if (this._setPadRight) this.input.style.paddingRight = this._prevPadRight || "";
+                this.input.style.fontVariantNumeric = this._prevFontVariant || "";
+                this.input.removeAttribute("data-glint-raw");
+            }
+
+            // Yalnız BİZİM eklediğimiz attribute'lar geri alınır.
+            for (const [el, name] of this._addedAttrs || []) el.removeAttribute(name);
+            this._addedAttrs = [];
+
+            // Gizli input yalnız BİZ ürettiysek sökülür (hazır geleni koru).
+            if (this._rawCreated) this.rawInput?.remove();
+            this.rawInput = null;
+
+            // Guard reset + çekirdek kayıt sızıntısı önlenir. Grup claim'i
+            // KALIR: yeniden mount'ta GlintInput'u yine bu modül başlatır.
+            if (this.input) {
+                this.input._glintIbanInit = false;
+                if (window.Glint && typeof window.Glint.unregister === "function") {
+                    window.Glint.unregister(this.input);
+                }
+            }
+        }
+
+        /** input / grup / seçici → canlı örnek (kartın API kolaylığı). */
+        static get(el) {
+            if (typeof el === "string") { try { el = document.querySelector(el); } catch (_) { return null; } }
+            if (!el) return null;
+            let input = el;
+            if (!(el.tagName === "INPUT")) {
+                input = el.querySelector && el.querySelector("input[data-glint-iban]");
+            }
+            if (!input) return null;
+            const G = window.Glint;
+            return (G && typeof G.getInstance === "function") ? (G.getInstance(input) || null) : null;
+        }
+    }
+
+    // Saf yardımcılar dışarı da açılır (test edilebilirlik + gelişmiş kullanım).
+    GlintIban.normalize = normalizeIban;
+    GlintIban.mod97 = ibanMod97;
+    GlintIban.isValid = isValidIban;
+    GlintIban.format = groupIban;
+    GlintIban.LENGTHS = IBAN_LENGTHS;
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  ÇEKİRDEĞE KAYIT (Glint.defineComponent) + güvenli yükleme guard'ı
+    // ══════════════════════════════════════════════════════════════
+
+    function register() {
+        const G = window.Glint;
+
+        // ÖN-CLAIM: DOMContentLoaded taramasında "input-group" bileşeni
+        // bizden ÖNCE koşar (kayıt sırası). Kütüphane gövde sonunda
+        // yüklendiyse DOM çoktan ayrıştırılmıştır → mevcut IBAN gruplarını
+        // şimdiden sahiplen ki base GlintInput biçimsiz değerle erken
+        // mount olmasın. (Head'den yüklemede bu pas boş kalır; mount
+        // zenginleştirme moduna düşer ve overlay resync ile aynı sonuca varır.)
+        try {
+            document.querySelectorAll("input[data-glint-iban]").forEach((inp) => {
+                const g = inp.closest(".glint-input-group");
+                if (g && !g._glintInit && typeof G.claimGroup === "function") G.claimGroup(g);
+            });
+        } catch (_) { }
+
+        G.defineComponent("iban", {
+            selector: "input[data-glint-iban]",
+            match: (inp) => !inp._glintIbanInit,
+            mount: (inp) => new GlintIban(inp)
+        });
+
+        // Programatik API
+        G.Iban = GlintIban;
+    }
+
+    // Güvenli yükleme-sırası guard'ı: çekirdek (bölüm 1) önce yüklenmiş
+    // olmalı. Değilse DOMContentLoaded'da tekrar dene
+    // (v1.6 phone/card başlangıç deseni).
+    if (window.Glint && window.Glint.defineComponent) {
+        register();
+    } else {
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.Glint && window.Glint.defineComponent) register();
+        });
+    }
+
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+ *  14) Pwgen — Güçlü parola üretici
+ *     (v1.7'de ana dosyaya birleştirildi — kaynak paket: src-v17/pwgen.js)
+ * ════════════════════════════════════════════════════════════════════════ */
+/**
+ * Glint Pwgen
+ * ─────────────────────────────────────────────────────────────
+ * Çekirdeğin (Glint.defineComponent) uzantısı.
+ * Saf vanilla, sıfır bağımlılık, AĞ İSTEĞİ YOK.
+ *
+ * API:       window.Glint.Pwgen
+ *            statik : Glint.Pwgen.get(el) → instance
+ *                     Glint.Pwgen.generatePassword({length, charset}) → string
+ *                     (SAF fonksiyon — DOM'suz, test edilebilir)
+ *            örnek  : inst.generate() · inst.destroy()
+ *            erişim : Glint.getInstance(input) (kart deseni: grup anahtarı
+ *                     GlintInput'a ait, pwgen kendini INPUT üzerinden kaydeder)
+ * Opt-in:    <input type="password" data-glint-generate>  (.glint-input-group içinde)
+ * Config:    data-generate-length   = "16"   (varsayılan 16; maxlength varsa kırpılır)
+ *            data-generate-charset  = "upper,lower,digit,symbol" alt kümesi
+ *                                     (TR takma adlar da okunur: büyük,küçük,rakam,sembol)
+ *            (öznitelikler input'ta veya grupta durabilir; input öncelikli)
+ * Events:    glint:pwgen-generate → detail: { value, length }  (input'ta, bubbles)
+ *
+ * Davranış özeti:
+ *   • Gruba zar/yenile aksiyon butonu enjekte edilir — GÖZ BUTONUNUN SOLUNA.
+ *     Konum, çekirdeğin _actionCount/--glint-action-offset düzenine uyar:
+ *     GlintInput örneği varsa onun _addAction'ı kullanılır (sayaç tek kaynak,
+ *     çakışma imkânsız); yoksa gruptaki mevcut .glint-field__action sayısına
+ *     göre aynı formülle elle konumlanır.
+ *   • Üretim crypto.getRandomValues ile (rejection sampling → önyargısız).
+ *     Varsayılan 16 karakter; seçili her sınıftan ≥1 garanti; muğlak
+ *     karakterler (O 0 I l 1) tüm havuzlardan çıkarılmıştır.
+ *   • Üretimde değer inputa yazılır ve input eventi dispatch edilir →
+ *     çekirdek sayaç / güç çubuğu / label / overlay kendiliğinden güncellenir.
+ *   • Parola 2 sn görünür kalır (type=text): göz butonu varsa çekirdeğin
+ *     _togglePassword'ü çağrılır (ikon + aria-pressed + overlay + caret
+ *     restore senkron); süre dolunca otomatik geri gizlenir. Kullanıcı bu
+ *     esnada göz butonuna dokunursa kontrol ona geçer (zamanlayıcı iptal).
+ *   • aria-live (polite) bölgesi "Güçlü parola oluşturuldu" duyurur.
+ *   • Zar ikonu basışta tam tur döner (yalnız SVG animasyonlanır — butonun
+ *     translateY(-50%) konum transform'u bozulmaz). Hareket kapısı ÇAĞRI
+ *     ANINDA çekirdeğin Glint.reducedMotion()'ından okunur (v1.7 canlı
+ *     kapı: OS + config override, remount gerekmez).
+ *
+ * ── DEMO (saf HTML) ─────────────────────────────────────────────
+ *   <link rel="stylesheet" href="glint-input.css">
+ *   <div class="glint-input-group" data-glint-strength>
+ *     <input class="glint-input" type="password" id="pw"
+ *            name="Password" data-glint-generate
+ *            data-generate-length="20">
+ *     <label class="glint-label" for="pw">Parola</label>
+ *   </div>
+ *   <script src="glint-input.js"></script>
+ *
+ * ── Razor (ASP.NET Core MVC) ────────────────────────────────────
+ *   <div class="glint-input-group" data-glint-strength>
+ *     <input class="glint-input" asp-for="Password" type="password"
+ *            data-glint-generate data-generate-length="20">
+ *     <label class="glint-label" asp-for="Password">Parola</label>
+ *   </div>
+ *
+ * Animasyon imzası (kontrat):
+ *   zar dönüşü: rotate 360° + hafif scale çukuru — var(--glint-dur-5) /
+ *   var(--glint-ease-out); prefers-reduced-motion / Glint.configure
+ *   ({reducedMotion:true}) → hareket kalkar, işlev kalır.
+ */
+
+(function () {
+    "use strict";
+
+    // ══════════════════════════════════════════════════════════════
+    //  KARAKTER HAVUZLARI — muğlak karakterler (O 0 I l 1) HARİÇ
+    // ══════════════════════════════════════════════════════════════
+
+    const POOLS = {
+        upper: "ABCDEFGHJKLMNPQRSTUVWXYZ",   // I ve O yok
+        lower: "abcdefghijkmnopqrstuvwxyz",  // l yok
+        digit: "23456789",                   // 0 ve 1 yok
+        // Tırnak / ters bölü / boru / boşluk bilinçli dışarıda (kabuk-,
+        // HTML- ve göz-dostu bir küme; | ayrıca I/l ile karışırdı).
+        // "_" de yok: \w sınıfına girer → çekirdek güç çubuğunun sembol
+        // testi (/[^\w\s]/) onu saymaz; ≥1 sembol garantisi net kalsın.
+        symbol: "!@#$%^&*()-=+[]{}:;,.?"
+    };
+    const DEFAULT_KEYS = ["upper", "lower", "digit", "symbol"];
+
+    // data-generate-charset anahtar çözümü (EN + TR takma adlar)
+    const KEY_ALIASES = {
+        upper: "upper", "buyuk": "upper", "büyük": "upper",
+        lower: "lower", "kucuk": "lower", "küçük": "lower",
+        digit: "digit", rakam: "digit", number: "digit",
+        symbol: "symbol", sembol: "symbol"
+    };
+
+    const REVEAL_MS = 2000;   // üretim sonrası parolanın görünür kalma süresi
+
+    // ══════════════════════════════════════════════════════════════
+    //  SAF YARDIMCILAR (DOM'suz — test edilebilir)
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * 0..max-1 aralığında ÖNYARGISIZ kripto-rastgele tamsayı.
+     * Modulo önyargısına karşı rejection sampling: 65536'nın max'a tam
+     * bölünmeyen kuyruğu reddedilir (havuzlar küçük → ret oranı ihmal edilir).
+     */
+    function randInt(max) {
+        if (!(max > 0)) return 0;
+        const limit = 65536 - (65536 % max);
+        const buf = new Uint16Array(1);
+        let v;
+        do { crypto.getRandomValues(buf); v = buf[0]; } while (v >= limit);
+        return v % max;
+    }
+
+    /** charset girdisini (dizi VEYA virgüllü dizgi) geçerli anahtar listesine indirger. */
+    function resolveCharset(charset) {
+        let raw = charset;
+        if (typeof raw === "string") raw = raw.split(",");
+        if (!Array.isArray(raw)) return DEFAULT_KEYS.slice();
+        const out = [];
+        for (const item of raw) {
+            const key = KEY_ALIASES[String(item).trim().toLocaleLowerCase("tr")];
+            if (key && POOLS[key] && out.indexOf(key) === -1) out.push(key);
+        }
+        return out.length ? out : DEFAULT_KEYS.slice();
+    }
+
+    /**
+     * SAF üretici: crypto tabanlı güçlü parola.
+     *   opts.length  : hedef uzunluk (varsayılan 16; alt sınır max(4, sınıf sayısı), üst 256)
+     *   opts.charset : ["upper","lower","digit","symbol"] alt kümesi veya virgüllü dizgi
+     * Seçili HER sınıftan en az 1 karakter garanti; sonra karışım havuzundan
+     * doldurulur ve Fisher–Yates ile (yine kripto-rastgele) karılır.
+     */
+    function generatePassword(opts) {
+        const o = opts || {};
+        const keys = resolveCharset(o.charset);
+        let length = parseInt(o.length, 10);
+        if (isNaN(length) || length <= 0) length = 16;
+        length = Math.max(length, keys.length, 4);
+        length = Math.min(length, 256);
+
+        const chars = [];
+        for (const k of keys) {
+            const pool = POOLS[k];
+            chars.push(pool[randInt(pool.length)]);
+        }
+        const all = keys.map(k => POOLS[k]).join("");
+        while (chars.length < length) chars.push(all[randInt(all.length)]);
+        for (let i = chars.length - 1; i > 0; i--) {
+            const j = randInt(i + 1);
+            const t = chars[i]; chars[i] = chars[j]; chars[j] = t;
+        }
+        return chars.join("");
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  GlintPwgen
+    // ══════════════════════════════════════════════════════════════
+
+    // Zar ikonu — çekirdeğin göz ikonuyla aynı çizgi dili
+    // (stroke 1.9, currentColor, yuvarlak uçlar; pip'ler dolu daire).
+    const ICON_DICE =
+        '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +
+        '<rect x="3.6" y="3.6" width="16.8" height="16.8" rx="4.2"/>' +
+        '<circle cx="8.5" cy="8.5" r="1.15" fill="currentColor" stroke="none"/>' +
+        '<circle cx="15.5" cy="8.5" r="1.15" fill="currentColor" stroke="none"/>' +
+        '<circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/>' +
+        '<circle cx="8.5" cy="15.5" r="1.15" fill="currentColor" stroke="none"/>' +
+        '<circle cx="15.5" cy="15.5" r="1.15" fill="currentColor" stroke="none"/>' +
+        '</svg>';
+
+    class GlintPwgen {
+
+        constructor(input) {
+            this.input = input;
+            this.group = input.closest(".glint-input-group");
+            if (!this.group) return;
+            input._glintPwgenInit = true;
+            input._glintPwgenInstance = this;
+
+            this._ac = new AbortController();
+            this._hideTimer = null;
+            this._autoRevealed = false;   // gösterimi BİZ mi açtık?
+            this._revealMode = null;      // "toggle" (çekirdek göz) | "manual"
+            this._destroyed = false;
+
+            this._injectButton();
+            this._buildLiveRegion();
+            this._bindGroup();
+
+            // Kart deseni: grup anahtarı Glint.register'da GlintInput'a ait
+            // (grup claim edilmedi) — pwgen kendini INPUT üzerinden kaydeder;
+            // paylaşılan teardown observer'ı destroy()'u böylece çağırabilir.
+            if (window.Glint && typeof window.Glint.register === "function") {
+                window.Glint.register(this.input, this);
+            }
+        }
+
+        // ── DOM KURULUM ──
+
+        /**
+         * Zar butonunu göz butonunun SOLUNA yerleştirir.
+         * Öncelik: çekirdek GlintInput örneğinin _addAction'ı (sayaç ve
+         * padding tek kaynaktan; sonradan eklenecek aksiyonlarla çakışmaz).
+         * Yedek yol: gruptaki mevcut aksiyonları sayıp çekirdekle BİREBİR
+         * aynı formülle right/padding hesabı (grup claim'li vb. çekirdeksiz
+         * senaryolar).
+         */
+        _injectButton() {
+            const inst = this.group._glintInstance || null;
+            this._prevPadRight = this.input.style.paddingRight;   // destroy'da geri alınır
+            const LABEL = "Güçlü parola oluştur";
+
+            if (inst && typeof inst._addAction === "function") {
+                this.btn = inst._addAction("glint-field__action--generate", LABEL, ICON_DICE, () => this.generate());
+                this._usedCoreAction = true;
+            } else {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "glint-field__action glint-field__action--generate";
+                btn.setAttribute("aria-label", LABEL);
+                btn.innerHTML = ICON_DICE;
+                const n = this.group.querySelectorAll(".glint-field__action").length + 1;
+                if (n > 1) {
+                    // Çekirdek _addAction ile AYNI konum/padding formülü
+                    btn.style.right = "calc(var(--glint-action-offset) + " + (n - 1) + " * (var(--glint-action-size) + 6px))";
+                    this.input.style.paddingRight = "calc(var(--glint-action-size) * " + n + " + var(--glint-action-offset) + " + (n * 8) + "px)";
+                }
+                btn.addEventListener("click", () => this.generate(), { signal: this._ac.signal });
+                this.group.appendChild(btn);
+                this.btn = btn;
+                this._usedCoreAction = false;
+            }
+            this.btn.title = LABEL;
+
+            // Zar dönüşü bitince animasyon sınıfını temizle (tekrar tetiklenebilir)
+            this.btn.addEventListener("animationend", (e) => {
+                if (e.animationName === "glint-pwgen-roll" && e.target && e.target.classList) {
+                    e.target.classList.remove("glint-pwgen-roll");
+                }
+            }, { signal: this._ac.signal });
+
+            // padding değişmiş olabilir → çekirdek SVG/overlay'ini yeniden
+            // kilitle (kart/stepper _resyncOverlay deseni: çift rAF).
+            this._resyncOverlay();
+        }
+
+        /**
+         * Ekran okuyucu duyuru bölgesi (aria-live polite). Görsel gizleme
+         * çekirdeğin .glint-sr-only yardımcısından (v1.5.1); .glint-pwgen-live
+         * yalnız kimlik/test kancasıdır — ayrı stil bloğu yoktur.
+         */
+        _buildLiveRegion() {
+            this.liveEl = document.createElement("span");
+            this.liveEl.className = "glint-pwgen-live glint-sr-only";
+            this.liveEl.setAttribute("aria-live", "polite");
+            this.group.appendChild(this.liveEl);
+        }
+
+        _bindGroup() {
+            // Kullanıcı otomatik-gizleme penceresinde GÖZ butonuna dokunursa
+            // kontrol ona geçer: zamanlayıcı iptal, mevcut durum ne olursa kalır.
+            this.group.addEventListener("click", (e) => {
+                if (e.target && e.target.closest && e.target.closest(".glint-field__action--password")) {
+                    if (this._autoRevealed) {
+                        this._clearHideTimer();
+                        this._autoRevealed = false;
+                    }
+                }
+            }, { capture: true, signal: this._ac.signal });
+        }
+
+        _resyncOverlay() {
+            const apply = () => {
+                const inst = (this.group && this.group._glintInstance) || null;
+                if (inst && typeof inst.rebuildSVG === "function") {
+                    try { inst.rebuildSVG(); } catch (_) { }
+                }
+            };
+            // İki rAF: ilk frame'de padding/buton yerleşir, ikincide ölçüm kararlı.
+            requestAnimationFrame(() => requestAnimationFrame(apply));
+        }
+
+        // ── ÜRETİM ──
+
+        /** data-* konfigürasyonunu CANLI okur (input öncelikli, grup yedek). */
+        _opts() {
+            const read = (name) =>
+                this.input.getAttribute(name) || this.group.getAttribute(name) || "";
+            const opts = { charset: read("data-generate-charset") || null };
+            let length = parseInt(read("data-generate-length"), 10);
+            if (isNaN(length) || length <= 0) length = 16;
+            // maxlength emniyeti: sayaç taşmasın (programatik set maxlength'e
+            // takılmaz ama kullanıcı sözleşmesine saygı).
+            const ml = parseInt(this.input.getAttribute("maxlength"), 10);
+            if (!isNaN(ml) && ml > 0) length = Math.min(length, ml);
+            opts.length = length;
+            return opts;
+        }
+
+        /** Yeni parola üret, inputa yaz, 2 sn göster. Üretilen dizgiyi döner. */
+        generate() {
+            if (this._destroyed || this.input.disabled || this.input.readOnly) return "";
+            const pw = generatePassword(this._opts());
+
+            // Zar dönüşü — hareket kapısı ÇAĞRI ANINDA değerlendirilir
+            this._roll();
+
+            // Önce göster (overlay gerçek karakter moduna geçsin), sonra yaz:
+            // giriş animasyonu maskeli nokta yerine gerçek glifleri oynatır.
+            this._reveal();
+
+            const input = this.input;
+            input.value = pw;
+            // input eventi → çekirdek sayaç/güç çubuğu/label/overlay günceller.
+            // inputType=insertFromPaste: çekirdeğin yapıştırma dalgası (ripple)
+            // koreografisi — 16 karakterin tek tek "yazılması" yerine tek jest.
+            input.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertFromPaste", data: pw }));
+
+            // Odak alanda kalsın, caret sona (temizle butonu deseni)
+            try {
+                input.focus({ preventScroll: true });
+                input.setSelectionRange(pw.length, pw.length);
+            } catch (_) { }
+
+            this._announce("Güçlü parola oluşturuldu");
+
+            input.dispatchEvent(new CustomEvent("glint:pwgen-generate", {
+                bubbles: true,
+                detail: { value: pw, length: pw.length }
+            }));
+            return pw;
+        }
+
+        _roll() {
+            // v1.7 CANLI hareket kapısı: mount'ta dondurulmaz, ÇAĞRI anında
+            // çekirdeğin tek kaynağından okunur (OS + config override;
+            // bkz. Glint.motion / reducedMotion).
+            if (window.Glint.reducedMotion()) return;
+            const svg = this.btn && this.btn.querySelector("svg");
+            if (!svg) return;
+            svg.classList.remove("glint-pwgen-roll");
+            // Reflow → animasyon baştan tetiklenir (SVG'de offsetWidth yok)
+            void svg.getBoundingClientRect();
+            svg.classList.add("glint-pwgen-roll");
+        }
+
+        _announce(msg) {
+            if (!this.liveEl) return;
+            // Aynı metnin yeniden duyurulması için önce boşalt
+            this.liveEl.textContent = "";
+            const el = this.liveEl;
+            setTimeout(() => { if (!this._destroyed) el.textContent = msg; }, 40);
+        }
+
+        // ── GÖSTER / OTOMATİK GİZLE ──
+
+        _reveal() {
+            this._clearHideTimer();
+            const inst = this.group._glintInstance || null;
+
+            if (this.input.type !== "password") {
+                // Zaten görünür. Kullanıcı görünür bıraktıysa dokunma;
+                // önceki OTOMATİK gösterimimizse süreyi tazele.
+                if (this._autoRevealed) this._armHide();
+                return;
+            }
+
+            if (inst && inst.pwBtn && typeof inst._togglePassword === "function") {
+                // Çekirdek toggle: ikon durumu + aria-pressed + overlay +
+                // caret restore deseni tek yerden, göz butonuyla tam senkron.
+                inst._togglePassword();
+                this._revealMode = "toggle";
+            } else {
+                // data-glint-no-toggle / çekirdeksiz grup: elle tip değişimi,
+                // _togglePassword'ün seçim-restore desenine sadık.
+                this._setType("text", inst);
+                this._revealMode = "manual";
+            }
+            this._autoRevealed = true;
+            this._armHide();
+        }
+
+        _armHide() {
+            this._clearHideTimer();
+            this._hideTimer = setTimeout(() => this._hide(), REVEAL_MS);
+        }
+
+        _hide() {
+            this._hideTimer = null;
+            if (!this._autoRevealed) return;
+            this._autoRevealed = false;
+            if (this.input.type !== "text") return;   // kullanıcı zaten gizledi
+            const inst = this.group._glintInstance || null;
+            if (this._revealMode === "toggle" && inst && inst.pwBtn && typeof inst._togglePassword === "function") {
+                inst._togglePassword();
+            } else {
+                this._setType("password", inst);
+            }
+        }
+
+        _clearHideTimer() {
+            if (this._hideTimer) { clearTimeout(this._hideTimer); this._hideTimer = null; }
+        }
+
+        /**
+         * Elle tip değişimi (çekirdek _togglePassword'ün restore deseni):
+         * tip değişimi caret'i sıfırlar → seçim kaydedilip geri yüklenir;
+         * çekirdek örneği varsa maske durumu ve overlay senkron tutulur.
+         */
+        _setType(type, inst) {
+            const input = this.input;
+            const s = input.selectionStart, e = input.selectionEnd, d = input.selectionDirection;
+            const hadFocus = document.activeElement === input;
+            input.type = type;
+            if (inst) inst.isPassword = (type === "password");
+            if (hadFocus) input.focus();
+            if (s != null) {
+                try { input.setSelectionRange(s, e, d || "none"); } catch (_) { }
+            }
+            if (inst && typeof inst.syncOverlay === "function") {
+                try { inst.syncOverlay(true); } catch (_) { }
+            }
+        }
+
+        // ── YAŞAM DÖNGÜSÜ ──
+
+        destroy() {
+            if (this._destroyed) return;
+            // Otomatik gösterim açık kaldıysa parolayı gizli duruma döndür
+            if (this._autoRevealed) this._hide();
+            this._destroyed = true;
+            this._clearHideTimer();
+            this._ac.abort();
+            if (this.btn) {
+                const inst = this.group && this.group._glintInstance;
+                // Çekirdek sayaç bizimle arttıysa geri düşür (yeniden mount'ta
+                // konum hesabı şaşmasın)
+                if (this._usedCoreAction && inst && inst._actionCount > 0) inst._actionCount--;
+                this.btn.remove();
+                this.btn = null;
+            }
+            if (this.liveEl) { this.liveEl.remove(); this.liveEl = null; }
+            this.input.style.paddingRight = this._prevPadRight || "";
+            this._resyncOverlay();
+            delete this.input._glintPwgenInit;
+            delete this.input._glintPwgenInstance;
+            const G = window.Glint;
+            if (G && typeof G.getInstance === "function" && G.getInstance(this.input) === this) {
+                G.unregister(this.input);
+            }
+        }
+
+        // ── STATİK API ──
+
+        /** Input, grup veya grup-içi herhangi bir elementten örneğe eriş. */
+        static get(el) {
+            if (!el) return null;
+            if (el._glintPwgenInstance) return el._glintPwgenInstance;
+            const g = el.closest ? el.closest(".glint-input-group") : null;
+            const input = g && g.querySelector("input[data-glint-generate]");
+            return (input && input._glintPwgenInstance) || null;
+        }
+    }
+
+    // Saf üretici statik olarak dışa açık (test / programatik kullanım)
+    GlintPwgen.generatePassword = generatePassword;
+    GlintPwgen.POOLS = POOLS;   // salt-okunur referans (demo doğrulaması)
+
+    // ══════════════════════════════════════════════════════════════
+    //  ÇEKİRDEĞE KAYIT (Glint.defineComponent) + güvenli yükleme guard'ı
+    // ══════════════════════════════════════════════════════════════
+
+    function register() {
+        const G = window.Glint;
+
+        G.defineComponent("pwgen", {
+            selector: ".glint-input-group input[data-glint-generate]",
+            // Tip kontrolü match'te: geçici type=text anları (göz açıkken
+            // eklenen kopya senaryosu) yanlış mount'u engellemez — pwgen
+            // yalnız parola alanı içindir.
+            match: el => !el._glintPwgenInit && el.type === "password",
+            mount: el => new GlintPwgen(el)
+        });
+
+        // Programatik API
+        G.Pwgen = GlintPwgen;
+    }
+
+    // Güvenli yükleme-sırası guard'ı: çekirdek (bölüm 1) önce yüklenmiş
+    // olmalı. Değilse DOMContentLoaded'da tekrar dene
+    // (v1.6 phone/card başlangıç deseni).
+    if (window.Glint && window.Glint.defineComponent) {
+        register();
+    } else {
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.Glint && window.Glint.defineComponent) register();
+        });
+    }
+
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+ *  15) TreeSelect — Hiyerarşik ağaç seçimi
+ *     (v1.7'de ana dosyaya birleştirildi — kaynak paket: src-v17/treeselect.js)
+ * ════════════════════════════════════════════════════════════════════════ */
+/**
+ * Glint TreeSelect — Hiyerarşik ağaç seçim bileşeni
+ * ─────────────────────────────────────────────────────────────
+ * glint-input.js çekirdeğinin (Glint.defineComponent) uzantısı.
+ * Saf vanilla, sıfır bağımlılık, AĞ İSTEĞİ YOK (offline-güvenli).
+ *
+ * Selector:  .glint-tree-group içinde input[data-glint-tree]
+ *            (GlintSelect'in grup deseni: input DOM'da kalır → form binding /
+ *             asp-for bozulmaz; görsel alan = enjekte edilen trigger.)
+ *
+ * Veri (AĞ YOK — yalnız yerel):
+ *   data-options      = inline JSON: [{label, value, children:[...], disabled?}]
+ *   data-options-from = window yolu ("window.app.orgTree" / "app.orgTree")
+ *   (öznitelikler input'ta VEYA grupta durabilir; input öncelikli)
+ *
+ * Modlar:
+ *   (varsayılan)      tekli seçim — satıra tıkla → seç + kapan
+ *   data-multiple     çoklu seçim — checkbox'lı, ebeveyn TRİ-STATE
+ *                     (indeterminate görseli checkbox'ın minus çizgi deseni);
+ *                     ebeveyne tıklama alt ağacı topluca işaretler/kaldırır,
+ *                     devre dışı düğümler kaskaddan etkilenmez.
+ *   data-display      = "tags" (varsayılan; Select multi chip dili)
+ *                     | "count" ("N seçili" özeti)
+ *
+ * Diğer ayarlar:
+ *   data-placeholder  = "Seçiniz"
+ *   data-search       = "false" → arama kutusu yok (type-ahead devreye girer)
+ *   data-empty-text   = "Sonuç yok"
+ *   data-expand       = "1" → ilk N seviye açık başlar; "all" → hepsi açık
+ *
+ * Değer:  gizli input'a seçili value'lar VİRGÜLLE yazılır (çoklu modda
+ *         işaretli YAPRAK'lar — ebeveyn durumu türetilmiştir, value'su
+ *         gönderilmez). input + change native eventleri dispatch edilir.
+ *
+ * Event'ler (input üzerinde, bubbles):
+ *   glint:tree-open · glint:tree-close
+ *   glint:tree-change → detail: tekli {value, label} · çoklu {values, labels}
+ *
+ * Erişilebilirlik — ARIA tree deseni:
+ *   trigger  role=combobox aria-haspopup=tree aria-expanded aria-controls
+ *   kök UL   role=tree (+ aria-multiselectable)
+ *   düğüm LI role=treeitem aria-level aria-expanded
+ *            tekli: aria-selected · çoklu: aria-checked (true/false/mixed)
+ *   çocuk UL role=group (aradaki sarmalayıcı div role=presentation)
+ *   Klavye:  ↑/↓ gezinme · ←/→ daralt-genişlet (arama kutusu doluyken caret
+ *            hareketi önceliklidir) · Enter seç · Home/End · Esc kapat ·
+ *            type-ahead (aramasız modda) — aktiflik aria-activedescendant ile.
+ *
+ * Performans (500+ düğüm):
+ *   • Kurulum DocumentFragment ile TEK seferde (satır başına listener YOK).
+ *   • Tıklama/hover TEK delegated listener'la (phone/select deseni).
+ *   • Arama yalnız sınıf toggle'lar (is-filter-hidden / is-search-open);
+ *     DOM yeniden KURULMAZ. Arama anahtarı (_norm) önceden hesaplıdır.
+ *   • Genişletme animasyonu ölçümsüz: grid-template-rows 0fr→1fr tekniği
+ *     (yükseklik animasyonu YASAK — ölçüm bozar); chevron rotate.
+ *
+ * Arama: Türkçe-duyarlı normalize (İ→i, ı→i, ş→s, ç→c, ö→o, ü→u, ğ→g —
+ * phone/combobox ile birebir). Eşleşen düğüm + ATALARI görünür kalır;
+ * eşleşme <mark class="glint-select-hl"> ile vurgulanır (düğüm tabanlı
+ * kurulum — innerHTML'e ham veri BASILMAZ, XSS'e kapalı). Arama sırasında
+ * chevron ile manuel daraltma askıya alınır (filtre görünümü bütündür).
+ *
+ * Mobil (<=768px): popover alt kenardan kayan bottom-sheet'e dönüşür
+ * (picker/phone deseni) + karartma backdrop'u; body scroll kilitlenir.
+ *
+ * API:  window.Glint.Tree
+ *   statik : Glint.Tree.get(el) → instance (el: input veya grup içi herhangi)
+ *   örnek  : open() · close() · toggle() · getValue() · setValue(v, fire?)
+ *            expandAll() · collapseAll() · destroy()
+ *
+ * ── DEMO (saf HTML) ─────────────────────────────────────────────
+ *   <link rel="stylesheet" href="glint-input.css">
+ *   <div class="glint-tree-group">
+ *     <input data-glint-tree id="kat" name="Kategori"
+ *            data-options='[{"label":"Elektronik","value":"e","children":[
+ *              {"label":"Telefon","value":"e-tel"}]}]'>
+ *     <label class="glint-label" for="kat">Kategori</label>
+ *   </div>
+ *   <script src="glint-input.js"></script>
+ *
+ * ── Razor (ASP.NET Core MVC) ────────────────────────────────────
+ *   <div class="glint-tree-group" data-options-from="window.app.birimler"
+ *        data-multiple data-display="tags">
+ *     <input data-glint-tree asp-for="BirimIds" />
+ *     <label class="glint-label" asp-for="BirimIds">Birimler</label>
+ *   </div>
+ *
+ * Animasyon imzası (kontrat):
+ *   popover  scale-in (0.95 + opacity → 1) — var(--glint-dur-4) /
+ *            var(--glint-ease-out); v1.7.1 — Select/Etiketler ile ORTAK
+ *            pop açılış dili (picker border-draw'u kullanıcı direktifiyle kalktı).
+ *   düğüm    genişleme grid-rows 0fr→1fr — var(--glint-ease-move);
+ *            chevron rotate 90°; tri-state tik/çizgi stroke-draw.
+ *   chip     giriş scale(.95)+opacity (Select chip dili).
+ *   prefers-reduced-motion + Glint.configure({reducedMotion:true}) →
+ *   hareket kalkar, işlev/renk kalır (kapılar ÇAĞRI anında değerlendirilir).
+ *
+ * Çekirdek: kendi MutationObserver'ını KURMAZ; Glint.defineComponent ile
+ * kaydolur (bölüm 1 çekirdeği bu dosyada her zaman önce yüklenir).
+ * ════════════════════════════════════════════════════════════════════════ */
+
+(function () {
+    "use strict";
+
+    // v1.7 — CANLI hareket kapısı: mount anında dondurulmaz; her çağrıda
+    // çekirdeğin tek kaynağından okunur (Glint.configure / OS değişimi
+    // remount gerektirmeden anında etkir). Bkz. Glint.motion / reducedMotion.
+    const prefersReduced = () => (window.Glint && window.Glint.reducedMotion)
+        ? window.Glint.reducedMotion()
+        : window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // ══════════════════════════════════════════════════════════════
+    //  Modül-yerel yardımcılar
+    // ══════════════════════════════════════════════════════════════
+
+    let _uid = 0;
+    /** Benzersiz id üretici (aria-controls / treeitem id'leri için). */
+    function uid(prefix) { return (prefix || "glint-tree") + "-" + (++_uid) + "-" + Date.now().toString(36); }
+
+    /**
+     * "Türkçe duyarlı" küçültme — filtre/type-ahead eşleştirmesi için.
+     * toLocaleLowerCase("tr") → İ→i doğru; açık ı→i; NFD ayrıştırması
+     * sonrası birleşen imler atılır → ş→s, ç→c, ö→o, ü→u, ğ→g.
+     * (GlintPhone/GlintCombobox ile birebir aynı yaklaşım — her bölüm
+     * bağımsız IIFE olduğundan kopya modül-yerel tutulur.)
+     */
+    function normalize(s) {
+        return (s || "")
+            .toLocaleLowerCase("tr")
+            .replace(/ı/g, "i")
+            .normalize("NFD")
+            .replace(/[̀-ͯ]/g, "");
+    }
+
+    /**
+     * "window.app.orgTree" gibi nokta yolunu window üzerinde çöz.
+     * Bulunamazsa undefined (sessiz). AĞ İSTEĞİ YAPILMAZ.
+     */
+    function resolvePath(path) {
+        if (!path) return undefined;
+        const parts = String(path).trim().split(".");
+        if (parts[0] === "window") parts.shift();
+        let obj = window;
+        for (const p of parts) {
+            if (obj == null) return undefined;
+            obj = obj[p];
+        }
+        return obj;
+    }
+
+    // SVG ikonlar (geliştirici kaynaklı statik string — kullanıcı verisi değil)
+    const ICON_ARROW =
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
+    const ICON_CHEVRON =
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>`;
+    const ICON_SEARCH =
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/>
+              <path d="M21 21l-4.3-4.3"/></svg>`;
+    const ICON_X =
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
+    const ICON_TICK =
+        `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6 12 L13.5 4"/></svg>`;
+    // Tri-state kutu: tik + minus AYNI svg'de; sınıf hangisinin çizileceğini
+    // seçer (checkbox bölümünün stroke-dashoffset minus deseni emsal).
+    const ICON_CHECKBOX =
+        `<svg class="glint-tree-check__svg" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+              stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+             <path class="glint-tree-check__tick"  d="M2.5 8.5 L6 12 L13.5 4"/>
+             <path class="glint-tree-check__minus" d="M3.5 8 H12.5"/>
+         </svg>`;
+
+    /**
+     * Ham ağaç verisini iç modele indirger (saf, özyinelemeli).
+     *   giriş : [{label, value, children:[...], disabled?}, ...]
+     *   çıkış : { roots, flat }  — flat: belge sırasında (ebeveyn önce)
+     * Boş öğeler ayıklanır; value yoksa label'dan türetilir.
+     */
+    function buildModel(arr) {
+        const flat = [];
+        const walk = (list, parent, level) => {
+            const out = [];
+            (Array.isArray(list) ? list : []).forEach((it) => {
+                if (it == null || typeof it !== "object") return;
+                const label = it.label != null ? String(it.label).trim()
+                    : (it.value != null ? String(it.value).trim() : "");
+                const value = it.value != null ? String(it.value).trim() : label;
+                if (!label && !value) return;
+                const node = {
+                    value, label: label || value,
+                    _norm: normalize(label || value),
+                    disabled: !!it.disabled,
+                    level, parent,
+                    children: [],
+                    expanded: false,
+                    checked: false,        // çoklu: yaprak gerçeği (ebeveyn türetilir)
+                    _ckState: "none",      // "all" | "some" | "none"
+                    _show: true, _selfMatch: false, _openForced: false,
+                    li: null, row: null, labelEl: null
+                };
+                flat.push(node);
+                node.children = walk(it.children, node, level + 1);
+                out.push(node);
+            });
+            return out;
+        };
+        const roots = walk(arr, null, 0);
+        return { roots, flat };
+    }
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  GlintTree — hiyerarşik seçim
+    // ══════════════════════════════════════════════════════════════
+
+    class GlintTree {
+
+        /** @param {HTMLInputElement} input — .glint-tree-group içindeki input[data-glint-tree] */
+        constructor(input) {
+            if (!input || input._glintTreeInit) return;
+            const group = input.closest(".glint-tree-group");
+            if (!group) return;                    // grup dışı input: sessizce vazgeç
+            input._glintTreeInit = true;
+            this.input = input;
+            this.group = group;
+            group._glintTreeInstance = this;
+
+            // Grubu sahiplen: aynı grup yanlışlıkla .glint-input-group da
+            // taşıyorsa base input'un ikinci kez mount olmasını önler.
+            if (window.Glint && typeof window.Glint.claimGroup === "function") {
+                window.Glint.claimGroup(group);
+            }
+            // Glint.setState(group, ...) jenerik durum katmanı bu grubu
+            // hedefleyebilsin (error/success sınıfları CSS'te karşılanır).
+            if (!group.hasAttribute("data-glint-field")) group.setAttribute("data-glint-field", "");
+
+            // ── Yapılandırma (data-*; input öncelikli, sonra grup) ──
+            this.multiple = this._attr("data-multiple") !== null;
+            const disp = this._attr("data-display");
+            this.display = (disp === "count") ? "count" : "tags";
+            this.searchable = this._attr("data-search") !== "false";
+            this.placeholder = this._attr("data-placeholder") || "Seçiniz";
+            this.emptyText = this._attr("data-empty-text") || "Sonuç yok";
+            this.disabled = input.disabled;
+
+            // ── Durum ──
+            this.isOpen = false;
+            this.selectedNode = null;    // tekli mod
+            this._activeNode = null;     // klavye/hover vurgusu
+            this._searching = false;
+            this._marked = [];           // vurgulu (mark'lı) düğümler — temizlemek için
+            this._typeBuffer = "";
+            this._typeTimer = null;
+            this._prevBodyOverflow = undefined;
+            this.treeId = uid("glint-tree");
+
+            // ── Veri + DOM ──
+            this._readOptions();
+            this._build();
+            this._bind();
+
+            // Başlangıç değeri: input.value ("a,b,c") → duruma uygula (event YOK)
+            this._applyValue(this.input.value, false);
+            this._renderTrigger();
+
+            // data-expand: ilk N seviye (veya "all") açık başlasın
+            const ex = this._attr("data-expand");
+            if (ex === "all") this.expandAll();
+            else if (ex != null && !isNaN(parseInt(ex, 10))) {
+                const n = parseInt(ex, 10);
+                for (const nd of this.nodes) {
+                    if (nd.children.length && nd.level < n) this._setExpanded(nd, true);
+                }
+            }
+
+            // Teardown: grup DOM'dan kalkınca paylaşılan observer destroy() çağırır
+            if (window.Glint && typeof window.Glint.register === "function") {
+                window.Glint.register(this.group, this);
+            }
+            this.group.classList.add("glint-tree-mounted");
+        }
+
+        /** data-* okuma: input öncelikli, yoksa grup (pwgen deseni). */
+        _attr(name) {
+            const v = this.input.getAttribute(name);
+            return v !== null ? v : this.group.getAttribute(name);
+        }
+
+        // ── Veri kaynağı ──────────────────────────────────────────
+
+        /** Yerel seçenekleri topla. Öncelik: data-options → data-options-from. */
+        _readOptions() {
+            let raw = [];
+            const attr = this._attr("data-options");
+            if (attr) {
+                // inline JSON — bozuk JSON sessizce boş liste (combobox deseni)
+                try {
+                    const arr = JSON.parse(attr);
+                    if (Array.isArray(arr)) raw = arr;
+                } catch (e) { raw = []; }
+            } else {
+                const from = this._attr("data-options-from");
+                if (from) {
+                    const v = resolvePath(from);
+                    if (Array.isArray(v)) raw = v;
+                }
+            }
+            const model = buildModel(raw);
+            this.roots = model.roots;
+            this.nodes = model.flat;
+        }
+
+        // ── DOM kurulumu ──────────────────────────────────────────
+
+        _build() {
+            const g = this.group;
+            g.classList.add(this.multiple ? "glint-tree-group--multiple" : "glint-tree-group--single");
+            if (this.disabled) g.classList.add("is-disabled");
+
+            // Gizli input: DOM'da kalır (form binding); odak trigger'dadır.
+            this.input.setAttribute("tabindex", "-1");
+            this.input.setAttribute("aria-hidden", "true");
+            if (!this.input.hasAttribute("autocomplete")) this.input.setAttribute("autocomplete", "off");
+
+            // ── Trigger (combobox rolü) ──
+            this.trigger = document.createElement("div");
+            this.trigger.className = "glint-tree-trigger";
+            this.trigger.setAttribute("role", "combobox");
+            this.trigger.setAttribute("tabindex", this.disabled ? "-1" : "0");
+            this.trigger.setAttribute("aria-haspopup", "tree");
+            this.trigger.setAttribute("aria-expanded", "false");
+            this.trigger.setAttribute("aria-controls", this.treeId);
+
+            // Label ilişkisi (select deseni): label VARSA placeholder bastırılır
+            const lbl = g.querySelector(".glint-label");
+            this.hasLabel = !!lbl;
+            if (lbl) {
+                if (!lbl.id) lbl.id = uid("glint-tree-lbl");
+                this.trigger.setAttribute("aria-labelledby", lbl.id);
+            } else {
+                this.trigger.setAttribute("aria-label", this.placeholder);
+            }
+
+            this.valueEl = document.createElement("span");
+            this.valueEl.className = "glint-tree-value";
+            this.trigger.appendChild(this.valueEl);
+
+            this.arrow = document.createElement("span");
+            this.arrow.className = "glint-tree-arrow";
+            this.arrow.setAttribute("aria-hidden", "true");
+            this.arrow.innerHTML = ICON_ARROW;
+            this.trigger.appendChild(this.arrow);
+
+            this.input.insertAdjacentElement("afterend", this.trigger);
+
+            // ── Popover ──
+            this.popover = document.createElement("div");
+            this.popover.className = "glint-tree-popover " +
+                (this.multiple ? "glint-tree-popover--multiple" : "glint-tree-popover--single");
+
+            if (this.searchable) {
+                const sw = document.createElement("div");
+                sw.className = "glint-tree-search-wrap";
+                const sicon = document.createElement("span");
+                sicon.className = "glint-tree-search-icon";
+                sicon.setAttribute("aria-hidden", "true");
+                sicon.innerHTML = ICON_SEARCH;
+                this.search = document.createElement("input");
+                this.search.type = "text";
+                this.search.className = "glint-tree-search";
+                this.search.placeholder = "Ara...";
+                this.search.autocomplete = "off";
+                this.search.setAttribute("aria-label", "Seçeneklerde ara");
+                this.search.setAttribute("aria-controls", this.treeId);
+                sw.appendChild(sicon);
+                sw.appendChild(this.search);
+                this.popover.appendChild(sw);
+            } else {
+                this.search = null;
+            }
+
+            // Kök ağaç (role=tree) — kaydırma kabı da budur
+            this.tree = document.createElement("ul");
+            this.tree.className = "glint-tree";
+            this.tree.id = this.treeId;
+            this.tree.setAttribute("role", "tree");
+            if (this.multiple) this.tree.setAttribute("aria-multiselectable", "true");
+            if (lbl) this.tree.setAttribute("aria-labelledby", lbl.id);
+            else this.tree.setAttribute("aria-label", this.placeholder);
+            this.popover.appendChild(this.tree);
+
+            this.emptyEl = document.createElement("div");
+            this.emptyEl.className = "glint-tree-empty";
+            this.emptyEl.textContent = this.emptyText;
+            this.emptyEl.style.display = "none";
+            this.popover.appendChild(this.emptyEl);
+
+            // 500+ düğümde tek seferlik kurulum: DocumentFragment
+            this.tree.appendChild(this._buildNodes(this.roots));
+
+            document.body.appendChild(this.popover);
+
+            // ── Backdrop (mobil bottom-sheet karartması; picker deseni) ──
+            this.backdrop = document.createElement("div");
+            this.backdrop.className = "glint-tree-backdrop";
+            document.body.appendChild(this.backdrop);
+        }
+
+        /** Bir düğüm listesini (özyinelemeli) fragment olarak kurar. */
+        _buildNodes(list) {
+            const frag = document.createDocumentFragment();
+            for (const node of list) {
+                const li = document.createElement("li");
+                li.className = "glint-tree-node";
+                li.id = this.treeId + "-n" + (this.nodes.indexOf(node));
+                li.setAttribute("role", "treeitem");
+                li.setAttribute("aria-level", String(node.level + 1));
+                // Ad hesabı çocuk metinlerini KAPSAMASIN diye açık ad veriyoruz
+                li.setAttribute("aria-label", node.label);
+                if (this.multiple) li.setAttribute("aria-checked", "false");
+                else li.setAttribute("aria-selected", "false");
+                if (node.disabled) {
+                    li.classList.add("is-disabled");
+                    li.setAttribute("aria-disabled", "true");
+                }
+
+                const row = document.createElement("div");
+                row.className = "glint-tree-row";
+                row.style.setProperty("--lvl", String(node.level));
+
+                const chev = document.createElement("span");
+                chev.className = "glint-tree-chevron" + (node.children.length ? "" : " is-leaf");
+                chev.setAttribute("aria-hidden", "true");
+                if (node.children.length) chev.innerHTML = ICON_CHEVRON;
+
+                const check = document.createElement("span");
+                check.className = "glint-tree-check";
+                check.setAttribute("aria-hidden", "true");
+                check.innerHTML = this.multiple ? ICON_CHECKBOX : ICON_TICK;
+
+                const labelEl = document.createElement("span");
+                labelEl.className = "glint-tree-label";
+                labelEl.textContent = node.label;   // textContent → XSS'e kapalı
+
+                row.appendChild(chev);
+                row.appendChild(check);
+                row.appendChild(labelEl);
+                li.appendChild(row);
+
+                node.li = li;
+                node.row = row;
+                node.labelEl = labelEl;
+                row._treeNode = node;   // delegasyon anahtarı
+
+                if (node.children.length) {
+                    li.setAttribute("aria-expanded", "false");
+                    // grid-rows 0fr→1fr tekniği: sarmalayıcı grid + iç UL overflow:hidden
+                    const kids = document.createElement("div");
+                    kids.className = "glint-tree-kids";
+                    kids.setAttribute("role", "presentation");
+                    const ul = document.createElement("ul");
+                    ul.className = "glint-tree-children";
+                    ul.setAttribute("role", "group");
+                    ul.appendChild(this._buildNodes(node.children));
+                    kids.appendChild(ul);
+                    li.appendChild(kids);
+                }
+                frag.appendChild(li);
+            }
+            return frag;
+        }
+
+        // ── Olay bağlama ──────────────────────────────────────────
+
+        _bind() {
+            if (this.disabled) return;
+
+            // Trigger aç/kapa (chip × hariç)
+            this._onTriggerClick = (e) => {
+                if (e.target.closest(".glint-tree-chip__remove")) return;
+                this.toggle();
+            };
+            this.trigger.addEventListener("click", this._onTriggerClick);
+            this.trigger.addEventListener("keydown", (e) => this._onTriggerKey(e));
+
+            // Ağaç: TEK delegated listener (500+ düğüm — satır başına listener yok)
+            this.tree.addEventListener("click", (e) => {
+                const row = e.target.closest(".glint-tree-row");
+                if (!row || !row._treeNode) return;
+                const node = row._treeNode;
+                if (e.target.closest(".glint-tree-chevron") && node.children.length) {
+                    // Arama modunda manuel daraltma askıda (filtre görünümü bütün)
+                    if (!this._searching) this._toggleExpand(node);
+                    return;
+                }
+                if (node.disabled) return;
+                if (this.multiple) this._toggleCheck(node);
+                else this._chooseSingle(node);
+            });
+            this.tree.addEventListener("mousemove", (e) => {
+                const row = e.target.closest(".glint-tree-row");
+                if (row && row._treeNode && !row._treeNode.disabled) {
+                    this._setActiveNode(row._treeNode, false);
+                }
+            });
+
+            // Arama
+            if (this.search) {
+                this.search.addEventListener("compositionstart", () => { this._composing = true; });
+                this.search.addEventListener("compositionend", () => {
+                    this._composing = false;
+                    this._applyFilter(this.search.value);
+                });
+                this.search.addEventListener("input", () => {
+                    if (this._composing) return;
+                    this._applyFilter(this.search.value);
+                });
+                this.search.addEventListener("keydown", (e) => this._onListKey(e));
+            }
+
+            // Popover içine mousedown → odak kaçışını engelle (select deseni)
+            this.popover.addEventListener("mousedown", (e) => {
+                if (e.target !== this.search) e.preventDefault();
+            });
+
+            // Backdrop (mobil) → kapat
+            this.backdrop.addEventListener("click", () => this.close());
+
+            // Dışarı tıkla → kapat
+            this._outside = (e) => {
+                if (!this.isOpen) return;
+                if (this.group.contains(e.target) || this.popover.contains(e.target)) return;
+                this.close();
+            };
+            document.addEventListener("mousedown", this._outside);
+
+            // Reposition — rAF-throttle; mobil sheet CSS'le sabit, atlanır
+            this._reposScheduled = false;
+            this._repos = () => {
+                if (!this.isOpen || this._reposScheduled) return;
+                this._reposScheduled = true;
+                requestAnimationFrame(() => {
+                    this._reposScheduled = false;
+                    if (this.isOpen && window.innerWidth > 768) this._position();
+                });
+            };
+            window.addEventListener("resize", this._repos);
+            window.addEventListener("scroll", this._repos, { capture: true, passive: true });
+
+            // İçerik yüksekliği değişince (genişletme/filtre) yeniden konumlan
+            this._popRO = ("ResizeObserver" in window)
+                ? new ResizeObserver(() => this._repos())
+                : null;
+
+            // Form reset: input.value default'una döner ama change DISPATCH edilmez
+            this._form = this.input.form;
+            if (this._form) {
+                this._onFormReset = () => {
+                    requestAnimationFrame(() => {
+                        this._applyValue(this.input.value, false);
+                        this._renderTrigger();
+                    });
+                };
+                this._form.addEventListener("reset", this._onFormReset);
+            }
+        }
+
+        // ── Görünürlük & aktif satır ──────────────────────────────
+
+        /**
+         * O an görünür düğümler, belge sırasında.
+         *   normal : tüm ataları genişletilmiş düğümler
+         *   arama  : eşleşen düğüm + ATALARI (atalar zorla açık)
+         */
+        _visibleNodes() {
+            const out = [];
+            const walk = (list) => {
+                for (const n of list) {
+                    if (this._searching && !n._show) continue;
+                    out.push(n);
+                    if (!n.children.length) continue;
+                    const open = this._searching ? n._openForced : n.expanded;
+                    if (open) walk(n.children);
+                }
+            };
+            walk(this.roots);
+            return out;
+        }
+
+        /** Aktif (vurgulu) düğümü değiştir — aria-activedescendant senkron. */
+        _setActiveNode(node, scroll) {
+            if (this._activeNode && this._activeNode !== node) {
+                this._activeNode.row.classList.remove("is-active");
+            }
+            this._activeNode = node || null;
+            if (node) {
+                node.row.classList.add("is-active");
+                this.trigger.setAttribute("aria-activedescendant", node.li.id);
+                if (this.search) this.search.setAttribute("aria-activedescendant", node.li.id);
+                if (scroll) node.row.scrollIntoView({ block: "nearest" });
+            } else {
+                this.trigger.removeAttribute("aria-activedescendant");
+                if (this.search) this.search.removeAttribute("aria-activedescendant");
+            }
+        }
+
+        /** Aktifi delta kadar taşı (devre dışı satırlar atlanır, sarmalanır). */
+        _move(delta) {
+            const vis = this._visibleNodes();
+            if (!vis.length) return;
+            let i = vis.indexOf(this._activeNode);
+            if (i < 0) i = delta > 0 ? -1 : 0;
+            for (let step = 0; step < vis.length; step++) {
+                i = (i + delta + vis.length) % vis.length;
+                if (!vis[i].disabled) { this._setActiveNode(vis[i], true); return; }
+            }
+        }
+
+        _firstSelectable() {
+            const vis = this._visibleNodes();
+            return vis.find(n => !n.disabled) || vis[0] || null;
+        }
+
+        /** Type-ahead (aramasız mod): görünürlerde etiketi buffer'la başlayan sonraki. */
+        _typeahead(ch) {
+            clearTimeout(this._typeTimer);
+            this._typeBuffer += normalize(ch);
+            this._typeTimer = setTimeout(() => { this._typeBuffer = ""; }, 500);
+            const vis = this._visibleNodes();
+            if (!vis.length) return;
+            const cur = Math.max(0, vis.indexOf(this._activeNode));
+            // Tek harf tekrarında bir SONRAKİ eşleşmeye atla (select deseni)
+            const start = this._typeBuffer.length === 1 ? cur + 1 : cur;
+            for (let k = 0; k < vis.length; k++) {
+                const n = vis[(start + k) % vis.length];
+                if (!n.disabled && n._norm.indexOf(this._typeBuffer) === 0) {
+                    this._setActiveNode(n, true);
+                    return;
+                }
+            }
+        }
+
+        // ── Genişletme / daraltma ─────────────────────────────────
+
+        _setExpanded(node, exp) {
+            if (!node.children.length || node.expanded === exp) return;
+            node.expanded = exp;
+            node.li.classList.toggle("is-expanded", exp);
+            node.li.setAttribute("aria-expanded", exp ? "true" : "false");
+        }
+
+        _toggleExpand(node) { this._setExpanded(node, !node.expanded); }
+
+        expandAll() { for (const n of this.nodes) this._setExpanded(n, true); }
+        collapseAll() { for (const n of this.nodes) this._setExpanded(n, false); }
+
+        /** Bir düğümün TÜM atalarını genişlet (seçim açılışta görünür olsun). */
+        _revealNode(node) {
+            let p = node && node.parent;
+            while (p) { this._setExpanded(p, true); p = p.parent; }
+        }
+
+        // ── Arama / filtre ────────────────────────────────────────
+
+        /**
+         * TR-duyarlı filtre: eşleşen düğüm + ATALARI görünür; DOM yeniden
+         * kurulmaz — yalnız is-filter-hidden / is-search-open sınıfları
+         * toggle edilir (500+ düğüm performans kuralı).
+         */
+        _applyFilter(q) {
+            const nq = normalize((q || "").trim());
+            const searching = !!nq;
+            this._searching = searching;
+            this.tree.classList.toggle("is-searching", searching);
+
+            // Eski vurguları temizle (yalnız işaretlenmiş düğümler dolaşılır)
+            for (const n of this._marked) n.labelEl.textContent = n.label;
+            this._marked = [];
+
+            let any = false;
+            if (!searching) {
+                for (const n of this.nodes) {
+                    n._show = true; n._selfMatch = false; n._openForced = false;
+                    n.li.classList.remove("is-filter-hidden", "is-search-open");
+                    if (n.children.length) {
+                        n.li.setAttribute("aria-expanded", n.expanded ? "true" : "false");
+                    }
+                }
+                any = this.nodes.length > 0;
+            } else {
+                for (const n of this.nodes) {
+                    n._selfMatch = n._norm.indexOf(nq) !== -1;
+                    n._show = n._selfMatch;
+                    n._openForced = false;
+                }
+                for (const n of this.nodes) {
+                    if (!n._selfMatch) continue;
+                    any = true;
+                    this._highlight(n.labelEl, n.label, nq);
+                    this._marked.push(n);
+                    let p = n.parent;
+                    while (p && !p._openForced) { p._openForced = true; p._show = true; p = p.parent; }
+                }
+                for (const n of this.nodes) {
+                    n.li.classList.toggle("is-filter-hidden", !n._show);
+                    n.li.classList.toggle("is-search-open", n._openForced);
+                    if (n.children.length) {
+                        n.li.setAttribute("aria-expanded", n._openForced ? "true" : "false");
+                    }
+                }
+            }
+            this.emptyEl.style.display = any ? "none" : "block";
+            this._setActiveNode(this._firstSelectable(), false);
+        }
+
+        /**
+         * Eşleşen alt-dizgiyi <mark class="glint-select-hl"> ile vurgula.
+         * Düğüm tabanlı (textContent + createTextNode) — innerHTML'e ham veri
+         * BASILMAZ. NFD/ı dönüşümleri index kaydırabildiği için orijinal →
+         * normalize karakter haritası kurulur (GlintCombobox ile aynı yöntem).
+         */
+        _highlight(labelEl, original, nq) {
+            let norm = "";
+            const map = [];
+            for (let oi = 0; oi < original.length; oi++) {
+                const n = normalize(original[oi]);
+                for (let k = 0; k < n.length; k++) { norm += n[k]; map.push(oi); }
+            }
+            const pos = norm.indexOf(nq);
+            if (pos < 0) { labelEl.textContent = original; return; }
+            const s = map[pos];
+            const e = (pos + nq.length < map.length) ? map[pos + nq.length] : original.length;
+            labelEl.textContent = "";
+            if (s > 0) labelEl.appendChild(document.createTextNode(original.slice(0, s)));
+            const mark = document.createElement("mark");
+            mark.className = "glint-select-hl";
+            mark.textContent = original.slice(s, e);
+            labelEl.appendChild(mark);
+            if (e < original.length) labelEl.appendChild(document.createTextNode(original.slice(e)));
+        }
+
+        // ── Seçim: tekli ──────────────────────────────────────────
+
+        _chooseSingle(node) {
+            this.selectedNode = node;
+            this._syncSelected();
+            this._renderTrigger();
+            this._syncInput(true);
+            this._dispatch("glint:tree-change", { value: node.value, label: node.label });
+            this.close();
+            try { this.trigger.focus({ preventScroll: true }); } catch (e) { /* yut */ }
+        }
+
+        _syncSelected() {
+            if (this.multiple) return;
+            for (const n of this.nodes) {
+                const sel = n === this.selectedNode;
+                n.li.classList.toggle("is-selected", sel);
+                n.li.setAttribute("aria-selected", sel ? "true" : "false");
+            }
+        }
+
+        // ── Seçim: çoklu (tri-state) ──────────────────────────────
+
+        /**
+         * Satır tıklaması: hedef durum = "tamamı işaretli DEĞİLSE işaretle".
+         * Yaprak gerçeği node.checked'dir; ebeveynler TÜRETİLİR. Devre dışı
+         * alt ağaçlar kaskaddan etkilenmez.
+         */
+        _toggleCheck(node) {
+            const on = node._ckState !== "all";
+            this._cascade(node, on);
+            this._syncChecks();
+            this._renderTrigger();
+            this._syncInput(true);
+            const leaves = this._checkedLeaves();
+            this._dispatch("glint:tree-change", {
+                values: leaves.map(n => n.value),
+                labels: leaves.map(n => n.label)
+            });
+        }
+
+        _cascade(node, on) {
+            if (node.disabled) return;               // devre dışı alt ağaç dokunulmaz
+            if (!node.children.length) { node.checked = on; return; }
+            for (const c of node.children) this._cascade(c, on);
+        }
+
+        /**
+         * Tri-state türetimi: flat dizi TERSTEN dolaşılır (çocuklar ebeveynden
+         * önce hesaplanır — flat belge sıralı olduğundan tek geçiş yeter).
+         * DEVRE DIŞI çocuklar türetime KATILMAZ (yaygın konvansiyon): aksi
+         * halde işaretlenemez bir çocuk ebeveyni sonsuza dek "kısmi"de
+         * kilitler ve ebeveyn tıklaması hiç "kaldır"a dönemezdi.
+         * Görsel: is-checked (tam) / is-indeterminate (kısmi — minus deseni).
+         */
+        _syncChecks() {
+            if (!this.multiple) return;
+            for (let i = this.nodes.length - 1; i >= 0; i--) {
+                const n = this.nodes[i];
+                let state;
+                if (!n.children.length) {
+                    state = n.checked ? "all" : "none";
+                } else {
+                    let all = true, none = true, considered = 0;
+                    for (const c of n.children) {
+                        if (c.disabled) continue;   // türetim dışı
+                        considered++;
+                        if (c._ckState !== "all") all = false;
+                        if (c._ckState !== "none") none = false;
+                    }
+                    if (!considered) state = "none";   // tümü devre dışı → etkisiz ebeveyn
+                    else state = all ? "all" : (none ? "none" : "some");
+                }
+                n._ckState = state;
+                n.li.classList.toggle("is-checked", state === "all");
+                n.li.classList.toggle("is-indeterminate", state === "some");
+                n.li.setAttribute("aria-checked",
+                    state === "all" ? "true" : (state === "some" ? "mixed" : "false"));
+            }
+        }
+
+        /** İşaretli yapraklar, belge sırasında (value/etiket kaynağı). */
+        _checkedLeaves() {
+            return this.nodes.filter(n => !n.children.length && n.checked);
+        }
+
+        // ── Değer senkronu ────────────────────────────────────────
+
+        /** input.value → iç durum ("a,b,c"). fire=false → event yok (mount/reset). */
+        _applyValue(value, fire) {
+            const vals = String(value || "").split(",").map(s => s.trim()).filter(Boolean);
+            if (this.multiple) {
+                const set = new Set(vals);
+                for (const n of this.nodes) {
+                    if (!n.children.length) n.checked = set.has(n.value);
+                }
+                this._syncChecks();
+            } else {
+                this.selectedNode = vals.length
+                    ? (this.nodes.find(n => n.value === vals[0]) || null)
+                    : null;
+                this._syncSelected();
+            }
+            this._syncInput(fire === true);
+        }
+
+        /** İç durum → input.value (virgülle) + native input/change dispatch. */
+        _syncInput(fire) {
+            const vals = this.multiple
+                ? this._checkedLeaves().map(n => n.value)
+                : (this.selectedNode ? [this.selectedNode.value] : []);
+            const v = vals.join(",");
+            if (this.input.value !== v) {
+                this.input.value = v;
+                if (fire) {
+                    this.input.dispatchEvent(new Event("input", { bubbles: true }));
+                    this.input.dispatchEvent(new Event("change", { bubbles: true }));
+                }
+            }
+        }
+
+        _dispatch(name, detail) {
+            this.input.dispatchEvent(new CustomEvent(name, { bubbles: true, detail: detail || {} }));
+        }
+
+        // ── Trigger görünümü ──────────────────────────────────────
+
+        _renderTrigger() {
+            const v = this.valueEl;
+            v.textContent = "";
+            v.classList.remove("is-placeholder");
+            let has = false;
+
+            if (this.multiple) {
+                const leaves = this._checkedLeaves();
+                has = leaves.length > 0;
+                if (!has) {
+                    // Label varsa placeholder bastırılır (üst üste binme olmasın)
+                    v.textContent = this.hasLabel ? "" : this.placeholder;
+                    v.classList.add("is-placeholder");
+                } else if (this.display === "count") {
+                    v.textContent = leaves.length + " seçili";
+                } else {
+                    for (const n of leaves) v.appendChild(this._makeChip(n));
+                }
+            } else {
+                has = !!this.selectedNode;
+                if (has) {
+                    v.textContent = this.selectedNode.label;
+                } else {
+                    v.textContent = this.hasLabel ? "" : this.placeholder;
+                    v.classList.add("is-placeholder");
+                }
+            }
+            this.group.classList.toggle("glint-has-value", has);
+        }
+
+        /** Çoklu mod chip'i (Select chip dili — giriş animasyonu çağrı-anı kapılı). */
+        _makeChip(node) {
+            const chip = document.createElement("span");
+            chip.className = "glint-tree-chip";
+
+            const label = document.createElement("span");
+            label.className = "glint-tree-chip__label";
+            label.textContent = node.label;
+
+            const x = document.createElement("button");
+            x.type = "button";
+            x.className = "glint-tree-chip__remove";
+            x.setAttribute("aria-label", node.label + " kaldır");
+            x.innerHTML = ICON_X;
+            x.addEventListener("click", (e) => {
+                e.stopPropagation();
+                this._toggleCheck(node);   // yaprak "all" → kapatır
+            });
+
+            chip.appendChild(label);
+            chip.appendChild(x);
+
+            if (!prefersReduced()) {
+                try {
+                    chip.animate(
+                        [{ transform: "scale(0.95)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }],
+                        { duration: 160, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "backwards" }
+                    );
+                } catch (e) { /* Web Animations yoksa sessiz */ }
+            }
+            return chip;
+        }
+
+        // ── Klavye ────────────────────────────────────────────────
+
+        /** Trigger üzerinde (popover kapalı ya da aramasız açık) klavye. */
+        _onTriggerKey(e) {
+            switch (e.key) {
+                case "ArrowDown":
+                case "ArrowUp":
+                case "Enter":
+                case " ":
+                    e.preventDefault();
+                    if (!this.isOpen) this.open();
+                    else if (e.key !== " ") this._onListKey(e, true);
+                    else if (this.multiple) this._onListKey(e, true);
+                    break;
+                case "Escape":
+                    if (this.isOpen) { e.preventDefault(); this.close(); }
+                    break;
+                case "ArrowRight":
+                case "ArrowLeft":
+                case "Home":
+                case "End":
+                    if (this.isOpen) this._onListKey(e, true);
+                    break;
+                default:
+                    // Harf: aç + arama tohumla (select v1.5.1 deseni) / type-ahead
+                    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                        if (!this.isOpen) this.open();
+                        if (this.search) {
+                            e.preventDefault();
+                            this.search.value += e.key;
+                            this.search.dispatchEvent(new Event("input", { bubbles: true }));
+                        } else {
+                            e.preventDefault();
+                            this._typeahead(e.key);
+                        }
+                    }
+            }
+        }
+
+        /**
+         * Popover açıkken klavye (arama input'unda veya trigger'da).
+         * ←/→: arama kutusu DOLUYKEN caret hareketi önceliklidir (Home/End
+         * için select'teki kuralın aynısı).
+         * @param {boolean} fromTrigger — çağrı trigger keydown'ından geliyor
+         */
+        _onListKey(e, fromTrigger) {
+            const inSearch = !fromTrigger && this.search && document.activeElement === this.search;
+            const caretBusy = inSearch && this.search.value;
+            switch (e.key) {
+                case "ArrowDown":
+                    e.preventDefault();
+                    this._move(+1);
+                    break;
+                case "ArrowUp":
+                    e.preventDefault();
+                    this._move(-1);
+                    break;
+                case "ArrowRight": {
+                    if (caretBusy) break;   // caret hareketi
+                    e.preventDefault();
+                    const n = this._activeNode;
+                    if (!n) break;
+                    if (n.children.length && !this._searching && !n.expanded) {
+                        this._setExpanded(n, true);
+                    } else if (n.children.length) {
+                        // Açıksa ilk (görünür) çocuğa in
+                        const vis = this._visibleNodes();
+                        const i = vis.indexOf(n);
+                        const kid = vis[i + 1];
+                        if (kid && kid.parent === n) this._setActiveNode(kid, true);
+                    }
+                    break;
+                }
+                case "ArrowLeft": {
+                    if (caretBusy) break;
+                    e.preventDefault();
+                    const n = this._activeNode;
+                    if (!n) break;
+                    if (n.children.length && !this._searching && n.expanded) {
+                        this._setExpanded(n, false);
+                    } else if (n.parent) {
+                        this._setActiveNode(n.parent, true);
+                    }
+                    break;
+                }
+                case "Home": {
+                    if (caretBusy) break;
+                    e.preventDefault();
+                    const vis = this._visibleNodes();
+                    const first = vis.find(x => !x.disabled);
+                    if (first) this._setActiveNode(first, true);
+                    break;
+                }
+                case "End": {
+                    if (caretBusy) break;
+                    e.preventDefault();
+                    const vis = this._visibleNodes();
+                    for (let i = vis.length - 1; i >= 0; i--) {
+                        if (!vis[i].disabled) { this._setActiveNode(vis[i], true); break; }
+                    }
+                    break;
+                }
+                case "Enter":
+                case " ": {
+                    // Space yalnız trigger'dan (aramada boşluk yazılabilsin)
+                    if (e.key === " " && !fromTrigger) break;
+                    e.preventDefault();
+                    const n = this._activeNode;
+                    if (!n || n.disabled) break;
+                    if (this.multiple) this._toggleCheck(n);
+                    else this._chooseSingle(n);
+                    break;
+                }
+                case "Escape":
+                    e.preventDefault();
+                    this.close();
+                    try { this.trigger.focus({ preventScroll: true }); } catch (err) { /* yut */ }
+                    break;
+                case "Tab":
+                    this.close();
+                    break;
+                default:
+                    // Aramasız modda type-ahead
+                    if (!this.search && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                        e.preventDefault();
+                        this._typeahead(e.key);
+                    }
+            }
+        }
+
+        // ── Aç / kapat / konumlandır ──────────────────────────────
+
+        open() {
+            if (this.isOpen || this.disabled) return;
+            this.isOpen = true;
+            this.group.classList.add("glint-tree-open");
+            this.trigger.setAttribute("aria-expanded", "true");
+
+            if (this.search) this.search.value = "";
+            this._applyFilter("");
+
+            // Seçim açılışta görünür olsun: atalar genişletilir + aktif oraya
+            const target = this.multiple ? this._checkedLeaves()[0] : this.selectedNode;
+            if (target) {
+                this._revealNode(target);
+                this._setActiveNode(target, false);
+            }
+
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+                // Bottom-sheet (picker deseni): backdrop + body scroll kilidi
+                this.backdrop.classList.add("is-open");
+                this._prevBodyOverflow = document.body.style.overflow;
+                document.body.style.overflow = "hidden";
+            } else {
+                this._position();
+                if (this._popRO) this._popRO.observe(this.popover);
+            }
+
+            requestAnimationFrame(() => {
+                if (!this.isOpen) return;
+                // v1.7.1 — panel Select/Etiketler ile AYNI dille açılır
+                // (ortak pop scale-in, CSS'te); picker'ın border-draw çizimi
+                // kullanıcı direktifiyle KALDIRILDI.
+                this.popover.classList.add("is-open");
+                if (this._activeNode) this._activeNode.row.scrollIntoView({ block: "nearest" });
+                if (this.search) this.search.focus();
+            });
+
+            this._dispatch("glint:tree-open");
+        }
+
+        close() {
+            if (!this.isOpen) return;
+            this.isOpen = false;
+            const hadFocus = this.popover.contains(document.activeElement);
+            this.popover.classList.remove("is-open");
+            this.backdrop.classList.remove("is-open");
+            if (this._prevBodyOverflow !== undefined) {
+                document.body.style.overflow = this._prevBodyOverflow;
+                this._prevBodyOverflow = undefined;
+            }
+            this.group.classList.remove("glint-tree-open");
+            this.trigger.setAttribute("aria-expanded", "false");
+            this.trigger.removeAttribute("aria-activedescendant");
+            if (this.search) this.search.removeAttribute("aria-activedescendant");
+            if (this._popRO) this._popRO.unobserve(this.popover);
+            // Odak popover içindeyse trigger'a iade (picker'ın merkezi deseni)
+            if (hadFocus) { try { this.trigger.focus({ preventScroll: true }); } catch (e) { /* yut */ } }
+            this._dispatch("glint:tree-close");
+        }
+
+        toggle() { this.isOpen ? this.close() : this.open(); }
+
+        /** Masaüstü konumlandırma — select'in flip/clamp matematiği. */
+        _position() {
+            const rect = this.trigger.getBoundingClientRect();
+            this.popover.classList.remove("glint-tree-popover--flip-up");
+            this.popover.style.minWidth = Math.max(rect.width, 240) + "px";
+
+            const popH = this.popover.offsetHeight || 300;
+            const popW = this.popover.offsetWidth || rect.width;
+            const margin = 6;
+            const vpH = window.innerHeight;
+            const vpW = window.innerWidth;
+
+            let top = rect.bottom + margin;
+            let flip = false;
+            if (top + popH > vpH - 12 && rect.top - margin - popH > 12) {
+                top = rect.top - popH - margin;
+                flip = true;
+            }
+            let left = rect.left;
+            if (left + popW > vpW - 12) left = Math.max(12, vpW - popW - 12);
+            if (left < 12) left = 12;
+
+            this.popover.style.top = (window.scrollY + top) + "px";
+            this.popover.style.left = (window.scrollX + left) + "px";
+            this.popover.classList.toggle("glint-tree-popover--flip-up", flip);
+        }
+
+        // ── Programatik API ───────────────────────────────────────
+
+        /** Tekli: string · çoklu: string[] veya "a,b". fire=false → event yok. */
+        setValue(val, fire) {
+            const v = Array.isArray(val) ? val.join(",") : String(val == null ? "" : val);
+            this._applyValue(v, fire !== false);
+            this._renderTrigger();
+            if (fire !== false) {
+                if (this.multiple) {
+                    const leaves = this._checkedLeaves();
+                    this._dispatch("glint:tree-change", {
+                        values: leaves.map(n => n.value),
+                        labels: leaves.map(n => n.label)
+                    });
+                } else {
+                    this._dispatch("glint:tree-change", {
+                        value: this.selectedNode ? this.selectedNode.value : "",
+                        label: this.selectedNode ? this.selectedNode.label : ""
+                    });
+                }
+            }
+        }
+
+        getValue() {
+            if (this.multiple) return this._checkedLeaves().map(n => n.value);
+            return this.selectedNode ? this.selectedNode.value : "";
+        }
+
+        // ── Temizlik ──────────────────────────────────────────────
+
+        destroy() {
+            if (this.isOpen) { try { this.close(); } catch (e) { /* yut */ } }
+            clearTimeout(this._typeTimer);
+            document.removeEventListener("mousedown", this._outside);
+            window.removeEventListener("resize", this._repos);
+            window.removeEventListener("scroll", this._repos, true);
+            if (this._popRO) this._popRO.disconnect();
+            if (this._form && this._onFormReset) this._form.removeEventListener("reset", this._onFormReset);
+            this.popover.remove();
+            this.backdrop.remove();
+            this.trigger.remove();
+            // Gizli input'u eski haline getir (yeniden mount edilebilsin)
+            this.input.removeAttribute("tabindex");
+            this.input.removeAttribute("aria-hidden");
+            this.group.classList.remove(
+                "glint-tree-mounted", "glint-tree-open", "glint-has-value",
+                "glint-tree-group--multiple", "glint-tree-group--single"
+            );
+            delete this.input._glintTreeInit;
+            delete this.group._glintTreeInstance;
+            if (window.Glint && typeof window.Glint.unregister === "function") {
+                window.Glint.unregister(this.group);
+            }
+        }
+
+        /** el: input, grup ya da grup içi herhangi bir düğüm. */
+        static get(el) {
+            if (!el) return null;
+            const g = (el.closest && el.closest(".glint-tree-group")) || el;
+            return g._glintTreeInstance || null;
+        }
+    }
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  ÇEKİRDEĞE KAYIT (Glint.defineComponent) + güvenli yükleme guard'ı
+    // ══════════════════════════════════════════════════════════════
+    //
+    // Modül KENDİ MutationObserver'ını KURMAZ — paylaşılan çekirdek tarar.
+    // Grup tümüyle bu modüle aittir (Select'in grup deseni): kayıt grup
+    // üzerinden yapılır, teardown observer'ı grup kalkınca destroy() çağırır.
+
+    function register() {
+        const G = window.Glint;
+
+        G.defineComponent("treeselect", {
+            selector: ".glint-tree-group input[data-glint-tree]",
+            match: (el) => !el._glintTreeInit,
+            mount: (el) => new GlintTree(el)
+        });
+
+        // Programatik API
+        G.Tree = GlintTree;
+    }
+
+    // Güvenli yükleme-sırası guard'ı: çekirdek (bölüm 1) bu dosyada her
+    // zaman önce yüklenir; guard yalnız olağandışı yükleme sıraları için
+    // (v1.6 phone/card başlangıç deseni).
+    if (window.Glint && window.Glint.defineComponent) {
+        register();
+    } else {
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.Glint && window.Glint.defineComponent) register();
+        });
+    }
+
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+ *  16) QR — Input değerinden QR kodu üretici
+ *     (v1.7'de ana dosyaya birleştirildi — kaynak paket: src-v17/qr.js)
+ * ════════════════════════════════════════════════════════════════════════ */
+/**
+ * Glint QR
+ * ─────────────────────────────────────────────────────────────
+ * Çekirdeğin (Glint.defineComponent) uzantısı.
+ * Input değerinden QR kodu: aksiyon butonu + mini popover (SVG önizleme,
+ * PNG indirme, panoya kopyalama). SIFIR BAĞIMLILIK, AĞ İSTEĞİ YOK —
+ * encoder ISO/IEC 18004 (Model 2) standardına göre SIFIRDAN yazıldı.
+ *
+ * Opt-in:    <input class="glint-input" type="text|url|..." data-glint-qr>
+ *            (.glint-input-group içinde; grup CLAIM EDİLMEZ — border/label
+ *             sahibi GlintInput kalır, bu modül yalnız davranış ekler:
+ *             stepper/combobox deseni. type=password ve type=hidden
+ *             alanlarda mount sessizce reddedilir — gizli değer QR'lanmaz.)
+ *
+ * Encoder:   Byte mode (UTF-8) · EC seviyesi M (yetmezse L'ye düşer)
+ *            · sürüm 1-11 otomatik seçim · Reed-Solomon GF(256, 0x11D)
+ *            · maske 0-7 penaltı skoruyla seçim · format/version BCH.
+ *            Üst sınır: v11-L = 321 bayt (bkz. kapasite tablosu).
+ *            Saf fonksiyon: glintQrMatrix(text) → boolean[][]
+ *            (dizi üzerinde .version/.size/.ecLevel/.mask/.bytes meta'sı).
+ *
+ * API:       window.Glint.QR (sınıf) · Glint.QR.get(el) → instance
+ *            Glint.QR.matrix(text) === window.glintQrMatrix(text)
+ *            Glint.QR.toCanvas(matrix, scale, quiet) → <canvas> (PNG için)
+ *            instance: open() · close() · refresh() · destroy()
+ *
+ * Config:    data-qr-debounce  (300 ms — açık popover canlı güncelleme)
+ *            data-qr-filename  (PNG dosya adı; vars. "qr-kod.png")
+ *            data-qr-scale     (PNG modül pikseli; vars. 8)
+ *
+ * Event'ler: glint:qr-open · glint:qr-close
+ *            glint:qr-update   → detail {value, ok, version, size, ecLevel, mask, bytes}
+ *            glint:qr-download → detail {filename}
+ *            glint:qr-copy     → detail {mode: "png"|"text"}
+ *
+ * Erişilebilirlik: buton aria-haspopup/expanded; popover role=dialog +
+ * odak tuzağı + Esc = kapat (odak butona döner); kopyalama geri bildirimi
+ * aria-live (.glint-sr-only) ile duyurulur. Hareket kapısı v1.7 CANLI:
+ * karo "oluş" perdesi ÇAĞRI anında Glint.reducedMotion()'dan okunur;
+ * popover geçişlerini CSS @media + .glint-motion-off kuralları söndürür.
+ *
+ * Çekirdek: kendi MutationObserver'ını KURMAZ — Glint.defineComponent ile
+ * kaydolur; çekirdek yoksa DOMContentLoaded guard'ı (yükleme sırası).
+ *
+ * ── DEMO (saf HTML) ─────────────────────────────────────────────
+ *   <link rel="stylesheet" href="glint-input.css">
+ *   <div class="glint-input-group">
+ *     <input class="glint-input" type="url" id="site" name="SiteUrl"
+ *            value="https://example.com" data-glint-qr>
+ *     <label class="glint-label" for="site">Web sitesi</label>
+ *   </div>
+ *   <script src="glint-input.js"></script>
+ *   <script>
+ *     document.addEventListener("glint:qr-update", (e) => {
+ *       console.log("qr:", e.detail.ok, e.detail.version, e.detail.bytes);
+ *     });
+ *   </script>
+ *
+ * ── Razor (ASP.NET Core MVC) ────────────────────────────────────
+ *   <div class="glint-input-group" data-glint-clearable>
+ *     <input asp-for="SiteUrl" class="glint-input" data-glint-qr
+ *            data-qr-filename="site-qr.png">
+ *     <label asp-for="SiteUrl" class="glint-label">Web sitesi</label>
+ *   </div>
+ */
+
+(function () {
+    "use strict";
+
+    // ══════════════════════════════════════════════════════════════
+    //  1) QR ENCODER — saf, bağımsız (ISO/IEC 18004 Model 2)
+    // ══════════════════════════════════════════════════════════════
+
+    // ── GF(256) alanı — üreteç polinom x^8+x^4+x^3+x^2+1 (0x11D) ──
+    const GF_EXP = new Uint8Array(512);
+    const GF_LOG = new Uint8Array(256);
+    (function initGF() {
+        let x = 1;
+        for (let i = 0; i < 255; i++) {
+            GF_EXP[i] = x;
+            GF_LOG[x] = i;
+            x <<= 1;
+            if (x & 0x100) x ^= 0x11d;
+        }
+        // taşma penceresi: mod 255 almadan indeksleme kolaylığı
+        for (let i = 255; i < 512; i++) GF_EXP[i] = GF_EXP[i - 255];
+    })();
+
+    /** GF(256) çarpma (0 güvenli). */
+    function gfMul(a, b) {
+        if (a === 0 || b === 0) return 0;
+        return GF_EXP[GF_LOG[a] + GF_LOG[b]];
+    }
+
+    /** Polinom çarpımı (katsayılar en yüksek dereceden başlar). */
+    function polyMul(a, b) {
+        const out = new Array(a.length + b.length - 1).fill(0);
+        for (let i = 0; i < a.length; i++)
+            for (let j = 0; j < b.length; j++)
+                out[i + j] ^= gfMul(a[i], b[j]);
+        return out;
+    }
+
+    // Reed-Solomon jeneratör polinomları (derece → katsayılar) — önbellekli
+    const _genCache = {};
+    function rsGenerator(deg) {
+        if (_genCache[deg]) return _genCache[deg];
+        let g = [1];
+        for (let i = 0; i < deg; i++) g = polyMul(g, [1, GF_EXP[i]]); // (x + α^i)
+        _genCache[deg] = g;
+        return g;
+    }
+
+    /**
+     * Reed-Solomon EC codeword üretimi — polinom uzun bölmesi (sentetik).
+     * data: sayı dizisi/Uint8Array, ecLen: EC codeword sayısı.
+     * → Uint8Array(ecLen)
+     */
+    function rsEncode(data, ecLen) {
+        const gen = rsGenerator(ecLen);
+        const buf = new Uint8Array(data.length + ecLen);
+        buf.set(data, 0);
+        for (let i = 0; i < data.length; i++) {
+            const c = buf[i];
+            if (c === 0) continue;
+            for (let j = 0; j < gen.length; j++) buf[i + j] ^= gfMul(gen[j], c);
+        }
+        return buf.slice(data.length);
+    }
+
+    // ── Kapasite/blok tabloları (yalnız sürüm 1-11, seviye M ve L) ──
+    // [ecPerBlok, [[blokSayısı, veriCodeword/blok], ...]]  (ISO Tablo 13-22)
+    const EC_TABLE = {
+        M: [
+            [10, [[1, 16]]],
+            [16, [[1, 28]]],
+            [26, [[1, 44]]],
+            [18, [[2, 32]]],
+            [24, [[2, 43]]],
+            [16, [[4, 27]]],
+            [18, [[4, 31]]],
+            [22, [[2, 38], [2, 39]]],
+            [22, [[3, 36], [2, 37]]],
+            [26, [[4, 43], [1, 44]]],
+            [30, [[1, 50], [4, 51]]]
+        ],
+        L: [
+            [7,  [[1, 19]]],
+            [10, [[1, 34]]],
+            [15, [[1, 55]]],
+            [20, [[1, 80]]],
+            [26, [[1, 108]]],
+            [18, [[2, 68]]],
+            [20, [[2, 78]]],
+            [24, [[2, 97]]],
+            [30, [[2, 116]]],
+            [18, [[2, 68], [2, 69]]],
+            [20, [[4, 81]]]
+        ]
+    };
+
+    // Hizalama deseni merkezleri (sürüm 2-11; v1'de yok)
+    const ALIGN_POS = [
+        [],
+        [6, 18], [6, 22], [6, 26], [6, 30], [6, 34],
+        [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50], [6, 30, 54]
+    ];
+
+    // Maske fonksiyonları (ISO 18004 §8.8.1) — true → modül tersine çevrilir
+    const MASKS = [
+        (r, c) => (r + c) % 2 === 0,
+        (r, c) => r % 2 === 0,
+        (r, c) => c % 3 === 0,
+        (r, c) => (r + c) % 3 === 0,
+        (r, c) => (((r / 2) | 0) + ((c / 3) | 0)) % 2 === 0,
+        (r, c) => ((r * c) % 2) + ((r * c) % 3) === 0,
+        (r, c) => (((r * c) % 2) + ((r * c) % 3)) % 2 === 0,
+        (r, c) => (((r * c) % 3) + ((r + c) % 2)) % 2 === 0
+    ];
+
+    /** Bir sürüm+seviyenin toplam VERİ codeword sayısı. */
+    function dataCodewords(version, ec) {
+        const def = EC_TABLE[ec][version - 1][1];
+        let n = 0;
+        for (const [count, dlen] of def) n += count * dlen;
+        return n;
+    }
+
+    /**
+     * Byte-mode bayt kapasitesi: veri bitleri − mod göstergesi (4) −
+     * karakter sayacı (v1-9: 8 bit, v10+: 16 bit), 8'e bölünmüş taban.
+     * (v1-M=14 · v9-M=180 · v10-M=213 · v11-M=251 · v11-L=321 — standart tablo)
+     */
+    function byteCapacity(version, ec) {
+        return dataCodewords(version, ec) - (version >= 10 ? 3 : 2);
+    }
+
+    /** UTF-8 bayt dizisi (TextEncoder; çok eski ortamlar için fallback). */
+    function utf8Bytes(str) {
+        if (typeof TextEncoder !== "undefined") return new TextEncoder().encode(str);
+        const esc = unescape(encodeURIComponent(str));
+        const out = new Uint8Array(esc.length);
+        for (let i = 0; i < esc.length; i++) out[i] = esc.charCodeAt(i);
+        return out;
+    }
+
+    // ── Bit yazıcı — MSB-first ──
+    function BitBuf() { this.buf = []; this.len = 0; }
+    BitBuf.prototype.put = function (num, length) {
+        for (let i = length - 1; i >= 0; i--) this.putBit(((num >>> i) & 1) === 1);
+    };
+    BitBuf.prototype.putBit = function (bit) {
+        const idx = this.len >> 3;
+        if (this.buf.length <= idx) this.buf.push(0);
+        if (bit) this.buf[idx] |= (0x80 >>> (this.len & 7));
+        this.len++;
+    };
+
+    /** En yüksek anlamlı bitin konumu (BCH bölmesi için). */
+    function bchDigit(d) {
+        let n = 0;
+        while (d !== 0) { n++; d >>>= 1; }
+        return n;
+    }
+
+    /**
+     * Format bilgisi: 5 bit (2 EC + 3 maske) → BCH(15,5) + 0x5412 XOR maskesi.
+     * Bilinen değer: M + maske0 → 0x5412 (101010000010010).
+     */
+    function formatBits(data5) {
+        const G15 = 0x537, XOR = 0x5412;
+        let d = data5 << 10;
+        while (bchDigit(d) - bchDigit(G15) >= 0) d ^= G15 << (bchDigit(d) - bchDigit(G15));
+        return ((data5 << 10) | d) ^ XOR;
+    }
+
+    /**
+     * Sürüm bilgisi (v≥7): 6 bit sürüm → BCH(18,6).
+     * Bilinen değer: v7 → 0x07C94.
+     */
+    function versionBits(version) {
+        const G18 = 0x1F25;
+        let d = version << 12;
+        while (bchDigit(d) - bchDigit(G18) >= 0) d ^= G18 << (bchDigit(d) - bchDigit(G18));
+        return (version << 12) | d;
+    }
+
+    /** Bulucu (finder) deseni + ayırıcı — köşe başına 8×8 alan (taşma korumalı). */
+    function placeFinder(m, size, row, col) {
+        for (let r = -1; r <= 7; r++) {
+            if (row + r < 0 || size <= row + r) continue;
+            for (let c = -1; c <= 7; c++) {
+                if (col + c < 0 || size <= col + c) continue;
+                const dark =
+                    (r >= 0 && r <= 6 && (c === 0 || c === 6)) ||
+                    (c >= 0 && c <= 6 && (r === 0 || r === 6)) ||
+                    (r >= 2 && r <= 4 && c >= 2 && c <= 4);
+                m[row + r][col + c] = dark;
+            }
+        }
+    }
+
+    /**
+     * Format bilgisini iki kopya halinde yaz + koyu modül.
+     * Yerleşim standart (ISO §8.9); veri yerleşiminden ÖNCE çağrılır ki
+     * bu hücreler null olmaktan çıksın (veri haritalayıcı atlasın).
+     */
+    function writeFormat(m, size, ec, mask) {
+        const ecBits = ec === "L" ? 1 : 0;    // L=01, M=00 (Q=11, H=10 — kapsam dışı)
+        const bits = formatBits((ecBits << 3) | mask);
+        for (let i = 0; i < 15; i++) {
+            const v = ((bits >> i) & 1) === 1;
+            // dikey kopya (sol-üst bulucu çevresi, sütun 8)
+            if (i < 6) m[i][8] = v;
+            else if (i < 8) m[i + 1][8] = v;          // satır 6 = timing, atlanır
+            else m[size - 15 + i][8] = v;
+            // yatay kopya (satır 8)
+            if (i < 8) m[8][size - i - 1] = v;
+            else if (i < 9) m[8][15 - i] = v;          // (8,7) — sütun 6 timing, atlanır
+            else m[8][14 - i] = v;
+        }
+        m[size - 8][8] = true;                          // koyu modül (her zaman)
+    }
+
+    /**
+     * Veri bitlerini zigzag yerleştir (sağdan sola 2'li sütun şeritleri,
+     * 6. sütun atlanır) + maske uygula. Yalnız null (veri) hücrelere yazar;
+     * artık bitler (v2-6'daki 7 remainder biti) 0 kabul edilir.
+     */
+    function mapData(m, size, data, mask) {
+        const maskFn = MASKS[mask];
+        let inc = -1, row = size - 1, bitIdx = 7, byteIdx = 0;
+        for (let col = size - 1; col > 0; col -= 2) {
+            if (col === 6) col--;
+            for (;;) {
+                for (let c = 0; c < 2; c++) {
+                    if (m[row][col - c] === null) {
+                        let dark = false;
+                        if (byteIdx < data.length) dark = ((data[byteIdx] >>> bitIdx) & 1) === 1;
+                        if (maskFn(row, col - c)) dark = !dark;
+                        m[row][col - c] = dark;
+                        bitIdx--;
+                        if (bitIdx === -1) { byteIdx++; bitIdx = 7; }
+                    }
+                }
+                row += inc;
+                if (row < 0 || size <= row) { row -= inc; inc = -inc; break; }
+            }
+        }
+    }
+
+    /** Maske penaltı skoru — N1..N4 (ISO §8.8.2). Düşük skor daha iyi. */
+    function penalty(m, size) {
+        let score = 0;
+
+        // N1 — satır/sütunda ≥5 aynı renk koşusu: 3 + (uzunluk − 5)
+        for (let dir = 0; dir < 2; dir++) {
+            for (let i = 0; i < size; i++) {
+                let run = 1;
+                let prev = dir ? m[0][i] : m[i][0];
+                for (let j = 1; j < size; j++) {
+                    const cur = dir ? m[j][i] : m[i][j];
+                    if (cur === prev) run++;
+                    else {
+                        if (run >= 5) score += 3 + run - 5;
+                        run = 1;
+                        prev = cur;
+                    }
+                }
+                if (run >= 5) score += 3 + run - 5;
+            }
+        }
+
+        // N2 — 2×2 aynı renk blokları: her biri 3
+        for (let r = 0; r < size - 1; r++) {
+            for (let c = 0; c < size - 1; c++) {
+                const v = m[r][c];
+                if (m[r][c + 1] === v && m[r + 1][c] === v && m[r + 1][c + 1] === v) score += 3;
+            }
+        }
+
+        // N3 — bulucu benzeri desen (1011101 + bir yanında 0000): 40
+        const P1 = [true, false, true, true, true, false, true, false, false, false, false];
+        const P2 = [false, false, false, false, true, false, true, true, true, false, true];
+        const matchAt = (get, i) => {
+            let a = true, b = true;
+            for (let k = 0; k < 11; k++) {
+                const v = get(i + k);
+                if (v !== P1[k]) a = false;
+                if (v !== P2[k]) b = false;
+                if (!a && !b) return false;
+            }
+            return true;
+        };
+        for (let i = 0; i < size; i++) {
+            for (let j = 0; j <= size - 11; j++) {
+                if (matchAt((k) => m[i][k], j)) score += 40;   // satır
+                if (matchAt((k) => m[k][i], j)) score += 40;   // sütun
+            }
+        }
+
+        // N4 — koyu oran sapması: 10 × floor(|oran − 50| / 5)
+        let dark = 0;
+        for (let r = 0; r < size; r++)
+            for (let c = 0; c < size; c++) if (m[r][c]) dark++;
+        const ratio = (dark * 100) / (size * size);
+        score += 10 * Math.floor(Math.abs(ratio - 50) / 5);
+
+        return score;
+    }
+
+    /**
+     * ★ SAF ENCODER — glintQrMatrix(text) → boolean[][] | null
+     * true = koyu modül. Dönen dizinin meta alanları:
+     *   .version (1-11) · .size (21-61) · .ecLevel ("M"|"L") · .mask (0-7)
+     *   .bytes (UTF-8 bayt sayısı)
+     * Kapasite aşılırsa (321 bayttan uzun) null döner — DOM'a dokunmaz,
+     * yan etkisiz; birim test edilebilir.
+     */
+    function glintQrMatrix(text) {
+        const bytes = utf8Bytes(String(text == null ? "" : text));
+
+        // — Sürüm seçimi: önce M (1→11), yetmezse L (1→11) —
+        let version = 0, ec = null;
+        outer:
+        for (const level of ["M", "L"]) {
+            for (let v = 1; v <= 11; v++) {
+                if (bytes.length <= byteCapacity(v, level)) {
+                    version = v; ec = level;
+                    break outer;
+                }
+            }
+        }
+        if (!version) return null;   // > 321 bayt — kapsam dışı
+
+        // — Bit akışı: mod(0100) + sayaç + veri + sonlandırıcı + dolgu —
+        const dcw = dataCodewords(version, ec);
+        const bb = new BitBuf();
+        bb.put(0b0100, 4);                              // Byte mode
+        bb.put(bytes.length, version >= 10 ? 16 : 8);   // karakter sayacı
+        for (let i = 0; i < bytes.length; i++) bb.put(bytes[i], 8);
+        const capBits = dcw * 8;
+        bb.put(0, Math.min(4, capBits - bb.len));       // sonlandırıcı (≤4 bit)
+        if (bb.len % 8) bb.put(0, 8 - (bb.len % 8));    // bayt sınırına sıfır
+        const PAD = [0xEC, 0x11];                        // dönüşümlü dolgu baytları
+        for (let i = 0; bb.len < capBits; i++) bb.put(PAD[i % 2], 8);
+
+        // — Blok bölme + Reed-Solomon + harmanlama (interleave) —
+        const [ecLen, blocksDef] = EC_TABLE[ec][version - 1];
+        const blocks = [];
+        let off = 0;
+        for (const [count, dlen] of blocksDef) {
+            for (let i = 0; i < count; i++) {
+                const d = bb.buf.slice(off, off + dlen);
+                off += dlen;
+                blocks.push({ d, e: rsEncode(d, ecLen) });
+            }
+        }
+        const codewords = [];
+        let maxD = 0;
+        for (const b of blocks) if (b.d.length > maxD) maxD = b.d.length;
+        for (let i = 0; i < maxD; i++)
+            for (const b of blocks) if (i < b.d.length) codewords.push(b.d[i]);
+        for (let i = 0; i < ecLen; i++)
+            for (const b of blocks) codewords.push(b.e[i]);
+
+        // — Taban matris: fonksiyon desenleri (null = veri alanı) —
+        // Sıra ÖNEMLİ: bulucu → hizalama → timing (Arase/ISO sırası;
+        // hizalama merkezleri timing hattına oturabilir, timing yalnız
+        // boş hücreleri doldurur).
+        const size = 17 + version * 4;
+        const base = [];
+        for (let r = 0; r < size; r++) base.push(new Array(size).fill(null));
+
+        placeFinder(base, size, 0, 0);
+        placeFinder(base, size, size - 7, 0);
+        placeFinder(base, size, 0, size - 7);
+
+        const pos = ALIGN_POS[version - 1];
+        for (const r of pos) {
+            for (const c of pos) {
+                if (base[r][c] !== null) continue;      // bulucuyla çakışan köşeler atlanır
+                for (let dr = -2; dr <= 2; dr++)
+                    for (let dc = -2; dc <= 2; dc++)
+                        base[r + dr][c + dc] =
+                            Math.abs(dr) === 2 || Math.abs(dc) === 2 || (dr === 0 && dc === 0);
+            }
+        }
+
+        for (let i = 8; i < size - 8; i++) {
+            if (base[i][6] === null) base[i][6] = i % 2 === 0;   // dikey timing
+            if (base[6][i] === null) base[6][i] = i % 2 === 0;   // yatay timing
+        }
+
+        // Sürüm bilgisi (v≥7): sağ-üst 6×3 + sol-alt 3×6 blok
+        if (version >= 7) {
+            const vb = versionBits(version);
+            for (let i = 0; i < 18; i++) {
+                const v = ((vb >> i) & 1) === 1;
+                base[(i / 3) | 0][(i % 3) + size - 11] = v;
+                base[(i % 3) + size - 11][(i / 3) | 0] = v;
+            }
+        }
+
+        // — Maske denemesi: format + veri her maskeyle yazılır, penaltı ölçülür —
+        let best = null, bestMask = 0, bestScore = Infinity;
+        for (let mask = 0; mask < 8; mask++) {
+            const m = base.map((row) => row.slice());
+            writeFormat(m, size, ec, mask);   // format alanı dolar → veri atlar
+            mapData(m, size, codewords, mask);
+            const score = penalty(m, size);
+            if (score < bestScore) { bestScore = score; best = m; bestMask = mask; }
+        }
+
+        // boolean[][] (null kalmadı; yine de !!v ile normalize)
+        const out = best.map((row) => row.map((v) => v === true));
+        out.version = version;
+        out.size = size;
+        out.ecLevel = ec;
+        out.mask = bestMask;
+        out.bytes = bytes.length;
+        return out;
+    }
+
+    // Test edilebilirlik: saf yardımcılar encoder fonksiyonuna asılır
+    // (demo smoke'ları bilinen vektörlerle doğrular; ana API kirlenmez).
+    glintQrMatrix.rs = rsEncode;
+    glintQrMatrix.formatBits = formatBits;
+    glintQrMatrix.versionBits = versionBits;
+    glintQrMatrix.capacity = byteCapacity;
+    glintQrMatrix.utf8Len = (s) => utf8Bytes(String(s == null ? "" : s)).length;
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  2) ÇİZİM YARDIMCILARI — SVG (currentColor) + Canvas (PNG)
+    // ══════════════════════════════════════════════════════════════
+
+    const SVG_NS = "http://www.w3.org/2000/svg";
+
+    /** Koyu modülleri satır bazlı yatay koşularla tek path'e indirger. */
+    function matrixToPath(m) {
+        const n = m.length;
+        let d = "";
+        for (let r = 0; r < n; r++) {
+            let c = 0;
+            while (c < n) {
+                if (m[r][c]) {
+                    let run = 1;
+                    while (c + run < n && m[r][c + run]) run++;
+                    d += "M" + c + " " + r + "h" + run + "v1h-" + run + "z";
+                    c += run;
+                } else c++;
+            }
+        }
+        return d;
+    }
+
+    /**
+     * Tema-uyumlu SVG: modüller currentColor — koyu temada açık renk
+     * modüller koyu zeminde çizilir (PNG çıktısı HER ZAMAN siyah/beyaz,
+     * bkz. matrixToCanvas). Keskinlik: vektör, ölçekten bağımsız.
+     */
+    function matrixToSvg(m, label) {
+        const n = m.length;
+        const svg = document.createElementNS(SVG_NS, "svg");
+        svg.setAttribute("viewBox", "0 0 " + n + " " + n);
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", label || "QR kodu");
+        svg.setAttribute("focusable", "false");
+        const path = document.createElementNS(SVG_NS, "path");
+        path.setAttribute("d", matrixToPath(m));
+        path.setAttribute("fill", "currentColor");
+        svg.appendChild(path);
+        return svg;
+    }
+
+    /**
+     * PNG üretimi için canvas — tarayıcı temasından BAĞIMSIZ siyah/beyaz
+     * (okuyucu uyumluluğu) + quiet zone (vars. 4 modül, standart minimum).
+     */
+    function matrixToCanvas(m, scale, quiet) {
+        const n = m.length;
+        const s = Math.max(1, scale | 0 || 8);
+        const q = quiet == null ? 4 : Math.max(0, quiet | 0);
+        const px = (n + q * 2) * s;
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = px;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, px, px);
+        ctx.fillStyle = "#000000";
+        for (let r = 0; r < n; r++)
+            for (let c = 0; c < n; c++)
+                if (m[r][c]) ctx.fillRect((c + q) * s, (r + q) * s, s, s);
+        return canvas;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  3) GlintQr — aksiyon butonu + mini popover bileşeni
+    // ══════════════════════════════════════════════════════════════
+
+    let _uid = 0;
+    function uid(prefix) { return prefix + "-" + (++_uid) + "-" + Date.now().toString(36); }
+
+    // İkonlar — çekirdek aksiyon buton diliyle aynı (ince stroke, currentColor)
+    const ICON_QR =
+        '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+        '<rect x="3.5" y="3.5" width="6.4" height="6.4" rx="1.2"/>' +
+        '<rect x="14.1" y="3.5" width="6.4" height="6.4" rx="1.2"/>' +
+        '<rect x="3.5" y="14.1" width="6.4" height="6.4" rx="1.2"/>' +
+        '<path d="M14.1 14.1h2.7v2.7h-2.7zM17.8 17.8h2.7v2.7h-2.7z" fill="currentColor" stroke="none"/>' +
+        '</svg>';
+    const ICON_DL =
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M12 4v10m0 0l-4-4m4 4l4-4M4.5 19.5h15"/></svg>';
+    const ICON_CP =
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<rect x="9" y="9" width="11" height="11" rx="2"/>' +
+        '<path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+
+    class GlintQr {
+
+        /** @param {HTMLInputElement} input — input[data-glint-qr] */
+        constructor(input) {
+            if (!input || input._glintQrInit) return;
+            const group = input.closest(".glint-input-group");
+            if (!group) return;                                  // grup şart — sessizce vazgeç
+            const type = (input.getAttribute("type") || "text").toLowerCase();
+            if (type === "password" || type === "hidden") return; // gizli değer QR'lanmaz
+
+            input._glintQrInit = true;
+            input._glintQrInstance = this;
+            this.input = input;
+            this.group = group;
+
+            // ── Yapılandırma (data-*) ─────────────────────────────
+            const db = parseInt(input.getAttribute("data-qr-debounce"), 10);
+            this.debounceMs = (!isNaN(db) && db >= 0) ? db : 300;
+            this.filename = input.getAttribute("data-qr-filename") ||
+                (input.name ? "qr-" + input.name + ".png" : "qr-kod.png");
+            const sc = parseInt(input.getAttribute("data-qr-scale"), 10);
+            this.pngScale = (!isNaN(sc) && sc >= 2 && sc <= 32) ? sc : 8;
+
+            // ── Durum ─────────────────────────────────────────────
+            this.pop = null;          // popover (lazy, body'ye)
+            this._isOpen = false;
+            this._matrix = null;      // son üretilen matris (indir/kopyala için)
+            this._deb = null;         // canlı güncelleme debounce
+            this._copyT = null;       // kopyalama geri bildirim zamanlayıcısı
+            this._popId = uid("glint-qr");
+            this._ac = new AbortController();
+
+            this._buildButton();
+            this._bind();
+            this._syncDisabled();
+
+            // Teardown kaydı: grup anahtarı GlintInput'a, input anahtarı
+            // başka bir zenginleştiriciye (stepper/pwgen) ait olabilir —
+            // çakışmamak için kendi BUTONUMUZ üzerinden kaydoluruz; grup
+            // DOM'dan kalkınca buton da kalkar → paylaşılan observer
+            // destroy() çağırır.
+            window.Glint.register(this.btn, this);
+        }
+
+        // ── Buton kurulumu ────────────────────────────────────────
+        // Öncelik: çekirdek GlintInput örneğinin _addAction'ı (sayaç ve
+        // padding tek kaynaktan; göz/temizle ile çakışma imkânsız — pwgen
+        // deseni). Yedek yol: gruptaki mevcut aksiyonları sayıp çekirdekle
+        // BİREBİR aynı formülle right/padding hesabı (claim'li ya da
+        // çekirdeksiz gruplar).
+        _buildButton() {
+            const LABEL = "QR kodu göster";
+            const inst = this.group._glintInstance || null;
+            this._prevPadRight = this.input.style.paddingRight;   // destroy'da geri alınır
+
+            if (inst && typeof inst._addAction === "function") {
+                this.btn = inst._addAction("glint-qr-btn", LABEL, ICON_QR, () => this._toggle());
+                this._usedCoreAction = true;
+            } else {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "glint-field__action glint-qr-btn";
+                btn.setAttribute("aria-label", LABEL);
+                btn.innerHTML = ICON_QR;
+                const n = this.group.querySelectorAll(".glint-field__action").length + 1;
+                if (n > 1) {
+                    // Çekirdek _addAction ile AYNI konum/padding formülü
+                    btn.style.right = "calc(var(--glint-action-offset) + " + (n - 1) +
+                        " * (var(--glint-action-size) + 6px))";
+                    this.input.style.paddingRight = "calc(var(--glint-action-size) * " + n +
+                        " + var(--glint-action-offset) + " + (n * 8) + "px)";
+                }
+                btn.addEventListener("click", () => this._toggle(), { signal: this._ac.signal });
+                this.group.appendChild(btn);
+                this.btn = btn;
+                this._usedCoreAction = false;
+            }
+            this.btn.setAttribute("aria-haspopup", "dialog");
+            this.btn.setAttribute("aria-expanded", "false");
+
+            // GlintInput overlay'i padding değişimini görsün (pwgen deseni)
+            this._resyncOverlay();
+        }
+
+        _toggle() {
+            if (this._isOpen) this._close(false);
+            else this.open();
+        }
+
+        _resyncOverlay() {
+            const apply = () => {
+                const inst = (this.group && this.group._glintInstance) || null;
+                if (inst && typeof inst.rebuildSVG === "function") {
+                    try { inst.rebuildSVG(); } catch (_) { }
+                }
+            };
+            // İki rAF: ilk frame'de padding/buton yerleşir, ikincide ölçüm
+            // kararlı (kart/stepper/pwgen _resyncOverlay deseni).
+            requestAnimationFrame(() => requestAnimationFrame(apply));
+        }
+
+        // ── Listener'lar ──────────────────────────────────────────
+        // (buton click'i _buildButton'da bağlanır — core _addAction yolu
+        //  kendi bağlamasını yapar, çift dinleyici oluşmaz)
+        _bind() {
+            const sig = { signal: this._ac.signal };
+
+            // Değer değişimi: buton aktifliği anında; açık popover 300ms
+            // debounce ile canlı yeniden çizim; boşalırsa kapat.
+            const onVal = () => {
+                this._syncDisabled();
+                if (!this._isOpen) return;
+                if (!this.input.value.length) { this._close(false); return; }
+                if (this._deb) clearTimeout(this._deb);
+                this._deb = setTimeout(() => {
+                    this._deb = null;
+                    this._renderQR();
+                    this._position();
+                }, this.debounceMs);
+            };
+            this.input.addEventListener("input", onVal, sig);
+            this.input.addEventListener("change", onVal, sig);
+
+            // Input odaklıyken Esc → popover kapansın (değer korunur)
+            this.input.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" && this._isOpen) {
+                    e.stopPropagation();
+                    this._close(false);
+                }
+            }, sig);
+
+            // Dışarı tıkla kapat
+            document.addEventListener("pointerdown", (e) => {
+                if (!this._isOpen) return;
+                if (this.btn.contains(e.target)) return;
+                if (this.pop && this.pop.contains(e.target)) return;
+                this._close(false);
+            }, sig);
+
+            // Açıkken kaydırma/boyut değişiminde yeniden konumla
+            this._repos = () => { if (this._isOpen) this._position(); };
+            window.addEventListener("resize", this._repos, sig);
+            window.addEventListener("scroll", this._repos,
+                { signal: this._ac.signal, capture: true, passive: true });
+        }
+
+        _syncDisabled() {
+            this.btn.disabled = this.input.value.length === 0 || this.input.disabled;
+        }
+
+        // ── Popover kurulumu (lazy) ───────────────────────────────
+        _ensurePop() {
+            if (this.pop) return;
+            const pop = document.createElement("div");
+            pop.className = "glint-qr-pop";
+            pop.id = this._popId;
+            pop.setAttribute("role", "dialog");
+            pop.setAttribute("aria-label", "QR kodu");
+            pop.setAttribute("tabindex", "-1");
+
+            this.tile = document.createElement("div");
+            this.tile.className = "glint-qr-tile";
+
+            this.meta = document.createElement("div");
+            this.meta.className = "glint-qr-meta";
+
+            const actions = document.createElement("div");
+            actions.className = "glint-qr-actions";
+
+            this.dlBtn = document.createElement("button");
+            this.dlBtn.type = "button";
+            this.dlBtn.className = "glint-qr-act glint-qr-act--primary";
+            this.dlBtn.innerHTML = ICON_DL + "<span>PNG indir</span>";
+
+            this.cpBtn = document.createElement("button");
+            this.cpBtn.type = "button";
+            this.cpBtn.className = "glint-qr-act glint-qr-act--ghost";
+            this.cpBtn.innerHTML = ICON_CP + "<span>Kopyala</span>";
+
+            actions.appendChild(this.dlBtn);
+            actions.appendChild(this.cpBtn);
+
+            // Ekran okuyucu duyuruları (kopyalandı/indirildi) — görsel
+            // gizleme çekirdeğin .glint-sr-only yardımcısından (v1.5.1);
+            // .glint-qr-live yalnız kimlik/test kancası, ayrı stil bloğu yok.
+            this.live = document.createElement("div");
+            this.live.className = "glint-qr-live glint-sr-only";
+            this.live.setAttribute("aria-live", "polite");
+
+            pop.appendChild(this.tile);
+            pop.appendChild(this.meta);
+            pop.appendChild(actions);
+            pop.appendChild(this.live);
+            document.body.appendChild(pop);
+            this.pop = pop;
+            this.btn.setAttribute("aria-controls", this._popId);
+
+            const sig = { signal: this._ac.signal };
+            this.dlBtn.addEventListener("click", () => this._download(), sig);
+            this.cpBtn.addEventListener("click", () => this._copy(), sig);
+
+            // Esc = vazgeç (odak butona döner) + hafif odak tuzağı
+            pop.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this._close(true);
+                    return;
+                }
+                if (e.key === "Tab") {
+                    const f = Array.from(pop.querySelectorAll("button:not([disabled])"));
+                    if (!f.length) { e.preventDefault(); return; }
+                    const first = f[0], last = f[f.length - 1];
+                    const active = document.activeElement;
+                    if (e.shiftKey && (active === first || active === pop)) {
+                        e.preventDefault(); last.focus();
+                    } else if (!e.shiftKey && active === last) {
+                        e.preventDefault(); first.focus();
+                    } else if (!e.shiftKey && active === pop) {
+                        e.preventDefault(); first.focus();
+                    }
+                }
+            }, sig);
+        }
+
+        // ── QR üretimi + önizleme ─────────────────────────────────
+        _renderQR() {
+            this._ensurePop();
+            const val = this.input.value;
+            const m = glintQrMatrix(val);
+            this._matrix = m;
+            this.tile.innerHTML = "";
+
+            if (!m) {
+                // Kapasite aşımı — sessiz hata kartı, aksiyonlar kapalı
+                const err = document.createElement("div");
+                err.className = "glint-qr-err";
+                err.textContent = "Değer QR kapasitesini aşıyor (en fazla 321 bayt, şu an " +
+                    glintQrMatrix.utf8Len(val) + " bayt).";
+                this.tile.appendChild(err);
+                this.meta.textContent = "";
+                this.dlBtn.disabled = true;
+                this.cpBtn.disabled = true;
+            } else {
+                const short = val.length > 40 ? val.slice(0, 40) + "…" : val;
+                this.tile.appendChild(matrixToSvg(m, "QR kodu: " + short));
+                this.meta.textContent =
+                    "Sürüm " + m.version + " · " + m.size + "×" + m.size +
+                    " · " + m.ecLevel + " · " + m.bytes + " bayt";
+                this.dlBtn.disabled = false;
+                this.cpBtn.disabled = false;
+                // Marka "oluş" mikrosu: yukarıdan aşağı clip-path perdesi —
+                // sınıf resetlenip yeniden basılır. v1.7 CANLI hareket kapısı:
+                // mount'ta dondurulmaz, ÇAĞRI anında çekirdeğin tek
+                // kaynağından okunur (OS + config override; bkz. Glint.motion
+                // / reducedMotion) — reduced'ta sınıf hiç basılmaz; CSS
+                // @media bloğu bu kapının ikizidir.
+                this.tile.classList.remove("is-fresh");
+                if (!window.Glint.reducedMotion()) {
+                    void this.tile.offsetWidth;
+                    this.tile.classList.add("is-fresh");
+                }
+            }
+
+            this._emit("glint:qr-update", {
+                value: val,
+                ok: !!m,
+                version: m ? m.version : null,
+                size: m ? m.size : null,
+                ecLevel: m ? m.ecLevel : null,
+                mask: m ? m.mask : null,
+                bytes: glintQrMatrix.utf8Len(val)
+            });
+        }
+
+        // ── Konumlama — grup altı, sağ hizalı; sığmazsa üste çevir ──
+        // (combobox/select popover'ının getBoundingClientRect + scrollX/Y
+        //  konum dili; position: absolute, --glint-z-panel katmanı)
+        _position() {
+            if (!this.pop) return;
+            const rect = this.group.getBoundingClientRect();
+            this.pop.classList.remove("glint-qr-pop--flip-up");
+            const popW = this.pop.offsetWidth || 230;
+            const popH = this.pop.offsetHeight || 290;
+            const margin = 6;
+            let top = rect.bottom + margin;
+            let flip = false;
+            if (top + popH > window.innerHeight - 12 && rect.top - margin - popH > 12) {
+                top = rect.top - popH - margin;
+                flip = true;
+            }
+            let left = rect.right - popW;               // butona (sağ kenara) hizalı
+            if (left + popW > window.innerWidth - 12) left = window.innerWidth - popW - 12;
+            if (left < 12) left = 12;
+            this.pop.style.top = (window.scrollY + top) + "px";
+            this.pop.style.left = (window.scrollX + left) + "px";
+            this.pop.classList.toggle("glint-qr-pop--flip-up", flip);
+        }
+
+        // ── Aç / kapat ────────────────────────────────────────────
+        open() {
+            if (this._isOpen || this.btn.disabled) return;
+            this._ensurePop();
+            this._renderQR();
+            this._position();
+            this._isOpen = true;
+            this.pop.classList.add("is-open");
+            this.btn.classList.add("is-open");
+            this.btn.setAttribute("aria-expanded", "true");
+            this._emit("glint:qr-open", { value: this.input.value });
+            // Dialog kabına odak: SR duyurusu + Esc/Tab yakalama
+            try { this.pop.focus({ preventScroll: true }); } catch (_) { this.pop.focus(); }
+        }
+
+        _close(focusBack) {
+            if (this._deb) { clearTimeout(this._deb); this._deb = null; }
+            if (!this._isOpen) return;
+            this._isOpen = false;
+            if (this.pop) this.pop.classList.remove("is-open");
+            this.btn.classList.remove("is-open");
+            this.btn.setAttribute("aria-expanded", "false");
+            this._emit("glint:qr-close");
+            if (focusBack) this.btn.focus();
+        }
+
+        close() { this._close(false); }
+
+        /** Açıksa anında (debounce'suz) yeniden çiz. */
+        refresh() {
+            if (this._isOpen) { this._renderQR(); this._position(); }
+        }
+
+        // ── PNG indir ─────────────────────────────────────────────
+        _download() {
+            if (!this._matrix) return;
+            const canvas = matrixToCanvas(this._matrix, this.pngScale, 4);
+            const a = document.createElement("a");
+            a.href = canvas.toDataURL("image/png");
+            a.download = this.filename;
+            a.rel = "noopener";
+            a.click();
+            this._announce("QR kodu PNG olarak indirildi.");
+            this._emit("glint:qr-download", { filename: this.filename });
+        }
+
+        // ── Panoya kopyala: PNG (ClipboardItem varsa) → metin fallback ──
+        _copy() {
+            if (!this._matrix) return;
+            const val = this.input.value;
+            const done = (mode, msg) => {
+                this._copyFeedback(msg);
+                this._announce(msg);
+                this._emit("glint:qr-copy", { mode });
+            };
+            const textFallback = () => {
+                const p = (navigator.clipboard && navigator.clipboard.writeText)
+                    ? navigator.clipboard.writeText(val)
+                    : Promise.reject();
+                p.then(
+                    () => done("text", "Metin kopyalandı"),
+                    () => this._copyFeedback("Kopyalanamadı")
+                );
+            };
+            if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
+                const canvas = matrixToCanvas(this._matrix, this.pngScale, 4);
+                new Promise((res) => canvas.toBlob(res, "image/png"))
+                    .then((blob) => {
+                        if (!blob) return Promise.reject();
+                        return navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+                    })
+                    .then(() => done("png", "PNG kopyalandı"), textFallback);
+            } else {
+                textFallback();
+            }
+        }
+
+        /** Kopyala butonunda 1.6 sn'lik durum metni (sonra eski hâline döner). */
+        _copyFeedback(msg) {
+            if (!this.cpBtn) return;
+            const span = this.cpBtn.querySelector("span");
+            if (!span) return;
+            if (this._copyT) clearTimeout(this._copyT);
+            span.textContent = msg;
+            this.cpBtn.classList.add("is-done");
+            this._copyT = setTimeout(() => {
+                this._copyT = null;
+                span.textContent = "Kopyala";
+                this.cpBtn.classList.remove("is-done");
+            }, 1600);
+        }
+
+        _announce(msg) {
+            if (!this.live) return;
+            // Aynı metnin yeniden duyurulabilmesi için önce boşalt (pwgen deseni)
+            this.live.textContent = "";
+            const el = this.live;
+            setTimeout(() => { if (this.live === el) el.textContent = msg; }, 40);
+        }
+
+        _emit(name, detail) {
+            this.input.dispatchEvent(new CustomEvent(name, {
+                bubbles: true,
+                detail: detail || null
+            }));
+        }
+
+        // ── Yaşam döngüsü teardown — DOM eski hâline döner ────────
+        destroy() {
+            if (this._ac) { this._ac.abort(); this._ac = null; }
+            if (this._deb) { clearTimeout(this._deb); this._deb = null; }
+            if (this._copyT) { clearTimeout(this._copyT); this._copyT = null; }
+            if (this.pop) { this.pop.remove(); this.pop = null; }
+            this.live = null;
+            if (this.btn) {
+                const inst = this.group && this.group._glintInstance;
+                // Çekirdek sayaç bizimle arttıysa geri düşür (yeniden mount'ta
+                // konum hesabı şaşmasın — pwgen deseni)
+                if (this._usedCoreAction && inst && inst._actionCount > 0) inst._actionCount--;
+                window.Glint.unregister(this.btn);
+                this.btn.remove();
+                this.btn = null;
+            }
+            this.input.style.paddingRight = this._prevPadRight || "";
+            this._resyncOverlay();
+            this.input._glintQrInit = false;
+            this.input._glintQrInstance = null;
+            // mountOne WeakSet guard'ı INPUT üzerinde, kayıt anahtarı ise
+            // buton — guard'ı elle temizle ki element yeniden mount
+            // edilebilsin (phone/pwgen bölümündeki desenle aynı).
+            if (window.Glint._components) {
+                for (const comp of window.Glint._components) {
+                    if (comp.name === "qr" && comp.seen) comp.seen.delete(this.input);
+                }
+            }
+        }
+
+        static get(el) {
+            if (!el) return null;
+            if (el._glintQrInstance) return el._glintQrInstance;
+            const g = el.closest ? el.closest(".glint-input-group") : null;
+            const input = g && g.querySelector("input[data-glint-qr]");
+            return (input && input._glintQrInstance) || null;
+        }
+    }
+
+    // Statik yardımcılar — saf encoder + PNG canvas dışa açılır
+    GlintQr.matrix = glintQrMatrix;
+    GlintQr.toCanvas = matrixToCanvas;
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  ÇEKİRDEĞE KAYIT (Glint.defineComponent) + güvenli yükleme guard'ı
+    // ══════════════════════════════════════════════════════════════
+
+    // Saf encoder her koşulda erişilebilir (birim test / SSR-dostu)
+    window.glintQrMatrix = glintQrMatrix;
+
+    function register() {
+        const G = window.Glint;
+
+        // Grup CLAIM EDİLMEZ — GlintInput border/label/overlay sahibi kalır;
+        // QR alanı yalnız zenginleştirir (stepper/pwgen ile aynı desen).
+        G.defineComponent("qr", {
+            selector: "input[data-glint-qr]",
+            match: (el) => !el._glintQrInit,
+            mount: (el) => new GlintQr(el)
+        });
+
+        // Programatik API
+        G.QR = GlintQr;
+    }
+
+    // Güvenli yükleme-sırası guard'ı: çekirdek (bölüm 1) bu dosyada her
+    // zaman önce yüklenir; guard yalnız olağandışı yükleme sıraları için
+    // (v1.6 phone/card başlangıç deseni).
+    if (window.Glint && window.Glint.defineComponent) {
+        register();
+    } else {
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.Glint && window.Glint.defineComponent) register();
+        });
+    }
+
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════
+ *  17) Duration — Süre girişi ("1sa 30dk" → saniye)
+ *     (v1.7'de ana dosyaya birleştirildi — kaynak paket: src-v17/duration.js)
+ * ════════════════════════════════════════════════════════════════════════ */
+/**
+ * Glint Duration
+ * ─────────────────────────────────────────────────────────────
+ * Çekirdeğin (Glint.defineComponent) uzantısı.
+ * Saf vanilla, sıfır bağımlılık, AĞ İSTEĞİ YOK.
+ *
+ * API:       window.Glint.Duration
+ *            Saf fonksiyonlar (test edilebilir):
+ *              Glint.Duration.parse(text, units?)   → toplam saniye | null
+ *              Glint.Duration.format(sec, units?)   → "1 sa 30 dk"
+ *            Instance: .seconds · .text · .setSeconds(n) · .destroy()
+ *            Erişim:  Glint.getInstance(input) veya Glint.Duration.get(el)
+ * Selector:  input[data-glint-duration]
+ *            Grup CLAIM EDİLMEZ — border/label/overlay sahibi GlintInput
+ *            kalır; süre alanı yalnız değeri zenginleştirir (card/stepper
+ *            deseni). Grupsuz yalın input'ta da çalışır (asgari mod).
+ * Event:     glint:duration-change → detail: { seconds, text }
+ *            (grup üzerinde, bubbles; grup yoksa input üzerinde)
+ *
+ * Davranış özeti:
+ *  • Blur/Enter'da Türkçe süre ayrıştırma:
+ *      "1sa 30dk" · "90dk" · "1:30" · "2:15:30" · "45sn" · "2 saat" ·
+ *      "1,5sa" · "1sa 30" (birimsiz kuyruk = bir küçük birim) ·
+ *      çıplak sayı = görünür EN KÜÇÜK birim ("90" → 90 dk).
+ *    ":" biçimi görünür EN BÜYÜK iki birime eşlenir (sa,dk → s:d;
+ *    dk,sn → d:sn); üç parçalıysa her zaman sa:dk:sn.
+ *  • Normalize görüntü "1 sa 30 dk" — birimler data-units="sa,dk,sn"
+ *    alt kümesi (varsayılan "sa,dk"); commit değeri en küçük görünür
+ *    birime YUVARLANIR (görüntü ile saniye asla ayrışmaz).
+ *  • data-min / data-max: yalın sayı = saniye ("900") veya süre biçimi
+ *    ("15dk", "8sa"). Taşan giriş CLAMP edilir + hata durumu
+ *    (GlintInput.setError dili: kırmızı kenar + shake + mesaj).
+ *  • ↑/↓ en küçük görünür birimi artırır/azaltır; Shift ya da
+ *    PageUp/PageDown ×10. Sınırlarda sessiz durur (hata basmaz).
+ *  • data-raw-name="X" → gizli input'a toplam saniye (asp-for / binding);
+ *    ayrıca input'a data-glint-seconds attribute'u yazılır.
+ *  • Geçersiz girişte marka RET dili: shake + eski (son commit) değere
+ *    dönüş; odaktaysa metin seçilir (hemen yeniden yazılabilsin).
+ *  • Başarılı kullanıcı commit'inde alt kenarda kısa onay kıvılcımı
+ *    (reduced-motion'da yok — çağrı ANINDA Glint.reducedMotion() okunur).
+ *  • ARIA: role=spinbutton + aria-valuemin/-valuemax/-valuenow +
+ *    aria-valuetext uzun adlarla ("1 saat 30 dakika").
+ *
+ * ── DEMO (saf HTML) ─────────────────────────────────────────────
+ *   <link rel="stylesheet" href="glint-input.css">
+ *   <div class="glint-input-group">
+ *     <input class="glint-input" id="sure" data-glint-duration
+ *            data-min="15dk" data-max="8sa" data-raw-name="MeetingSeconds">
+ *     <label class="glint-label" for="sure">Toplantı süresi</label>
+ *   </div>
+ *   <script src="glint-input.js"></script>
+ *   <script>
+ *     document.addEventListener("glint:duration-change", (e) => {
+ *       console.log("süre:", e.detail.seconds, e.detail.text);
+ *     });
+ *   </script>
+ *
+ * ── Razor (ASP.NET Core MVC) ────────────────────────────────────
+ *   @* MeetingDuration görüntü değeri; MeetingSeconds toplam saniye *@
+ *   <div class="glint-input-group">
+ *     <input class="glint-input" asp-for="MeetingDuration"
+ *            data-glint-duration data-min="15dk" data-max="8sa"
+ *            data-raw-name="MeetingSeconds">
+ *     <label class="glint-label" asp-for="MeetingDuration">Toplantı süresi</label>
+ *   </div>
+ */
+(function () {
+    "use strict";
+
+    // ── BİRİM TABLOSU ──
+    // Görünür birim anahtarları her zaman kısa TR adlardır: sa · dk · sn.
+    const UNIT_ORDER = ["sa", "dk", "sn"];           // büyükten küçüğe
+    const UNIT_SECONDS = { sa: 3600, dk: 60, sn: 1 };
+    const UNIT_LONG = { sa: "saat", dk: "dakika", sn: "saniye" };
+    const NEXT_SMALLER = { sa: "dk", dk: "sn", sn: null };
+
+    // Ayrıştırma takma adları (TR öncelikli + evrensel kısaltmalar).
+    // Regex alternation'ı UZUNDAN KISAYA sıralı olmalı ("saat", "sa"dan
+    // önce denenmeli; "s" en sonda).
+    const ALIAS = {
+        saat: "sa", sa: "sa", h: "sa",
+        dakika: "dk", dak: "dk", dk: "dk", min: "dk", m: "dk",
+        saniye: "sn", sn: "sn", sec: "sn", s: "sn"
+    };
+    const TOKEN_RE = /^(\d+(?:[.,]\d+)?)\s*(saniye|dakika|saat|dak|min|sec|sn|dk|sa|h|m|s)?\s*/;
+    const COLON_RE = /^(\d{1,4}):([0-5]?\d)(?::([0-5]?\d))?$/;
+
+    // ── SAF YARDIMCILAR ──
+
+    /**
+     * data-units değerini geçerli, büyükten küçüğe sıralı alt kümeye çevirir.
+     * Geçersiz/boş girdi → varsayılan ["sa","dk"].
+     */
+    function normalizeUnits(u) {
+        let arr;
+        if (Array.isArray(u)) arr = u.map(String);
+        else arr = String(u == null ? "" : u).split(",");
+        arr = arr.map(x => {
+            try { return x.trim().toLocaleLowerCase("tr-TR"); }
+            catch (_) { return x.trim().toLowerCase(); }
+        });
+        const out = UNIT_ORDER.filter(o => arr.indexOf(o) !== -1);
+        return out.length ? out : ["sa", "dk"];
+    }
+
+    /** TR-duyarlı küçük harf ("DAKİKA" → "dakika"; combobox normalize emsali). */
+    function trLower(s) {
+        try { return String(s).toLocaleLowerCase("tr-TR"); }
+        catch (_) { return String(s).toLowerCase(); }
+    }
+
+    /**
+     * SAF AYRIŞTIRICI — glintParseDuration(text, units?) → saniye | null
+     * units yalnız YORUM için kullanılır (":" eşlemesi ve çıplak sayı);
+     * açık birimler ("45sn") her zaman kabul edilir, görünürlükten bağımsız.
+     */
+    function glintParseDuration(text, units) {
+        units = normalizeUnits(units);
+        if (text == null) return null;
+        let s = trLower(text).trim();
+        if (!s) return null;
+
+        // 1) "s:d(:sn)" biçimi — iki parça görünür en büyük iki birime eşlenir.
+        const colon = COLON_RE.exec(s);
+        if (colon) {
+            if (colon[3] != null) {
+                return (+colon[1]) * 3600 + (+colon[2]) * 60 + (+colon[3]);
+            }
+            let pair;
+            if (units.length >= 2) pair = [units[0], units[1]];
+            else if (units[0] === "sa") pair = ["sa", "dk"];
+            else pair = ["dk", "sn"];
+            return (+colon[1]) * UNIT_SECONDS[pair[0]] + (+colon[2]) * UNIT_SECONDS[pair[1]];
+        }
+
+        // 2) Jeton dizisi: sayı(+birim) tekrarları. Kurallar:
+        //    • TEK başına çıplak sayı → görünür en küçük birim.
+        //    • Önceki jeton birimliyse çıplak kuyruk bir KÜÇÜK birimdir
+        //      ("1sa 30" → 30 dk). sn'den küçüğü yok → geçersiz.
+        let total = 0, any = false, prevUnit = null;
+        while (s.length) {
+            const mt = TOKEN_RE.exec(s);
+            if (!mt || !mt[0].length) return null;
+            const num = parseFloat(mt[1].replace(",", "."));
+            if (!isFinite(num)) return null;
+            let unit = mt[2] ? ALIAS[mt[2]] : null;
+            if (!unit) {
+                if (!any && mt[0].length === s.length) {
+                    unit = units[units.length - 1];       // tek çıplak sayı
+                } else if (prevUnit && NEXT_SMALLER[prevUnit]) {
+                    unit = NEXT_SMALLER[prevUnit];        // birimsiz kuyruk
+                } else {
+                    return null;
+                }
+            }
+            total += num * UNIT_SECONDS[unit];
+            prevUnit = unit;
+            any = true;
+            s = s.slice(mt[0].length);
+        }
+        if (!any) return null;
+        return Math.round(total);
+    }
+
+    /**
+     * Ortak ayrıştırma çekirdeği: saniyeyi görünür birimlere böler.
+     * Önce en küçük görünür birime yuvarlar (görüntü = değer garantisi).
+     */
+    function decompose(seconds, units) {
+        units = normalizeUnits(units);
+        const q = UNIT_SECONDS[units[units.length - 1]];
+        let rest = Math.max(0, Math.round(Number(seconds) / q) * q);
+        const parts = [];
+        for (const u of units) {
+            const n = Math.floor(rest / UNIT_SECONDS[u]);
+            rest -= n * UNIT_SECONDS[u];
+            if (n > 0) parts.push([n, u]);
+        }
+        return { parts, units };
+    }
+
+    /** SAF BİÇİMLEYİCİ — glintFormatDuration(5400) → "1 sa 30 dk". */
+    function glintFormatDuration(seconds, units) {
+        if (seconds == null || isNaN(Number(seconds))) return "";
+        const d = decompose(seconds, units);
+        if (!d.parts.length) return "0 " + d.units[d.units.length - 1];
+        return d.parts.map(p => p[0] + " " + p[1]).join(" ");
+    }
+
+    /** Ekran okuyucu için uzun adlar: "1 saat 30 dakika" (aria-valuetext). */
+    function glintFormatDurationLong(seconds, units) {
+        if (seconds == null || isNaN(Number(seconds))) return "";
+        const d = decompose(seconds, units);
+        if (!d.parts.length) return "0 " + UNIT_LONG[d.units[d.units.length - 1]];
+        return d.parts.map(p => p[0] + " " + UNIT_LONG[p[1]]).join(" ");
+    }
+
+    /**
+     * data-min / data-max ayrıştırma: yalın sayı = SANİYE ("900"),
+     * aksi halde süre biçimi ("15dk", "8sa", "1:30"). Geçersiz → null
+     * (sınır yok sayılır — sessiz; ağ/konsol gürültüsü yok).
+     */
+    function parseBound(str, units) {
+        if (str == null) return null;
+        const t = String(str).trim();
+        if (!t) return null;
+        if (/^\d+$/.test(t)) return parseInt(t, 10);
+        const v = glintParseDuration(t, units);
+        return v == null ? null : v;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  GlintDuration
+    // ══════════════════════════════════════════════════════════════
+    /**
+     * Kullanım:
+     *   <div class="glint-input-group">
+     *     <input class="glint-input" data-glint-duration
+     *            data-units="sa,dk" data-min="15dk" data-max="8sa"
+     *            data-raw-name="MeetingSeconds">
+     *     <label class="glint-label">Toplantı süresi</label>
+     *   </div>
+     */
+    class GlintDuration {
+
+        constructor(input) {
+            if (input._glintDurationInit) return;
+            input._glintDurationInit = true;
+            input._glintDurationInstance = this;
+            this.input = input;
+            this.groupEl = (input.closest && input.closest(".glint-input-group")) || null;
+
+            // Sonradan eklediğimiz attribute'lar destroy'da geri alınır
+            // (mevcut olanlar ASLA ezilmez — card/stepper deseni).
+            this._addedAttrs = [];
+            this._ensureAttr(input, "autocomplete", "off");
+            this._ensureAttr(input, "spellcheck", "false");
+            this._ensureAttr(input, "autocorrect", "off");
+            this._ensureAttr(input, "enterkeyhint", "done");
+            // Spinbutton ARIA deseni: serbest metin + ↑/↓ (native time
+            // alanlarının dili). role varsa ezilmez.
+            this._ensureAttr(input, "role", "spinbutton");
+
+            this.units = normalizeUnits(this._readAttr("data-units"));
+            this.min = parseBound(this._readAttr("data-min"), this.units);
+            this.max = parseBound(this._readAttr("data-max"), this.units);
+            // Saçma konfig emniyeti: min > max → max yok sayılır.
+            if (this.min != null && this.max != null && this.min > this.max) this.max = null;
+            input.setAttribute("aria-valuemin", String(this.min != null ? this.min : 0));
+            if (this.max != null) input.setAttribute("aria-valuemax", String(this.max));
+
+            this._seconds = null;     // son COMMIT edilmiş toplam saniye | null
+            this._lastText = "";      // son commit edilmiş normalize görüntü
+            this._errored = false;    // clamp hatası bizde mi
+            this._squelch = false;    // kendi dispatch'imizi dinlememe guard'ı
+            this._sparkT = null;
+
+            this._buildRawInput();
+            this._buildSpark();
+            this._bind();
+
+            // Sunucu (server-render) değeri: SESSİZ normalize — event yok,
+            // shake yok, clamp sessiz (sayfa yüklenirken tören olmaz).
+            this._initFromValue();
+
+            // Grup anahtarı GlintInput'a ait (grup claim edilmedi) — kart
+            // desenindeki gibi kendimizi INPUT üzerinden kaydederiz.
+            window.Glint.register(input, this);
+        }
+
+        // ── DOM KURULUM ──
+
+        /** attribute yoksa ekle ve destroy'da geri almak üzere kaydet. */
+        _ensureAttr(el, name, value) {
+            if (!el || el.hasAttribute(name)) return;
+            el.setAttribute(name, value);
+            this._addedAttrs.push([el, name]);
+        }
+
+        /** Konfig önce input'tan, yoksa gruptan okunur (Razor esnekliği). */
+        _readAttr(name) {
+            if (this.input.hasAttribute(name)) return this.input.getAttribute(name);
+            if (this.groupEl && this.groupEl.hasAttribute(name)) return this.groupEl.getAttribute(name);
+            return null;
+        }
+
+        /** data-raw-name verildiyse toplam saniyeyi taşıyan gizli input. */
+        _buildRawInput() {
+            this.rawInput = null;
+            this._rawCreated = false;
+            const rawName = this._readAttr("data-raw-name");
+            if (!rawName) return;
+            const host = this.groupEl || this.input.parentElement || document.body;
+            // Varsa yeniden kullan (MVC partial yenileme / yeniden mount).
+            const esc = (window.CSS && CSS.escape) ? CSS.escape(rawName) : rawName.replace(/"/g, '\\"');
+            this.rawInput = host.querySelector('input[type="hidden"][name="' + esc + '"]');
+            if (!this.rawInput) {
+                this.rawInput = document.createElement("input");
+                this.rawInput.type = "hidden";
+                this.rawInput.name = rawName;
+                host.appendChild(this.rawInput);
+                this._rawCreated = true;
+            }
+        }
+
+        /** Onay kıvılcımı yuvası (yalnız grup varsa; salt görsel). */
+        _buildSpark() {
+            this.sparkEl = null;
+            if (!this.groupEl) return;
+            this.sparkEl = document.createElement("span");
+            this.sparkEl.className = "glint-duration-spark";
+            this.sparkEl.setAttribute("aria-hidden", "true");
+            this.groupEl.appendChild(this.sparkEl);
+        }
+
+        _bind() {
+            this._ac = new AbortController();
+            const sig = this._ac.signal;
+
+            this.input.addEventListener("blur", () => this._commitFromText(true), { signal: sig });
+            this.input.addEventListener("keydown", (e) => this._onKeydown(e), { signal: sig });
+            // Kullanıcı yeniden yazmaya başlayınca clamp hatası temizlenir
+            // (card'ın "silmeye başlayınca hata temizlenir" dili).
+            this.input.addEventListener("input", () => {
+                if (this._squelch) return;
+                if (this._errored) this._clearClampError();
+            }, { signal: sig });
+        }
+
+        _initFromValue() {
+            const raw = this.input.value.trim();
+            if (raw) {
+                const parsed = glintParseDuration(raw, this.units);
+                if (parsed != null) {
+                    const v = this._clampQuantize(parsed).value;
+                    this._seconds = v;
+                    this._lastText = glintFormatDuration(v, this.units);
+                    // "change" YOK (sayfa yükü kullanıcı commit'i değildir);
+                    // "input" evet → GlintInput overlay/label senkron kalır.
+                    this._setValue(this._lastText, false);
+                }
+                // Geçersiz sunucu değeri olduğu gibi bırakılır (commit
+                // edilmemiş sayılır; ilk geçersiz düzenleme boşa döner).
+            }
+            this._sync();
+        }
+
+        // ── KLAVYE ──
+
+        _onKeydown(e) {
+            if (e.key === "Enter") {
+                // preventDefault YOK — form içindeyse native submit akışı
+                // sürer; normalize AYNI turda (submit'ten önce) tamamlanır.
+                this._commitFromText(true);
+                return;
+            }
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                e.preventDefault();
+                this._step(e.key === "ArrowUp" ? 1 : -1, e.shiftKey);
+                return;
+            }
+            // Spinbutton klavye deseni: PageUp/PageDown = büyük adım.
+            // (Home/End'e DOKUNULMAZ — metin düzenleme işlevleri korunur.)
+            if (e.key === "PageUp" || e.key === "PageDown") {
+                e.preventDefault();
+                this._step(e.key === "PageUp" ? 1 : -1, true);
+            }
+        }
+
+        /** ↑/↓: en küçük görünür birim; big=true (Shift/Page) → ×10. */
+        _step(dir, big) {
+            const q = this._q();
+            const step = q * (big ? 10 : 1) * dir;
+            let base = glintParseDuration(this.input.value.trim(), this.units);
+            if (base == null) base = (this._seconds != null) ? this._seconds : 0;
+            let v = Math.round((base + step) / q) * q;
+            const lo = Math.max(0, this.min != null ? Math.ceil(this.min / q) * q : 0);
+            const hi = this.max != null ? Math.floor(this.max / q) * q : Infinity;
+            if (hi < lo) return;                        // temsil edilemez aralık
+            v = Math.min(Math.max(v, lo), hi);          // sınırda SESSİZ durur
+            this._commitSeconds(v);
+        }
+
+        // ── COMMIT AKIŞI ──
+
+        _q() { return UNIT_SECONDS[this.units[this.units.length - 1]]; }
+
+        /**
+         * Yuvarla + clamp: değer önce en küçük görünür birime yuvarlanır,
+         * sınır aşımında SINIRIN temsil edilebilir karşılığına çekilir
+         * (min → yukarı, max → aşağı yuvarlanır ki sınır ihlali olmasın).
+         */
+        _clampQuantize(sec) {
+            const q = this._q();
+            let v = Math.round(sec / q) * q;
+            let clamp = null;
+            const lo = this.min != null ? Math.ceil(this.min / q) * q : null;
+            const hi = this.max != null ? Math.floor(this.max / q) * q : null;
+            if (lo != null && v < lo) { v = lo; clamp = "min"; }
+            if (hi != null && v > hi) { v = hi; clamp = "max"; }
+            if (v < 0) v = 0;
+            return { value: v, clamp };
+        }
+
+        /** Blur/Enter: metni ayrıştır → normalize et → commit. */
+        _commitFromText(fromUser) {
+            const rawText = this.input.value;
+            const trimmed = rawText.trim();
+
+            // Boş → temizle (required denetimi form katmanının işi).
+            if (!trimmed) {
+                const changed = this._seconds != null;
+                this._seconds = null;
+                this._lastText = "";
+                if (rawText !== "") this._setValue("");
+                this._clearClampError();
+                this._sync();
+                if (changed) this._emit();
+                return true;
+            }
+
+            const parsed = glintParseDuration(trimmed, this.units);
+            if (parsed == null) {
+                // RET dili: shake + son commit edilmiş değere dönüş.
+                this._setValue(this._lastText);
+                this._shake();
+                if (document.activeElement === this.input) {
+                    try { this.input.select(); } catch (_) { }
+                }
+                return false;
+            }
+
+            const cq = this._clampQuantize(parsed);
+            const display = glintFormatDuration(cq.value, this.units);
+            const changed = cq.value !== this._seconds;
+            const textChanged = rawText !== display;
+            this._seconds = cq.value;
+            this._lastText = display;
+            this._setValue(display);
+            this._sync();
+
+            if (cq.clamp) {
+                const bound = cq.clamp === "min" ? this.min : this.max;
+                const boundText = glintFormatDuration(bound, UNIT_ORDER); // tam kesinlik
+                this._setClampError(cq.clamp === "min"
+                    ? "Süre en az " + boundText + " olabilir"
+                    : "Süre en fazla " + boundText + " olabilir");
+            } else {
+                this._clearClampError();
+                if (fromUser && (changed || textChanged)) this._spark();
+            }
+            if (changed) this._emit();
+            return true;
+        }
+
+        /** Programatik/step commit — değer zaten yuvarlanmış+clamp'lidir. */
+        _commitSeconds(v) {
+            const display = glintFormatDuration(v, this.units);
+            const changed = v !== this._seconds;
+            this._seconds = v;
+            this._lastText = display;
+            this._setValue(display);
+            this._clearClampError();
+            this._sync();
+            if (changed) this._emit();
+        }
+
+        /**
+         * input.value'yu programatik değiştir + GlintInput'un overlay/label
+         * senkronu için input (ve opsiyonel change) eventi fırlat
+         * (stepper'ın dispatch deseni). Kendi dinleyicimiz _squelch ile
+         * bu turda sağır kalır.
+         */
+        _setValue(text, withChange) {
+            if (this.input.value === text) return;
+            this._squelch = true;
+            try {
+                this.input.value = text;
+                this.input.dispatchEvent(new Event("input", { bubbles: true }));
+                if (withChange !== false) {
+                    this.input.dispatchEvent(new Event("change", { bubbles: true }));
+                }
+            } finally {
+                this._squelch = false;
+            }
+        }
+
+        /** Gizli input + data-glint-seconds + ARIA değer senkronu. */
+        _sync() {
+            const val = this._seconds == null ? "" : String(this._seconds);
+            if (this.rawInput) this.rawInput.value = val;
+            if (this._seconds == null) {
+                this.input.removeAttribute("data-glint-seconds");
+                this.input.removeAttribute("aria-valuenow");
+                this.input.removeAttribute("aria-valuetext");
+            } else {
+                this.input.setAttribute("data-glint-seconds", val);
+                this.input.setAttribute("aria-valuenow", val);
+                this.input.setAttribute("aria-valuetext",
+                    glintFormatDurationLong(this._seconds, this.units));
+            }
+        }
+
+        _emit() {
+            const host = this.groupEl || this.input;
+            host.dispatchEvent(new CustomEvent("glint:duration-change", {
+                bubbles: true,
+                detail: { seconds: this._seconds, text: this._lastText }
+            }));
+        }
+
+        // ── DURUM DİLİ: hata · shake · kıvılcım ──
+
+        /** GlintInput'un zengin setError'u varsa onu, yoksa asgari yedek. */
+        _setClampError(msg) {
+            this._errored = true;
+            const g = this.groupEl;
+            if (window.Glint && window.Glint.Input && window.Glint.Input.setError &&
+                g && g._glintInstance) {
+                window.Glint.Input.setError(this.input, msg);
+                return;
+            }
+            this.input.setAttribute("aria-invalid", "true");
+            (g || this.input).classList.add("glint-error");
+            this._shake();
+        }
+
+        _clearClampError() {
+            if (!this._errored) return;
+            this._errored = false;
+            const g = this.groupEl;
+            if (window.Glint && window.Glint.Input && window.Glint.Input.clearError &&
+                g && g._glintInstance) {
+                window.Glint.Input.clearError(this.input);
+                return;
+            }
+            this.input.removeAttribute("aria-invalid");
+            (g || this.input).classList.remove("glint-error");
+        }
+
+        /** Marka ret sarsıntısı — reduced-motion ÇAĞRI ANINDA denetlenir. */
+        _shake() {
+            // v1.7 CANLI hareket kapısı: mount'ta dondurulmaz, ÇAĞRI anında
+            // çekirdeğin tek kaynağından okunur (OS + config override;
+            // bkz. Glint.motion / reducedMotion).
+            if (window.Glint.reducedMotion()) return;
+            const host = this.groupEl || this.input;
+            host.classList.remove("glint-error-shake");
+            void host.offsetWidth;
+            host.classList.add("glint-error-shake");
+            host.addEventListener("animationend", () => {
+                host.classList.remove("glint-error-shake");
+            }, { once: true });
+            // Emniyet: animasyon kesilirse sınıf asılı kalmasın.
+            setTimeout(() => host.classList.remove("glint-error-shake"), 700);
+        }
+
+        /** Alt kenarda kısa onay kıvılcımı (başarılı kullanıcı commit'i). */
+        _spark() {
+            // Canlı hareket kapısı — _shake ile aynı tek kaynak.
+            if (!this.sparkEl || window.Glint.reducedMotion()) return;
+            this.sparkEl.classList.remove("is-on");
+            void this.sparkEl.offsetWidth;
+            this.sparkEl.classList.add("is-on");
+            clearTimeout(this._sparkT);
+            this._sparkT = setTimeout(() => {
+                if (this.sparkEl) this.sparkEl.classList.remove("is-on");
+            }, 620);
+        }
+
+        // ── PROGRAMATİK API ──
+
+        /** Son commit edilmiş toplam saniye (boşsa null). */
+        get seconds() { return this._seconds; }
+        /** Son commit edilmiş normalize görüntü ("1 sa 30 dk"). */
+        get text() { return this._lastText; }
+
+        /** Programatik değer: saniye (null/"" → temizle). Event fırlatır. */
+        setSeconds(n) {
+            if (n == null || n === "" || isNaN(Number(n))) {
+                const changed = this._seconds != null;
+                this._seconds = null;
+                this._lastText = "";
+                this._setValue("");
+                this._clearClampError();
+                this._sync();
+                if (changed) this._emit();
+                return;
+            }
+            this._commitSeconds(this._clampQuantize(Number(n)).value);
+        }
+
+        /** Yaşam döngüsü teardown — DOM'dan kalkınca çekirdek otomatik çağırır. */
+        destroy() {
+            if (this._ac) { this._ac.abort(); this._ac = null; }
+            clearTimeout(this._sparkT);
+
+            // Bizim bastığımız hata/durum temizliği.
+            this._clearClampError();
+            const host = this.groupEl || this.input;
+            host.classList.remove("glint-error-shake");
+
+            this.sparkEl?.remove();
+            this.sparkEl = null;
+
+            // Yalnız BİZİM eklediğimiz attribute'lar geri alınır.
+            for (const [el, name] of this._addedAttrs) el.removeAttribute(name);
+            this._addedAttrs = [];
+            // Bileşenin yönettiği dinamik ARIA/değer attribute'ları.
+            this.input.removeAttribute("aria-valuemin");
+            this.input.removeAttribute("aria-valuemax");
+            this.input.removeAttribute("aria-valuenow");
+            this.input.removeAttribute("aria-valuetext");
+            this.input.removeAttribute("data-glint-seconds");
+
+            // Gizli input yalnız BİZ ürettiysek sökülür (hazır geleni koru).
+            if (this._rawCreated) this.rawInput?.remove();
+            this.rawInput = null;
+
+            // Guard reset + çekirdek kayıt sızıntısı önlenir.
+            this.input._glintDurationInit = false;
+            this.input._glintDurationInstance = null;
+            window.Glint.unregister(this.input);
+        }
+
+        static get(el) {
+            if (!el) return null;
+            let input = null;
+            if (el.matches && el.matches("input[data-glint-duration]")) input = el;
+            else if (el.querySelector) input = el.querySelector("input[data-glint-duration]");
+            return (input && input._glintDurationInstance) || null;
+        }
+    }
+
+    // Saf fonksiyonlar dışarıya (test edilebilirlik — spec gereği).
+    GlintDuration.parse = glintParseDuration;
+    GlintDuration.format = glintFormatDuration;
+    GlintDuration.formatLong = glintFormatDurationLong;
+
+
+    // ══════════════════════════════════════════════════════════════
+    //  ÇEKİRDEĞE KAYIT (Glint.defineComponent) + güvenli yükleme guard'ı
+    // ══════════════════════════════════════════════════════════════
+
+    function register() {
+        const G = window.Glint;
+
+        // Grup CLAIM EDİLMEZ — GlintInput border/label/overlay sahibi kalır;
+        // süre alanı yalnız zenginleştirir (card/stepper ile aynı desen).
+        G.defineComponent("duration", {
+            selector: "input[data-glint-duration]",
+            match: el => !el._glintDurationInit,
+            mount: el => new GlintDuration(el)
+        });
+
+        // Programatik API
+        G.Duration = GlintDuration;
+    }
+
+    // Güvenli yükleme-sırası guard'ı: çekirdek (bölüm 1) bu dosyada her
+    // zaman önce yüklenir; guard yalnız olağandışı yükleme sıraları için
+    // (v1.6 phone/card başlangıç deseni).
     if (window.Glint && window.Glint.defineComponent) {
         register();
     } else {

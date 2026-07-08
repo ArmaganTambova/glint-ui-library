@@ -8,6 +8,242 @@ Sürüm, iki paket için **ortak** tek numaradır (`build/version.js` → `Glint
 
 ---
 
+## [1.7.1] — 2026-07-08
+
+Cila + davranış sürümü: v1.7.0'ın hemen ardından, kullanıcı geri
+bildirimlerinin tamamını kapatan paket. Üç kanıtlı animasyon kök nedeni
+(multiline ghost yaşam döngüsü, border-draw geometrisi, güç barı) ve yedi
+kullanım direktifi (e-posta memory tasarımı, TreeSelect açılışı, Combobox
+çoklu seçim, checkbox salınımı, color picker sadeleşmesi, pwgen/IBAN
+görünürlüğü) tek sürümde toplandı. v1.7.0 ayrıca yayınlanmadı — bu sürüm
+ikisini birlikte taşır.
+
+### Eklenenler
+
+**Combobox — çoklu seçim** (`data-multiple`)
+- Seçimler alanın hemen altındaki **chip tepsisinde** birikir (Tags/Select
+  chip dili, `--glint-chip-*` token'ları); input serbest ARAMA metni kalır.
+- Form binding gizli inputlarla: `data-hidden-name="Cities"`, yoksa inputun
+  `name`'i chip'lere devredilir (arama metni asla submit edilmez; MVC'de
+  `List<string>` otomatik bağlanır). `data-value="a,b"` başlangıç seçimleri.
+- Boş alanda ↓ tam listeyi açar (yerel kaynak); seçimde liste açık kalır,
+  seçili satır tik işaretli — tekrar tıklamak seçimi kaldırır (toggle).
+  Vurgusuz Enter serbest metni chip yapar; boş inputta Backspace son
+  chip'i siler. Liste açıkken popover chip tepsisinin ALTINA demirlenir.
+- `aria-multiselectable`; API: `values` · `setValues([...])`; event:
+  `glint:combobox-change {values}`.
+
+**Tema Kapağı'na yeni token'lar**
+- `--glint-border-width` (2px) — alan kenarlık kalınlığı TEK KAYNAK: gerçek
+  border + çizilen SVG stroke + e-posta chip çerçevesi birlikte kalınlaşır.
+- `--glint-picker-bw` (1px) — picker panel kenarlığı + açılış aksan çizgisi
+  tek kaynaktan (imza güçlendirme ikisini birlikte kalınlaştırır).
+
+### Düzeltilenler (kanıtlı kök nedenler — bağımsız doğrulayıcı 59/59)
+
+- **Multiline "çifte animasyon" jank'i:** kesilen kelime-düşme/giriş
+  animasyonlarının ghost'ları rebuild'e bağlı olmadığından aynı metni 2-3
+  kopya çizebiliyordu → ghost kayıt defteri + HASAT: kesilen animasyon
+  kaldığı pikselden TEK sürekli hareketle devralınır (çifte görüntü 5
+  senaryoda 0; wrap tuşu kare süresi 38.6ms → 3.2ms; `_syncOverlaySize`
+  çağrıları ~%98 azaldı; IME/bulk-delete/destroy yolları güvenli).
+- **İmza border-draw çerçevesi gerçek kenarlıkla örtüşmüyordu:** köşelerde
+  Q Bézier ≠ gerçek daire yayı + `||12` fallback'i meşru 0px radius'u
+  eziyordu + panel SVG'sinde 1px padding-box ofseti → geometri artık
+  `.glint-default-border`'ın computed stilinden türetilir (dört köşe ayrı,
+  gerçek `A` yayları, stroke=border kalınlığı); SVG artık yeniden
+  kurulmak yerine YERİNDE güncellenir. Piksel doğrulama: örtüşme ≤0.25px
+  (dört varyant × light/dark), picker paneli piksel-birebir.
+- **Güç barı ani silmede 4 parçaya bölünüyordu:** 340ms süre + 50ms
+  stagger fiilen eşzamanlıydı, renk crossfade'i de kademeliydi → dolgu tek
+  animasyonlu değere bağlandı (`@property --glint-strength-fill`; her
+  segment clamp türevi) — bar fiziksel TEK PARÇA akar, renk tek gövde
+  olarak döner. JS değişikliği yok; `@property` desteklemeyen tarayıcıda
+  animasyonsuz ama doğru düşüş.
+- **Checkbox tik salınımı kaldırıldı** (kullanıcı isteği): işaretlemedeki
+  squash-stretch "oturma" animasyonu checkbox'tan (indeterminate dahil)
+  söküldü — tik salt stroke çizimiyle gelir, basış antisipasyonu yumuşak
+  döner. Radio kendi oturmasını korur.
+- **OTP odak guard'ı:** rAF throttling altında (arka plan sekmesi)
+  kuyruklanan `select()` başka alanın odağını çalabiliyordu — hücre hâlâ
+  odaklıysa çalışır.
+
+### Değişenler
+
+- **E-posta memory "sekme eki" yeniden tasarlandı** (kullanıcı tarifi):
+  inputun altına BİTİŞİK ama border'ına BİNMEZ (eski -2px bindirme
+  kalktı); sol üst köşe düz, alt köşeler yuvarlak, sağ üstte içbükey kavis
+  inputun alt border hizasında biter; sol çizgi inputun sol-alt kavisinin
+  altına uzanır. Çerçeve STATİK ve beklemede nötr renktedir — draw-in
+  animasyonu ve alt çizgi kıvılcımı kaldırıldı; hover'da çizgi aksan
+  rengine döner ve üst kenar hariç yumuşakça parlar. Alttan doğma (clip
+  perdesi) ve glif FLIP devri aynen sürer.
+- **TreeSelect paneli artık Select/Etiketler gibi açılır** (kullanıcı
+  isteği): picker'ın çift-yollu border-draw çizimi panelden kaldırıldı.
+- **Ortak dropdown açılış dili:** Select · Combobox · TreeSelect ·
+  Tags-öneri popover'ları aynı açılışı paylaşır — kapalı `scale(0.96) +
+  translateY(-6px)`, açılışta `--glint-ease-pop` yumuşak yayı.
+- **Color picker çekirdek/eklenti ayrımı** (kullanıcı kuralı: çekirdek =
+  seçici + HEX + RGB): **kontrast rozeti** artık varsayılan KAPALI
+  (`data-contrast` ya da `showContrast: true` ile açılır) ve **HEX kopyala
+  butonu** artık otomatik gelmez (`data-copy` ya da `copyButton: true`).
+  Pipet zaten opt-in idi (`data-eyedropper`). ESKİ DAVRANIŞA DÖNÜŞ:
+  `Glint.Color.config = { showContrast: true, copyButton: true }`.
+- Güç barında `.is-decreasing` sınıfı artık davranış taşımıyor (yönlü
+  delay merdiveni kalktı; sınıf geriye dönük uyum için basılıyor).
+- `.glint-input` artık `box-sizing: border-box` garantili — global reset'i
+  olmayan host sayfada görünür kutu değişebilir (eski durum zaten kırıktı).
+- Rehber: combobox çoklu seçim bölümü, pwgen "istediğin uzunlukta üret"
+  canlı playground'ı, color opt-in araç örnekleri, e-posta memory /
+  TreeSelect / güç barı / multiline metinleri yeni davranışlara güncellendi;
+  Değişkenler tablosuna yeni token'lar eklendi.
+
+---
+
+## [1.7.0] — 2026-07-08
+
+Büyük özellik sürümü: BEŞ yeni bileşen (IBAN, parola üretici, TreeSelect,
+QR üretici, süre girişi), iki pakette de "Tema Kapağı" (tüm özelleştirme
+dosya tepesinde), toast'a v1.7 davranış katmanı (yığın modu, kuyruk,
+update, grup, klavye erişimi) ve v1.6 denetiminin kanıtladığı kök
+nedenlerin kapatılması. Tek-dosya felsefesi ve sıfır bağımlılık korunur.
+
+### Eklenenler
+
+**GlintIban — IBAN girişi** (`data-glint-iban`)
+- Canlı 4'lü gruplama; mod-97 doğrulama (geçerli → yeşil onay, geçersiz →
+  hata durumu + `aria-invalid`); `glint:iban-complete {valid, country}`.
+- `data-countries` (izinli ülkeler), `data-copy` (kopyala butonu),
+  `data-raw-name` → boşluksuz IBAN gizli input'u (`data-glint-raw`).
+
+**GlintPwgen — güçlü parola üretici** (`data-glint-generate`)
+- Alan içi zar butonu: her sınıftan ≥1 karakter (büyük/küçük/rakam/sembol)
+  garantili, muğlak karakterler (O 0 I l 1) hariç üretim.
+- Üretim sonrası parola 2 sn görünür kalır, sonra otomatik gizlenir; güç
+  barı senkron dolar; `data-generate-length` / `data-generate-charset`;
+  `glint:pwgen-generate {length}`.
+
+**GlintTree — hiyerarşik TreeSelect** (`data-glint-tree`)
+- Kaynak: `data-options` / `data-options-from`; tekli + çoklu
+  (`data-multiple`); `data-expand` ile başlangıç derinliği.
+- TR-duyarlı arama: eşleşme `<mark>` vurgusu + ataları görünür kalır;
+  `data-display`, `data-placeholder`, `data-empty-text`.
+- Tam ARIA `role="tree"` deseni + klavye; mobilde bottom-sheet.
+- Events: `glint:tree-open/-change`; API: `Glint.Tree`.
+
+**GlintQR — QR kod üretici** (`data-glint-qr`)
+- Encoder SIFIRDAN yazıldı (Reed-Solomon dahil — sıfır bağımlılık, ağ yok):
+  `Glint.QR.matrix(text)` → boolean[][], `Glint.QR.toCanvas(matrix, scale,
+  quiet)` → canvas/PNG.
+- Popover (`role="dialog"` + odak tuzağı): canlı SVG önizleme (debounce
+  `data-qr-debounce`), **PNG indir** (her zaman siyah/beyaz + 4 modül quiet
+  zone — okuyucu garantisi; `data-qr-filename` / `data-qr-scale`), kopyala.
+- Events: `glint:qr-open` / `glint:qr-update {ok, version, size, ecLevel,
+  mask, bytes}`.
+- Regresyon paketinde bağımsız decoder (jsQR) doğrulaması: PNG ve canlı SVG
+  yolları, Türkçe UTF-8 ve 200+ bayt payload'larla birebir çözülüyor.
+
+**GlintDuration — süre girişi** (`data-glint-duration`)
+- "1sa 30dk" / "1:30" yazımı → saniye; gizli çıktı `data-glint-seconds`
+  (+ `data-raw-name`); `data-units` ("sa,dk,sn" alt kümesi), `data-min/-max`
+  (saniye ya da "15dk"/"8sa"/"1:30").
+- Overlay `font-variant-numeric` aynası sayesinde tabular hizalı rakamlar.
+
+**Picker**
+- `data-inline[="bare"]` — sayfaya gömülü sürekli takvim.
+- `data-natural` — Türkçe doğal dil girişi ("yarın", "2 hafta sonra"…).
+- `data-badges` / `data-badges-from` — gün rozetleri (etkinlik işaretleri).
+- Saat aralığı (TimeRange): time input'ta `data-range` (+ `data-overnight`
+  gece devri); `data-hour-cycle="auto"` — yerel saat düzenini izler.
+
+**Select**
+- Option ikonları (`data-icon` / `data-icon-html`), async adaptör
+  `data-source-fn` (Combobox sözleşmesi — kütüphane asla fetch yapmaz;
+  `data-debounce`), `data-empty-text`.
+
+**Input çekirdeği & diğerleri**
+- `data-glint-url` — URL'yi segment segment renklendirme (protokol/alan
+  adı/yol ayrımı) — `_charDecorator` kancası üzerinden.
+- Upload: `data-crop` (free | 1:1 | 4:3 | 16:9 | a:b) dosya kırpma; yükleme
+  bitişinde başarı töreni; `fail()` API'si; ilerleme çubuğu `translateX`
+  (composite-dostu) animasyona taşındı.
+- Color: `data-alpha` şeffaflık şeridi; `data-eyedropper` — pipet artık
+  **opt-in**; `data-swatch-save[=anahtar]` kalıcı paletler; 2 satırlı düzen.
+
+**Tema Kapağı (iki pakette)**
+- glint-input.css / glint-toast.css TEPESİNDE tek `:root` bloğu: tüm
+  renk/boyut/şekil/hareket token'ları bölümlenmiş halde (toast rehberinde
+  44-token referans tablosu + canlı marka playground'ı).
+- glint-input.js / glint-toast.js tepesinde YAPILANDIRMA ENVANTERİ: tüm
+  çalışma-zamanı anahtarları + bileşen başına tam `data-*` kataloğu.
+
+**Çekirdek — runtime hareket kontrolü**
+- `Glint.configure({reducedMotion: "auto"|true|false})` artık CANLI:
+  köke `data-glint-reduced` basılır, `--glint-motion-scale` güncellenir,
+  `glint:motionchange` yayınlanır; anlık sorgu: `Glint.motion()`.
+
+**Toast — v1.7 davranış katmanı**
+- `stacking: "stack"` — Sonner tarzı yığın (önde 1, arkada 2 kademeli;
+  hover/odakta açılır, hover tüm sayaçları duraklatır).
+- `overflow: "queue"` — maxVisible dolunca FIFO kuyruk (varsayılan "evict").
+- `group` — aynı türden toast'lar tek kutuda birikir, 5 satırdan sonrası
+  "+N daha" (toast bazında `opts.group` ile de).
+- `density: "compact"` — tek satır kompakt mod; `pauseAllOnHover`.
+- `Glint.Toast.update(el, {type, message, title, duration, sticky, action})`
+  — canlı toast'ı yerinde dönüştürür; `promise()` morf'u da bu altyapıda.
+- Kapanış nedeni dışa açık: `glint:toast-close {reason: "timeout" | "user"
+  | "swipe" | "evict" | "api"}`.
+- Aksiyon butonunda `countdown: true` — süreye senkron geri sayım çizgisi
+  ("Geri Al" deseni).
+- Klavye erişimi: Alt+Shift+T ilk toast'a odak, ↑/↓ toast'lar arası gezinme,
+  aksiyonlu toast'lar tabindex'li (Enter/Space çalışır), `:focus-visible`
+  halkası.
+- Safe-area: çentikli ekranlarda ofsetlere `env(safe-area-inset-*)` eklenir.
+- Yığın FLIP: yeni toast girişinde mevcutlar zıplamadan kayar; maxVisible
+  tahliyesi artık animasyonlu; hıza duyarlı swipe savurması.
+
+### Düzeltilenler
+
+- **Parola göz butonu caret'i (Chromium kök nedeni):** `type` değişimi
+  sonrası tarayıcının ASENKRON selection sıfırlaması senkron restore'u
+  eziyordu → üçlü restore (senkron + rAF + setTimeout 0). Ayrıca elle
+  yazılmış göster/gizle butonları kütüphanece adopte edilir (çift listener
+  gerekmez).
+- **Picker taşmaları:** JS'teki sabit genişlik tahminleri (420/520/740)
+  gerçek CSS minimumlarının altındaydı → `max-content` ölçümüne geçildi,
+  `min-width: 520` kaldırıldı, viewport kenar politikası netleşti.
+- Picker 12h görünümü: hardcode İngilizce AM/PM → locale'den ÖÖ/ÖS; ay
+  başlığı odometer geçişi; açılış maskesi pinlendi (yeniden konumlanma
+  zıplaması bitti).
+- **E-posta memory chip'i:** "sekme eki" formu (input'a yapışık), tek
+  sürekli FLIP uçuşu, kabul kıvılcımı — şekil/jank şikâyetleri kapandı.
+- Telefon ülke seçici düzeltme paketi (açılış konumu, arama, klavye ve
+  görsel tutarlılık — v1.6 denetim bulguları).
+- Mikro-animasyon yenilemeleri: switch clip-path reveal, checkbox mürekkep
+  dolumu, radio yerleşme (settle) animasyonu.
+- Çekirdek: UA stylesheet'inin input'a bastığı `font` SHORTHAND'i
+  `font-variant-numeric`'i sıfırlıyordu → overlay aynası artık
+  `fontVariantNumeric`'i her koşulda izler.
+- **Toast (7 kanıtlı hata):** aksiyonlu toast klavyeden erişilemiyordu
+  (tabindex yok); prepend'de yığın FLIP eksikti (zıplama); maxVisible
+  tahliyesi animasyonsuzdu; hover'da dedupe süre tazelemesi kayboluyordu;
+  giriş animasyonunda `fill: forwards` kalıntısı; morph'ta çifte
+  hover-pause riski; dedupe title/action'ı ayırt etmiyordu.
+- Rehber: elle şifre-göz demosundaki çift listener (`wirePw`) v1.7 adopte
+  davranışıyla çakışıp no-op oluyordu → kaldırıldı; `cb-async` mükerrer
+  id düzeltildi.
+
+### Değişenler
+
+- Rehberler: input rehberine 5 yeni bileşen bölümü (canlı örnekler +
+  HTML/Razor/JS sekmeleri), toast rehberine "v1.7" bölümü (8 canlı demo) +
+  Tema Kapağı / 44-token referansı + marka playground'ı; mobil önizlemeye
+  IBAN, süre ve çoklu TreeSelect satırları.
+- API tablolarına v1.7 satırları (`Glint.Iban/Pwgen/Tree/QR/Duration`,
+  `Glint.motion()`).
+
+---
+
 ## [1.6.0] — 2026-07-06
 
 Büyük özellik sürümü: iki tam yeni bileşen ailesi (telefon, combobox, kart),

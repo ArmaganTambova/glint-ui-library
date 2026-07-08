@@ -123,6 +123,14 @@ body {
                 <input class="glint-input" id="m-amount" inputmode="numeric" value="1250000">
                 <label class="glint-label" for="m-amount">Tutar · binlik ayraç</label>
             </div>
+            <div class="glint-input-group" data-raw-name="m-iban-raw">
+                <input class="glint-input" id="m-iban" type="text" data-glint-iban data-copy>
+                <label class="glint-label" for="m-iban">IBAN · v1.7 — büyük-harf klavye</label>
+            </div>
+            <div class="glint-input-group">
+                <input class="glint-input" id="m-sure" type="text" data-glint-duration data-min="15dk" data-max="8sa">
+                <label class="glint-label" for="m-sure">Süre · "90dk" yaz, "Bitti"ye bas</label>
+            </div>
             <div class="glint-input-group">
                 <textarea class="glint-input" id="m-note">Auto-grow textarea.</textarea>
                 <label class="glint-label" for="m-note">Not</label>
@@ -167,6 +175,21 @@ body {
             <div class="glint-tags" data-name="m-tags" data-max="6"
                  data-suggest="JavaScript,TypeScript,Python,Razor,C#,SQL,Go"
                  data-value="vanilla,glint" data-placeholder="Etiket ekle..."></div>
+            <div class="glint-tree-group" data-multiple data-display="tags" data-expand="all"
+                 data-options='[
+                   {"label":"Marmara","value":"marmara","children":[
+                     {"label":"İstanbul","value":"ist"},
+                     {"label":"Bursa","value":"brs"},
+                     {"label":"Kocaeli","value":"kco","disabled":true}
+                   ]},
+                   {"label":"Ege","value":"ege","children":[
+                     {"label":"İzmir","value":"izm"},
+                     {"label":"Muğla","value":"mgl"}
+                   ]}
+                 ]'>
+                <input data-glint-tree id="m-tree" name="m-bolgeler" value="ist,izm">
+                <label class="glint-label" for="m-tree">Bölgeler · v1.7 bottom-sheet</label>
+            </div>
             <div class="glint-otp" data-length="6" data-type="number" data-name="m-otp" data-group="3" aria-label="Doğrulama kodu"></div>
         </div>
     </section>

@@ -1,9 +1,94 @@
 /* ════════════════════════════════════════════════════════════════════════
- *  ✎ DÜZENLEYİNİZ — projeye özel token'lar
- *  Tür rengi: her .glint-toast--<tür> içindeki --_toast-accent + --_glow-rgb.
- *  Konum: #glint-toast-container (varsayılan sağ üst).
- *  Süreler/başlıklar CSS değil → glint-toast.js CONFIG/LABELS.
+ *  ✎ DÜZENLEYİNİZ — TEMA KAPAĞI (glint-toast.css)
+ *  Görsel özelleştirmenin TAMAMI aşağıdaki tek :root bloğunda. Dosyanın geri
+ *  kalanı bu token'ları var(--token, aynı-varsayılan) deseniyle tüketir;
+ *  toast tek başına yüklense de görünüm birebir aynıdır. Süre / limit /
+ *  davranış anahtarları CSS değil → glint-toast.js tepesindeki CONFIG kapağı.
+ *
+ *  HIZLI BAŞLANGIÇ — en sık 3 senaryo:
+ *  1) Marka rengi (ör. mor):  --glint-toast-accent-info: #7c3aed;
+ *       --glint-toast-glow-info: 124, 58, 237;  (+ isteğe göre ton ayarı:
+ *       --glint-toast-title-info / --glint-toast-icon-info / --glint-toast-ink-dark-info)
+ *  2) Hareketi kısma: OS "hareketi azalt" ayarına OTOMATİK uyulur; koddan,
+ *       tüm kit için: Glint.configure({ reducedMotion: true })  (input paketi yüklüyse)
+ *  3) Yoğunluk — sık bildirimde tek satır kompakt görünüm:
+ *       Glint.Toast.configure({ density: "compact" })   → detay glint-toast.js kapağı
  * ════════════════════════════════════════════════════════════════════════ */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   TEMA KAPAĞI — tek konsolide :root bloğu
+   (Bölümler: Renk · Tipografi · Hareket · Yerleşim · Bileşen-özel.
+    Bir değeri değiştirmek görünümü anında değiştirir; kural aramanıza gerek yok.)
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+    /* ─── RENK / tür aksanları — sol şerit, pulse halkası, aksiyon butonu,
+           ×N rozeti, odak halkası, "Alana git →" çağrısı ─── */
+    --glint-toast-accent-success: #22c55e;        /* başarı türünün aksan rengi */
+    --glint-toast-accent-error: #ef4444;          /* hata türünün aksan rengi */
+    --glint-toast-accent-warning: #f59e0b;        /* uyarı türünün aksan rengi */
+    --glint-toast-accent-info: #3b82f6;           /* bilgi türü + türsüz toast'ın aksan rengi */
+    --glint-toast-accent-loading: #6b7280;        /* yükleme (promise) durumunun aksan rengi */
+
+    /* ─── RENK / glow RGB üçlüleri — progress hüzmesi + halka parıltısı
+           (rgba() içinde kullanılır; aksan renginin R, G, B karşılığıyla eş tutun) ─── */
+    --glint-toast-glow-success: 34, 197, 94;      /* başarı glow RGB'si */
+    --glint-toast-glow-error: 239, 68, 68;        /* hata glow RGB'si */
+    --glint-toast-glow-warning: 245, 158, 11;     /* uyarı glow RGB'si */
+    --glint-toast-glow-info: 59, 130, 246;        /* bilgi + türsüz toast glow RGB'si */
+    --glint-toast-glow-loading: 107, 114, 128;    /* yükleme glow RGB'si */
+
+    /* ─── RENK / ikon + başlık mürekkepleri (açık tema) ─── */
+    --glint-toast-icon-success: #16a34a;          /* başarı ikonu (açık tema) */
+    --glint-toast-title-success: #15803d;         /* başarı başlığı (açık tema) */
+    --glint-toast-icon-error: #dc2626;            /* hata ikonu (açık tema) */
+    --glint-toast-title-error: #b91c1c;           /* hata başlığı (açık tema) */
+    --glint-toast-icon-warning: #d97706;          /* uyarı ikonu (açık tema) */
+    --glint-toast-title-warning: #b45309;         /* uyarı başlığı (açık tema) */
+    --glint-toast-icon-info: #2563eb;             /* bilgi ikonu (açık tema) */
+    --glint-toast-title-info: #1d4ed8;            /* bilgi başlığı (açık tema) */
+
+    /* ─── RENK / karanlık tema mürekkepleri — [data-bs-theme="dark"]'ta ikon VE
+           başlık birlikte bu tona döner (dark override kuralları bölüm 9'da
+           DURUYOR; yalnız değerleri buradan okur → cascade sırası birebir korunur) ─── */
+    --glint-toast-ink-dark-success: #4ade80;      /* başarı ikon+başlık (karanlık tema) */
+    --glint-toast-ink-dark-error: #f87171;        /* hata ikon+başlık (karanlık tema) */
+    --glint-toast-ink-dark-warning: #fbbf24;      /* uyarı ikon+başlık (karanlık tema) */
+    --glint-toast-ink-dark-info: #60a5fa;         /* bilgi ikon+başlık (karanlık tema) */
+
+    /* ─── RENK / yüzey + metin ─── */
+    --glint-toast-bg: rgba(255, 255, 255, 0.78);          /* kutu zemini — glassmorphism (açık) */
+    --glint-toast-bg-dark: rgba(30, 41, 59, 0.75);        /* kutu zemini (karanlık) */
+    --glint-toast-border: rgba(255, 255, 255, 0.45);      /* kutu kenarlığı (açık) */
+    --glint-toast-border-dark: rgba(255, 255, 255, 0.08); /* kutu kenarlığı (karanlık) */
+    --glint-toast-text: #4b5563;                          /* gövde metni (açık) */
+    --glint-toast-text-dark: #94a3b8;                     /* gövde metni (karanlık) */
+    --glint-toast-muted: #9ca3af;                         /* soluk gri: kapat × + "+N daha" satırı (açık) */
+    --glint-toast-muted-dark: #64748b;                    /* "+N daha" satırı (karanlık) */
+
+    /* ─── TİPOGRAFİ (compact yoğunluk kendi küçültmelerini bölüm-içi sabitlerle yapar) ─── */
+    --glint-toast-font-title: 0.8rem;             /* başlık punto */
+    --glint-toast-weight-title: 650;              /* başlık kalınlığı */
+    --glint-toast-font-body: 0.775rem;            /* gövde punto */
+
+    /* ─── HAREKET (marka easing/süre token'ları --glint-ease-* ve --glint-dur-*
+           input paketinin kapağından gelir; toast tek başınayken kural-içi
+           fallback'ler — aynı değerler — geçerlidir) ─── */
+    --glint-toast-dur-in: 0.52s;                  /* toast giriş animasyonu süresi */
+    --glint-toast-dur-out: 0.32s;                 /* toast çıkış animasyonu süresi */
+
+    /* ─── YERLEŞİM ─── */
+    --glint-toast-offset-top: 88px;               /* üst konumlarda tavandan uzaklık (nav yüksekliğinize göre) */
+    --glint-toast-offset-side: 20px;              /* sağ/sol kenardan uzaklık */
+    --glint-toast-offset-bottom: 20px;            /* alt konumlarda tabandan uzaklık */
+    --glint-toast-width: 360px;                   /* container genişliği (mobilde otomatik tam genişlik) */
+    --glint-toast-z: 9000;                        /* katman sırası (z-index) */
+
+    /* ─── BİLEŞEN-ÖZEL ─── */
+    --glint-toast-radius: 14px;                   /* kutu köşe yarıçapı (mobil 12px / compact 11px sabittir) */
+    --glint-toast-blur: 16px;                     /* glassmorphism arkaplan bulanıklığı */
+    --glint-toast-stripe-w: 3px;                  /* sol tür-aksan şeridinin kalınlığı */
+    --glint-toast-progress-h: 6px;                /* progress hüzmesi yüksekliği (compact 4px sabittir) */
+}
 
 /* ============================================================
    Glint Toast — Notification System (birleşik sürüm: Glint.version)
@@ -45,17 +130,20 @@
    1. CONTAINER
    ═══════════════════════════════════════════════════════════════ */
 
+/* Konum/boyut değerleri Tema Kapağı'nda (top/right aşağıda konum sisteminde
+   safe-area'lı hâlleriyle yeniden yazılır; toast'lar arası 8px boşluk JS'teki
+   layoutStack GAP'i ve collapse margin'iyle senkron SABİTTİR). */
 #glint-toast-container {
     position: fixed;
-    top: 88px;
-    right: 20px;
-    z-index: 9000;
+    top: var(--glint-toast-offset-top, 88px);
+    right: var(--glint-toast-offset-side, 20px);
+    z-index: var(--glint-toast-z, 9000);
     display: flex;
     flex-direction: column;
     gap: 8px;
     align-items: flex-end;
     pointer-events: none;
-    width: 360px;
+    width: var(--glint-toast-width, 360px);
     max-width: calc(100vw - 32px);
 }
 
@@ -64,15 +152,17 @@
    2. TOAST BASE & GLASSMORPHISM
    ═══════════════════════════════════════════════════════════════ */
 
+/* Renk/yüzey değerleri Tema Kapağı'nda. Türsüz toast bilgi (info)
+   aksanını devralır; tür sınıfları bölüm 7'de kendi aksanını yazar. */
 .glint-toast {
-    --_toast-accent: #3b82f6;
-    --_glow-rgb: 59, 130, 246;
+    --_toast-accent: var(--glint-toast-accent-info, #3b82f6);
+    --_glow-rgb: var(--glint-toast-glow-info, 59, 130, 246);
     width: 100%;
-    background: rgba(255, 255, 255, 0.78);
-    backdrop-filter: blur(16px) saturate(1.6);
-    -webkit-backdrop-filter: blur(16px) saturate(1.6);
-    border: 1px solid rgba(255, 255, 255, 0.45);
-    border-radius: 14px;
+    background: var(--glint-toast-bg, rgba(255, 255, 255, 0.78));
+    backdrop-filter: blur(var(--glint-toast-blur, 16px)) saturate(1.6);
+    -webkit-backdrop-filter: blur(var(--glint-toast-blur, 16px)) saturate(1.6);
+    border: 1px solid var(--glint-toast-border, rgba(255, 255, 255, 0.45));
+    border-radius: var(--glint-toast-radius, 14px);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06), 0 12px 32px -8px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
     overflow: hidden;
     pointer-events: auto;
@@ -87,18 +177,18 @@
         left: 0;
         top: 6px;
         bottom: 6px;
-        width: 3px;
-        border-radius: 0 3px 3px 0;
+        width: var(--glint-toast-stripe-w, 3px);
+        border-radius: 0 var(--glint-toast-stripe-w, 3px) var(--glint-toast-stripe-w, 3px) 0;
         background: var(--_toast-accent);
         opacity: 0.80;
     }
 
     .glint-toast.glint-toast-enter {
-        animation: glint-toast-in 0.52s var(--glint-ease-pop, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
+        animation: glint-toast-in var(--glint-toast-dur-in, 0.52s) var(--glint-ease-pop, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
     }
 
     .glint-toast.glint-toast-exit {
-        animation: glint-toast-out 0.32s cubic-bezier(0.4, 0, 0.7, 0.2) forwards;
+        animation: glint-toast-out var(--glint-toast-dur-out, 0.32s) cubic-bezier(0.4, 0, 0.7, 0.2) forwards;
         pointer-events: none;
     }
 
@@ -174,8 +264,8 @@
 
 .glint-toast-title {
     flex: 1;
-    font-size: 0.8rem;
-    font-weight: 650;
+    font-size: var(--glint-toast-font-title, 0.8rem);
+    font-weight: var(--glint-toast-weight-title, 650);
     line-height: 1.2;
     letter-spacing: -0.01em;
 }
@@ -191,7 +281,7 @@
     background: transparent;
     border-radius: 6px;
     cursor: pointer;
-    color: #9ca3af;
+    color: var(--glint-toast-muted, #9ca3af);
     padding: 0;
     transition: background 0.2s ease, color 0.2s ease, transform 0.15s var(--glint-ease-pop, cubic-bezier(0.34, 1.56, 0.64, 1));
     line-height: 1;
@@ -219,9 +309,9 @@
 
 .glint-toast-body {
     padding-left: 28px;
-    font-size: 0.775rem;
+    font-size: var(--glint-toast-font-body, 0.775rem);
     line-height: 1.5;
-    color: #4b5563;
+    color: var(--glint-toast-text, #4b5563);
 }
 
     .glint-toast-body p {
@@ -387,7 +477,7 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 6px;
+    height: var(--glint-toast-progress-h, 6px);
     pointer-events: none;
     transform-origin: left;
     transform: scaleX(1);
@@ -407,59 +497,59 @@
 
 
 /* ═══════════════════════════════════════════════════════════════
-   7. TÜR RENKLERİ
+   7. TÜR RENKLERİ — değerler Tema Kapağı'nda (dosya tepesi, RENK)
    ═══════════════════════════════════════════════════════════════ */
 
 .glint-toast--success {
-    --_toast-accent: #22c55e;
-    --_glow-rgb: 34, 197, 94;
+    --_toast-accent: var(--glint-toast-accent-success, #22c55e);
+    --_glow-rgb: var(--glint-toast-glow-success, 34, 197, 94);
 }
 
     .glint-toast--success .glint-toast-icon {
-        color: #16a34a;
+        color: var(--glint-toast-icon-success, #16a34a);
     }
 
     .glint-toast--success .glint-toast-title {
-        color: #15803d;
+        color: var(--glint-toast-title-success, #15803d);
     }
 
 .glint-toast--error {
-    --_toast-accent: #ef4444;
-    --_glow-rgb: 239, 68, 68;
+    --_toast-accent: var(--glint-toast-accent-error, #ef4444);
+    --_glow-rgb: var(--glint-toast-glow-error, 239, 68, 68);
 }
 
     .glint-toast--error .glint-toast-icon {
-        color: #dc2626;
+        color: var(--glint-toast-icon-error, #dc2626);
     }
 
     .glint-toast--error .glint-toast-title {
-        color: #b91c1c;
+        color: var(--glint-toast-title-error, #b91c1c);
     }
 
 .glint-toast--warning {
-    --_toast-accent: #f59e0b;
-    --_glow-rgb: 245, 158, 11;
+    --_toast-accent: var(--glint-toast-accent-warning, #f59e0b);
+    --_glow-rgb: var(--glint-toast-glow-warning, 245, 158, 11);
 }
 
     .glint-toast--warning .glint-toast-icon {
-        color: #d97706;
+        color: var(--glint-toast-icon-warning, #d97706);
     }
 
     .glint-toast--warning .glint-toast-title {
-        color: #b45309;
+        color: var(--glint-toast-title-warning, #b45309);
     }
 
 .glint-toast--info {
-    --_toast-accent: #3b82f6;
-    --_glow-rgb: 59, 130, 246;
+    --_toast-accent: var(--glint-toast-accent-info, #3b82f6);
+    --_glow-rgb: var(--glint-toast-glow-info, 59, 130, 246);
 }
 
     .glint-toast--info .glint-toast-icon {
-        color: #2563eb;
+        color: var(--glint-toast-icon-info, #2563eb);
     }
 
     .glint-toast--info .glint-toast-title {
-        color: #1d4ed8;
+        color: var(--glint-toast-title-info, #1d4ed8);
     }
 
 
@@ -657,8 +747,11 @@
 
 @media (max-width: 480px) {
     #glint-toast-container {
+        /* v1.7 — safe-area: env() desteklemeyen tarayıcı calc satırını atar */
         right: 10px;
+        right: calc(10px + env(safe-area-inset-right, 0px));
         left: 10px;
+        left: calc(10px + env(safe-area-inset-left, 0px));
         width: auto;
         align-items: stretch;
     }
@@ -712,17 +805,18 @@
     }
 }
 
-/* Dark Mode */
+/* Dark Mode — değerler Tema Kapağı'nda (RENK / karanlık tema). Kuralların
+   SIRASI bilinçli: bölüm 7'nin açık-tema kurallarını buradan override eder. */
 [data-bs-theme="dark"] .glint-toast {
-    background: rgba(30, 41, 59, 0.75);
-    backdrop-filter: blur(16px) saturate(1.4);
-    -webkit-backdrop-filter: blur(16px) saturate(1.4);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: var(--glint-toast-bg-dark, rgba(30, 41, 59, 0.75));
+    backdrop-filter: blur(var(--glint-toast-blur, 16px)) saturate(1.4);
+    -webkit-backdrop-filter: blur(var(--glint-toast-blur, 16px)) saturate(1.4);
+    border-color: var(--glint-toast-border-dark, rgba(255, 255, 255, 0.08));
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.2), 0 12px 32px -8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 [data-bs-theme="dark"] .glint-toast-body {
-    color: #94a3b8;
+    color: var(--glint-toast-text-dark, #94a3b8);
 }
 
 [data-bs-theme="dark"] .glint-toast-close:hover {
@@ -732,22 +826,22 @@
 
 [data-bs-theme="dark"] .glint-toast--success .glint-toast-title,
 [data-bs-theme="dark"] .glint-toast--success .glint-toast-icon {
-    color: #4ade80;
+    color: var(--glint-toast-ink-dark-success, #4ade80);
 }
 
 [data-bs-theme="dark"] .glint-toast--error .glint-toast-title,
 [data-bs-theme="dark"] .glint-toast--error .glint-toast-icon {
-    color: #f87171;
+    color: var(--glint-toast-ink-dark-error, #f87171);
 }
 
 [data-bs-theme="dark"] .glint-toast--warning .glint-toast-title,
 [data-bs-theme="dark"] .glint-toast--warning .glint-toast-icon {
-    color: #fbbf24;
+    color: var(--glint-toast-ink-dark-warning, #fbbf24);
 }
 
 [data-bs-theme="dark"] .glint-toast--info .glint-toast-title,
 [data-bs-theme="dark"] .glint-toast--info .glint-toast-icon {
-    color: #60a5fa;
+    color: var(--glint-toast-ink-dark-info, #60a5fa);
 }
 
 [data-bs-theme="dark"] .glint-toast-progress {
@@ -789,16 +883,20 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Konum sistemi (Glint.Toast.configure({position})) ──────────
-   Ofsetler token'laştı: farklı nav yükseklikleri için override edin. */
-:root {
-    --glint-toast-offset-top: 88px;
-    --glint-toast-offset-side: 20px;
-    --glint-toast-offset-bottom: 20px;
+   Ofset token'ları --glint-toast-offset-top/-side/-bottom → değerler
+   Tema Kapağı'nda (dosya tepesi, YERLEŞİM). */
+/* v1.7 — safe-area: çentikli/yuvarlak köşeli ekranlarda alt/yan ofsetlere
+   env(safe-area-inset-*) eklenir. Çift satır bilinçli: env() desteklemeyen
+   tarayıcı calc satırını atar → önceki düz değer geçerli kalır. */
+#glint-toast-container {
+    top: var(--glint-toast-offset-top);
+    right: var(--glint-toast-offset-side);
+    right: calc(var(--glint-toast-offset-side) + env(safe-area-inset-right, 0px));
 }
-#glint-toast-container { top: var(--glint-toast-offset-top); right: var(--glint-toast-offset-side); }
 #glint-toast-container.glint-pos-top-left {
     right: auto;
     left: var(--glint-toast-offset-side);
+    left: calc(var(--glint-toast-offset-side) + env(safe-area-inset-left, 0px));
     align-items: flex-start;
 }
 #glint-toast-container.glint-pos-top-center {
@@ -811,6 +909,7 @@
 #glint-toast-container.glint-pos-bottom-left {
     top: auto;
     bottom: var(--glint-toast-offset-bottom);
+    bottom: calc(var(--glint-toast-offset-bottom) + env(safe-area-inset-bottom, 0px));
     /* Yeni toast en altta biter (prepend + column-reverse) */
     flex-direction: column-reverse;
     /* Alttan girenler aşağıdan süzülür */
@@ -820,6 +919,7 @@
 #glint-toast-container.glint-pos-bottom-left {
     right: auto;
     left: var(--glint-toast-offset-side);
+    left: calc(var(--glint-toast-offset-side) + env(safe-area-inset-left, 0px));
     align-items: flex-start;
 }
 
@@ -845,8 +945,8 @@
 /* ── Yükleme (promise) spinner'ı ────────────────────────────────
    SVG değil, border tabanlı halka — accent rengini türden alır. */
 .glint-toast--loading {
-    --_toast-accent: #6b7280;
-    --_glow-rgb: 107, 114, 128;
+    --_toast-accent: var(--glint-toast-accent-loading, #6b7280);
+    --_glow-rgb: var(--glint-toast-glow-loading, 107, 114, 128);
 }
 .glint-toast-spinner {
     display: inline-block;
@@ -924,4 +1024,258 @@
     .glint-toast-spinner { animation-duration: 1.6s; }  /* dönmeye devam (bilgi) ama sakin */
     .glint-toast-icon.glint-icon-morph svg,
     .glint-toast-count.glint-count-pop { animation: none !important; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   v1.7 — ANİMASYON KATMANI
+   (giriş şerit çizimi · hızlı tahliye · Sonner-tarzı yığın modu)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Girişte marka imzası: sol accent şeridi yukarıdan aşağı çizilir
+   (border-draw dilinin toast'taki karşılığı). backwards fill → gecikme
+   boyunca şerit gizli başlar; bitince doğal scaleY(1)'e döner. ── */
+.glint-toast.glint-toast-enter::before {
+    animation: glint-accent-draw var(--glint-dur-4, 240ms) var(--glint-ease-out, cubic-bezier(0.22, 1, 0.36, 1)) 120ms backwards;
+    transform-origin: top;
+}
+
+@keyframes glint-accent-draw {
+    from { transform: scaleY(0); }
+    to   { transform: scaleY(1); }
+}
+
+/* ── maxVisible tahliyesi: anında remove yerine hızlı mini-çıkış.
+   transform yığın değişkenleriyle BİRLEŞİR (stack modunda ofsetinden
+   sıçramasın); liste modunda değişkenler tanımsız → sade scale(0.96). ── */
+.glint-toast.glint-toast-evict {
+    transition: opacity 140ms ease, transform 140ms ease !important;
+    opacity: 0 !important;
+    transform: translateY(var(--_stack-y, 0px)) scale(calc(var(--_stack-scale, 1) * 0.96)) !important;
+    pointer-events: none;
+}
+
+/* Yığın modunda WAAPI çıkışı sürerken etkileşim kapalı */
+.glint-toast.glint-toast-stack-exit {
+    pointer-events: none;
+}
+
+/* ── Sonner-tarzı yığın modu (Glint.Toast.configure({stacking:"stack"}))
+   Tüm toast'lar absolute; yerleşim salt transform + opacity ile taşınır
+   (değişkenleri JS/layoutStack yazar). Önde 1 toast tam görünür; arkadaki
+   2'si kademeli scale/offset, 4.+ tamamen gizli. Container hover/odakta
+   listeye açılır (transition'lar geçişi yumuşatır). ── */
+#glint-toast-container.glint-stack-mode {
+    /* Açık listede toast'lar arası 8px boşlukta hover kaybolup yığının
+       yanlışlıkla toplanmaması için container hit-test alanı olur
+       (yüksekliği JS içerikle eşitler — sayfayı gereksiz kapatmaz). */
+    pointer-events: auto;
+}
+
+    #glint-toast-container.glint-stack-mode .glint-toast {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: auto;
+        transform-origin: top center;
+        transform: translateY(var(--_stack-y, 0px)) scale(var(--_stack-scale, 1));
+        opacity: var(--_stack-opacity, 0);
+        transition: transform var(--glint-dur-5, 320ms) var(--glint-ease-move, cubic-bezier(0.77, 0, 0.175, 1)), opacity var(--glint-dur-4, 240ms) ease;
+    }
+
+    /* Bottom konumlar: yığın alttan yukarı istiflenir */
+    #glint-toast-container.glint-stack-mode.glint-pos-bottom-right .glint-toast,
+    #glint-toast-container.glint-stack-mode.glint-pos-bottom-left .glint-toast {
+        top: auto;
+        bottom: 0;
+        transform-origin: bottom center;
+    }
+
+    /* Kapalı yığında 4.+ toast: tamamen gizli (opacity değişkeni 0 yazar) */
+    #glint-toast-container.glint-stack-mode .glint-toast.glint-stack-hidden {
+        pointer-events: none;
+    }
+
+/* ── Reduced motion (v1.7 ekleri): şerit çizimi/tahliye anlık, yığın
+   aç-kapa geçişsiz ── */
+@media (prefers-reduced-motion: reduce) {
+    .glint-toast.glint-toast-enter::before,
+    .glint-toast.glint-toast-evict {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    #glint-toast-container.glint-stack-mode .glint-toast {
+        transition-duration: 0.01ms !important;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   v1.7 — İŞLEVSEL KATMAN
+   (klavye odağı · undo geri sayımı · grup "+N daha" · compact yoğunluk)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Klavye erişimi: ↑/↓ gezinme + Alt+Shift+T odak halkası
+   (actionable'daki kural genelleştirildi — tüm toast'lar tabindex -1) ── */
+.glint-toast:focus-visible {
+    outline: 2px solid var(--_toast-accent);
+    outline-offset: 2px;
+}
+
+/* ── Undo geri sayımı (opts.action.countdown): buton içinde altta, toast
+   süresine senkron daralan ince çizgi. Aynı glint-progress-drain keyframe'i
+   + running/paused sınıfları kullanılır → hover pause otomatik işler. ── */
+.glint-toast-action--countdown {
+    position: relative;
+    overflow: hidden;   /* çizgi butonun radius'una uysun */
+}
+
+.glint-toast-action-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--_toast-accent);
+    opacity: 0.55;
+    transform-origin: left;
+    transform: scaleX(1);
+    pointer-events: none;
+}
+
+    .glint-toast-action-line.glint-progress-running {
+        animation: glint-progress-drain linear forwards;
+    }
+
+    .glint-toast-action-line.glint-progress-paused {
+        animation-play-state: paused;
+        opacity: 0.3;
+    }
+
+/* Süre doldu → buton devre dışı (çıkış animasyonu sürerken tıklanamaz) */
+.glint-toast-action:disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* ── Grup/özet modu: 5 satırdan sonrası "+N daha" ── */
+.glint-toast-body ul li.glint-toast-more {
+    color: var(--glint-toast-muted, #9ca3af);
+    font-weight: 600;
+    font-size: 0.72rem;
+}
+
+    .glint-toast-body ul li.glint-toast-more::before {
+        opacity: 0.35;
+    }
+
+[data-bs-theme="dark"] .glint-toast-body ul li.glint-toast-more {
+    color: var(--glint-toast-muted-dark, #64748b);
+}
+
+/* ── Compact yoğunluk (Glint.Toast.configure({density:"compact"}))
+   Başlık + soluk mesaj TEK satırda: header display:contents ile çözülür,
+   flex order öğeleri [ikon · başlık · mesaj/aksiyon · rozet · kapat] dizer.
+   Çok satırlı gövde (ul) kendi sütununda kalır (zarif düşüş). ── */
+#glint-toast-container.glint-density-compact .glint-toast {
+    border-radius: 11px;
+}
+
+#glint-toast-container.glint-density-compact .glint-toast-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 8px 13px;
+}
+
+#glint-toast-container.glint-density-compact .glint-toast-header {
+    display: contents;
+}
+
+#glint-toast-container.glint-density-compact .glint-toast-icon {
+    order: 0;
+    width: 16px;
+    height: 16px;
+}
+
+    #glint-toast-container.glint-density-compact .glint-toast-icon svg {
+        width: 15px;
+        height: 15px;
+    }
+
+#glint-toast-container.glint-density-compact .glint-toast-spinner {
+    width: 13px;
+    height: 13px;
+}
+
+#glint-toast-container.glint-density-compact .glint-toast-title {
+    order: 1;
+    flex: 0 0 auto;
+    font-size: 0.775rem;
+}
+
+#glint-toast-container.glint-density-compact .glint-toast-body {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 0;
+    font-size: 0.75rem;
+    opacity: 0.92;   /* soluk mesaj */
+}
+
+    #glint-toast-container.glint-density-compact .glint-toast-body p {
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #glint-toast-container.glint-density-compact .glint-toast-body ul {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+#glint-toast-container.glint-density-compact .glint-toast-count {
+    order: 3;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+#glint-toast-container.glint-density-compact .glint-toast-close {
+    order: 4;
+    width: 20px;
+    height: 20px;
+}
+
+#glint-toast-container.glint-density-compact .glint-toast-action {
+    flex: 0 0 auto;
+    margin-top: 0;
+    padding: 3px 9px;
+    font-size: 11.5px;
+}
+
+#glint-toast-container.glint-density-compact .glint-toast--actionable .glint-toast-inner::after {
+    order: 5;
+    flex: 0 0 auto;
+    margin-top: 0;
+}
+
+#glint-toast-container.glint-density-compact .glint-toast-progress {
+    height: 4px;
+}
+
+/* ── Reduced motion (v1.7 işlevsel katman): geri sayım çizgisi progress
+   hüzmesiyle aynı davranır (anında biter; JS sayacı işlemeye devam eder) ── */
+@media (prefers-reduced-motion: reduce) {
+    .glint-toast-action-line.glint-progress-running {
+        animation-duration: 0.01ms !important;
+    }
 }
